@@ -7,7 +7,7 @@ local function quitApp()
 		app:kill()
 	end
 end
-local cmdQDelay = 1
+local cmdQDelay = 0.3
 
 util.bindHold(
 	{ "cmd" },

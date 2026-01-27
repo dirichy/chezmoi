@@ -3,7 +3,7 @@ M.opts = {
 	description = "hammerspoon auto generated",
 	ipcpath = "/opt/homebrew/bin",
 }
-local json = require("JSON")
+local json = require("cjson")
 M.functions = {}
 M.map = {}
 local modsTable =
@@ -47,7 +47,7 @@ function M._bind(mods, key, event, to)
 	local nmods = mods2number(mods)
 	M.map[key][nmods] = M.map[key][nmods] or {}
 	if M.map[key][nmods].to then
-		error("already binded: " .. key .. "+" .. json:encode(mods))
+		error("already binded: " .. key .. "+" .. json.encode(mods))
 	end
 	M.map[key][nmods][event] = format_to(to)
 end
@@ -138,7 +138,7 @@ function M.write(opts)
 	else
 		error("base.json not found!")
 	end
-	keymap = json:decode(keymap)
+	keymap = json.decode(keymap)
 	local rules = keymap.profiles[1].complex_modifications.rules
 	for index, rule in ipairs(rules) do
 		if rule.description == M.opts.description then

@@ -20,7 +20,7 @@ local cyclyShortcuts = {
 	down_arrow = { { 2, 7 }, { 3, 7 }, { 3, 8 } },
 }
 local abortKeys = { q = true, tab = false }
-local JSON = require("JSON")
+local JSON = require("cjson")
 local loop = {
 	title = "loop.lua",
 	rules = {
@@ -103,6 +103,6 @@ for key, value in pairs(cyclyShortcuts) do
 	table.insert(loop.rules[1].manipulators, mani)
 end
 local file = io.open(os.getenv("HOME") .. "/.config/karabiner/assets/complex_modifications/loop.json", "w")
-file:write(JSON:encode(loop))
+file:write(JSON.encode(loop))
 file:close()
 -- print(JSON:encode(loop))

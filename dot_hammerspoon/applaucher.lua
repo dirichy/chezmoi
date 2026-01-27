@@ -14,7 +14,7 @@ local shortcuts = {
 	-- v = "VLC.app",
 	spacebar = "Alfred 5.app",
 }
-local JSON = require("JSON")
+local JSON = require("cjson")
 local applaucher = {
 	title = "applaucher",
 	rules = {
@@ -41,7 +41,7 @@ for key, value in pairs(shortcuts) do
 		from = {
 			key_code = key,
 			modifiers = {
-				mandatory = { "command" },
+				mandatory = { "left_command" },
 			},
 		},
 		to = { shell_command = 'open -a "' .. value .. '"' },
@@ -66,5 +66,5 @@ applaucher.rules[1].manipulators[#applaucher.rules[1].manipulators + 1] = {
 	type = "basic",
 }
 local file = io.open(os.getenv("HOME") .. "/.config/karabiner/assets/complex_modifications/applaucher.json", "w")
-file:write(JSON:encode(applaucher))
+file:write(JSON.encode(applaucher))
 file:close()

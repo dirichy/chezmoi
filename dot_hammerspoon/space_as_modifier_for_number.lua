@@ -1,4 +1,4 @@
-local JSON = require("JSON")
+local JSON = require("cjson")
 local thershold = 100
 local space_as_modifier_for_number = {
 	title = "space_as_modifier_for_number.lua",
@@ -61,5 +61,5 @@ local file = io.open(
 	os.getenv("HOME") .. "/.config/karabiner/assets/complex_modifications/space_as_modifier_for_number.json",
 	"w"
 )
-file:write(JSON:encode(space_as_modifier_for_number))
+file:write(JSON.encode(space_as_modifier_for_number))
 file:close()

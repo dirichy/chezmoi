@@ -12,7 +12,7 @@ local complex_shortcuts = {
 	["8"] = "Repeat Area Capture",
 }
 
-local JSON = require("JSON")
+local JSON = require("cjson")
 local applaucher = { title = "shottr", rules = { {
 	description = "Use esc+number to shottr",
 	manipulators = {},
@@ -46,5 +46,5 @@ for key, value in pairs(complex_shortcuts) do
 	applaucher.rules[1].manipulators[#applaucher.rules[1].manipulators + 1] = mani
 end
 local file = io.open(os.getenv("HOME") .. "/.config/karabiner/assets/complex_modifications/shottr.json", "w")
-file:write(JSON:encode(applaucher))
+file:write(JSON.encode(applaucher))
 file:close()

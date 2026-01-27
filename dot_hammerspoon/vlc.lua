@@ -93,7 +93,7 @@ local dpadmap = {
 	up = { mouse_key = { x = -1536 } },
 	down = { mouse_key = { x = 1536 } },
 }
-local JSON = require("JSON")
+local JSON = require("cjson")
 local loop = {
 	title = "vlc",
 	rules = {
@@ -208,7 +208,7 @@ for key, value in pairs(dpadmap) do
 	table.insert(loop.rules[1].manipulators, mani)
 end
 local file = io.open(os.getenv("HOME") .. "/.config/karabiner/assets/complex_modifications/vlc.json", "w")
-file:write(JSON:encode(loop))
+file:write(JSON.encode(loop))
 file:close()
 
-print(JSON:encode(loop))
+print(JSON.encode(loop))

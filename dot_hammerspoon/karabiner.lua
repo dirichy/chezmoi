@@ -6,7 +6,7 @@ M.opts = {
 	ipcpath = "/usr/local/",
 }
 
-local json = require("JSON")
+local json = require("cjson")
 local keymap
 local manipulators = {}
 function M.setup(opts)
@@ -18,7 +18,7 @@ function M.setup(opts)
 	else
 		error("base.json not found!")
 	end
-	keymap = json:decode(keymap)
+	keymap = json.decode(keymap)
 	local rules = keymap.profiles[1].complex_modifications.rules
 	for index, rule in ipairs(rules) do
 		if rule.description == M.opts.description then
@@ -37,7 +37,7 @@ function M.write()
 	keymap.profiles[1].complex_modifications.rules[#keymap.profiles[1].complex_modifications.rules + 1] =
 		{ description = M.opts.description, manipulators = manipulators }
 	local file = io.open("/Users/dirichy/.config/karabiner/karabiner.json", "w")
-	file:write(json:encode(keymap))
+	file:write(json.encode(keymap))
 	file:close()
 end
 
