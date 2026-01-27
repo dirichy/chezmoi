@@ -1,4 +1,6 @@
 echo "warning: your network can't access google.com, will try to use tsinghua mirrors, which may cause some issue."
+echo "Press enter to continue, Ctrl+c to stop"
+read -n 1
 function install_brew(){
   git clone --depth=1 https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/install.git brew-install
 /bin/bash brew-install/install.sh
