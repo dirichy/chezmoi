@@ -1,0 +1,67 @@
+local ls = require("luasnip")
+local events = require("luasnip.util.events")
+local s = ls.snippet
+local sn = ls.snippet_node
+local t = ls.text_node
+local i = ls.insert_node
+local f = ls.function_node
+local d = ls.dynamic_node
+local c = ls.choice_node
+local fmt = require("luasnip.extras.fmt").fmt
+local fmta = require("luasnip.extras.fmt").fmta
+local rep = require("luasnip.extras").rep
+local in_pairs = false
+
+vim.keymap.set("i", "<bs>", function()
+	if in_pairs then
+		return "<del><bs>"
+	else
+		return "<bs>"
+	end
+end, { expr = true })
+vim.keymap.set("i", "<enter>", function()
+	if in_pairs then
+		return '<cmd>lua require("luasnip").change_choice()<cr>'
+	else
+		return "<cr>"
+	end
+end, { expr = true })
+local pairs = {
+	{},
+}
+return {
+	s("choicenode", c(1, { t("choice 1"), t("choice 2"), t("choice 3") })),
+	s(
+		{ trig = "(", snippetType = "autosnippet" },
+		c(1, {
+			sn(nil, {
+				t("("),
+				i(1, "", {
+					node_callbacks = {
+						[events.enter] = function()
+							in_pairs = true
+						end,
+						[events.leave] = function()
+							in_pairs = false
+						end,
+					},
+				}),
+				t(")"),
+				i(0),
+			}),
+			sn(nil, { t({ "(", "  " }), i(1), t({ "", ")" }), i(0) }),
+		})
+	),
+	-- s(
+	--   { trig = "test(%d)", regTrig = true, snippetType = "autosnippet" },
+	--   fmta("<>", {
+	--     i(1),
+	--   }),
+	--   {
+	--     condition = function(_, _, captures)
+	--       vim.print(captures)
+	--       return true
+	--     end,
+	--   }
+	-- ),
+}

@@ -1,0 +1,878 @@
+# AFF
+pr:
+  &pr {
+    type: select,
+    proxies:
+      [
+        默认节点,
+        香港,
+        台湾,
+        日本,
+        新加坡,
+        美国,
+        其它地区,
+        手动选择,
+        自动选择,
+        DIRECT,
+      ],
+    use: [ikuuu, wyyctc],
+  }
+# 延迟检测 URL
+p: &p
+  type: http
+  # 自动更新订阅时间，单位为秒
+  interval: 3600
+  health-check:
+    enable: true
+    url: https://cp.cloudflare.com
+    # 节点连通性检测时间，单位为秒
+    interval: 300
+    # 节点超时延迟，单位为毫秒
+    timeout: 1000
+    # 节点自动切换差值，单位为毫秒
+    tolerance: 100
+
+# 基础配置
+# --------------------------------------------------
+# 如果你是小白，那么你只需要修改分割线以内的内容
+# 其他部分保持不动即可
+
+# 也可以把分割线以内的内容粘贴到您使用代理工具的「覆写」功能，然后在覆写中进行修改
+# 使用覆写时可以直接将此配置文件作为订阅链接进行订阅
+# https://ghfast.top/https://gist.githubusercontent.com/liuran001/5ca84f7def53c70b554d3f765ff86a33/raw/config.yaml
+
+# 如果你需要使用大于两个机场，在下方 `use` 处添加 `订阅三` （名字可以自己取），然后在 `proxy-providers` 照例添加订阅链接即可
+# 反之，如果你只需要使用一个，那么将 `订阅二` 前添加 `#` 进行注释即可
+
+# 订阅名，记得修改成自己的
+# 添删订阅在这里和下方订阅链接依葫芦画瓢就行
+use: &use
+  # 如果不希望自动切换请将下面两行注释对调
+  # type: select
+  type: url-test
+  use:
+    - ikuuu
+    - wyyctc
+    # - 订阅二
+    # - 本地配置
+
+# 订阅链接
+# 对于订阅来说，path 为选填项，但建议启用
+# 本地配置可以只填 path
+proxy-providers:
+  ikuuu:
+    <<: *p
+    path: ./proxy_provider/ikuuu.yaml
+    url: {{secret "ikuuu" "http://example.subscribe.com"| quote}}
+  # 如需要为该订阅组节点添加前缀，取消下面两行注释
+  # override:
+  # additional-prefix: "[订阅一]"
+
+  wyyctc:
+    <<: *p
+    path: ./proxy_provider/wyyctc.yaml
+    url: {{secret "wyyctc" "http://example.subscribe.com" | quote}}
+    # 如需要为该订阅组节点添加前缀，取消下面两行注释
+    # override:
+    # additional-prefix: "[订阅二]"
+
+  # 本地配置:
+  # <<: *p
+  # path: ./proxy_provider/本地配置.yaml
+  # 如需要为该订阅组节点添加前缀，取消下面两行注释
+  # override:
+  # additional-prefix: "[本地配置]"
+
+# 小白请不要继续随意修改以下设置
+# 若需修改请参阅文档 https://wiki.metacubex.one
+# --------------------------------------------------
+
+# 规则订阅
+rule-providers:
+  # 秋风广告拦截规则
+  # https://awavenue.top
+  # 由于 Anti-AD 误杀率高，本项目已在 1.11-241024 版本更换秋风广告规则
+  fudan-direct:
+    type: http
+    behavior: domain
+    format: text
+    # path可为空(仅限clash.meta 1.15.0以上版本)
+    url: "https://ghfast.top/https://raw.githubusercontent.com/dirichy/mihomo_fudan_rule/refs/heads/main/fudan-direct.list"
+    path: ./rule_provider/fudan-direct.list
+  fudan:
+    type: http
+    behavior: domain
+    format: text
+    # path可为空(仅限clash.meta 1.15.0以上版本)
+    url: "https://ghfast.top/https://raw.githubusercontent.com/dirichy/mihomo_fudan_rule/refs/heads/main/fudan.list"
+    path: ./rule_provider/fudan.list
+  AWAvenue-Ads:
+    type: http
+    behavior: domain
+    format: yaml
+    # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/AWAvenue-Ads.yaml
+    url: "https://ghfast.top/https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/refs/heads/main/Filters/AWAvenue-Ads-Rule-Clash-Classical.yaml"
+    interval: 600
+  aidomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/ai.list"
+    # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/ai.list
+  apnsdomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/apns.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/apns.list
+  apnsipcidr:
+    type: http
+    interval: 600
+    behavior: ipcidr
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/apns.list"
+    path: ./rule_provider/ipcidr/apns.list
+  apple-cndomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/apple-cn.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/apple-cn.list
+  apple-proxydomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/apple-proxy.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/apple-proxy.list
+  appledomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/apple.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/apple.list
+  appleipcidr:
+    type: http
+    interval: 600
+    behavior: ipcidr
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/apple.list"
+    path: ./rule_provider/ipcidr/apple.list
+  cdndomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/cdn.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/cdn.list
+  cndomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/cn.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/cn.list
+  cnipcidr:
+    type: http
+    interval: 600
+    behavior: ipcidr
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/cn.list"
+    path: ./rule_provider/ipcidr/cn.list
+  bilibilidomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/bilibili.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/bilibili.list
+  bilibiliipcidr:
+    type: http
+    interval: 600
+    behavior: ipcidr
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/bilibili.list"
+    path: ./rule_provider/ipcidr/bilibili.list
+  dmcadomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/dmca.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/dmca.list
+  dmcaipcidr:
+    type: http
+    interval: 600
+    behavior: ipcidr
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/dmca.list"
+    path: ./rule_provider/ipcidr/dmca.list
+  dmmdomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/dmm.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/dmm.list
+  dmmipcidr:
+    type: http
+    interval: 600
+    behavior: ipcidr
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/dmm.list"
+    path: ./rule_provider/ipcidr/dmm.list
+  games-cndomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/games-cn.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/games-cn.list
+  gamesdomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/games.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/games.list
+  gamesipcidr:
+    type: http
+    interval: 600
+    behavior: ipcidr
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/games.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/ipcidr/games.list
+  ecommercedomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/ecommerce.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/ecommerce.list
+  ecommerceipcidr:
+    type: http
+    interval: 600
+    behavior: ipcidr
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/ecommerce.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/ipcidr/ecommerce.list
+  forumdomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/forum.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/forum.list
+  gfwdomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/gfw.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/gfw.list
+  gfwipcidr:
+    type: http
+    interval: 600
+    behavior: ipcidr
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/gfw.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/ipcidr/gfw.list
+  gitsdomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/gits.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/gits.list
+  googledomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/google.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/google.list
+  googleipcidr:
+    type: http
+    interval: 600
+    behavior: ipcidr
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/google.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/ipcidr/google.list
+  googlefcmdomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/googlefcm.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/googlefcm.list
+  googlefcmipcidr:
+    type: http
+    interval: 600
+    behavior: ipcidr
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/googlefcm.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/ipcidr/googlefcm.list
+  httpdnsdomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/httpdns.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/httpdns.list
+  httpdnsipcidr:
+    type: http
+    interval: 600
+    behavior: ipcidr
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/httpdns.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/ipcidr/httpdns.list
+  iplocation-proxydomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/iplocation-proxy.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/iplocation-proxy.list
+  iplocation-proxyipcidr:
+    type: http
+    interval: 600
+    behavior: ipcidr
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/iplocation-proxy.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/ipcidr/iplocation-proxy.list
+  iplocation-directdomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/iplocation-direct.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/iplocation-direct.list
+  microsoft-cndomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/microsoft-cn.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/microsoft-cn.list
+  microsoftdomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/microsoft.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/microsoft.list
+  onedrivedomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/onedrive.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/onedrive.list
+  paypaldomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/paypal.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/paypal.list
+  privatedomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/private.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/private.list
+  privateipcidr:
+    type: http
+    interval: 600
+    behavior: ipcidr
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/private.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/ipcidr/private.list
+  proxydomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/proxy.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/proxy.list
+  proxyipcidr:
+    type: http
+    interval: 600
+    behavior: ipcidr
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/proxy.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/ipcidr/proxy.list
+  socialmedia-cndomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/socialmedia-cn.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/socialmedia-cn.list
+  socialmedia-cnipcidr:
+    type: http
+    interval: 600
+    behavior: ipcidr
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/socialmedia-cn.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/ipcidr/socialmedia-cn.list
+  socialmediadomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/socialmedia.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/socialmedia.list
+  socialmediaipcidr:
+    type: http
+    interval: 600
+    behavior: ipcidr
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/socialmedia.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/ipcidr/socialmedia.list
+  speedtestdomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/speedtest.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/speedtest.list
+  spotifydomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/spotify.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/spotify.list
+  spotifyipcidr:
+    type: http
+    interval: 600
+    behavior: ipcidr
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/spotify.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/ipcidr/spotify.list
+  tiktokdomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/tiktok.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/tiktok.list
+  tld-proxydomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/tld-proxy.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/tld-proxy.list
+  youtubedomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/youtube.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/youtube.list
+  youtubeipcidr:
+    type: http
+    interval: 600
+    behavior: ipcidr
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/youtube.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/ipcidr/youtube.list
+  fake-ip-filterdomain:
+    type: http
+    interval: 600
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/fake-ip-filter.list" # path可为空(仅限clash.meta 1.15.0以上版本)
+    path: ./rule_provider/domain/fake-ip-filter.list
+
+mode: rule
+# ipv6 支持
+ipv6: true
+log-level: info
+# 允许局域网连接
+allow-lan: true
+# socks5/http 端口
+mixed-port: 7890
+redir-port: 7892
+port: 7891
+# Meta 内核特性 https://wiki.metacubex.one/config/general
+# 统一延迟
+# 更换延迟计算方式,去除握手等额外延迟
+unified-delay: true
+# TCP 并发
+# 同时对所有ip进行连接，返回延迟最低的地址
+tcp-concurrent: true
+# 外部控制端口
+external-controller: :9090
+# to get this work please clone an ui into /path/to/mihomo/config/dir/ui
+# for example:
+# git clone https://github.com/metacubex/metacubexd.git -b gh-pages ui
+# then you can use localhost:9090/ui to attach ui controller
+external-ui: ui
+
+geodata-mode: true
+
+# Geo 数据库下载地址
+# 源地址 https://github.com/MetaCubeX/meta-rules-dat
+# 可以更换镜像站但不要更换其他数据库，可能导致无法启动
+geox-url:
+  geoip: "https://ghfast.top/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat"
+  geosite: "https://ghfast.top/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat"
+  mmdb: "https://ghfast.top/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country.mmdb"
+
+# 进程匹配模式
+# 路由器上请设置为 off
+# always 开启，强制匹配所有进程
+# strict 默认，由 Clash 判断是否开启
+# off 不匹配进程，推荐在路由器上使用此模式
+find-process-mode: strict
+
+# 缓解移动设备耗电问题
+# https://github.com/vernesong/OpenClash/issues/2614
+# keep-alive-interval: 1800
+
+# 全局客户端指纹
+global-client-fingerprint: random # 随机指纹
+
+# 缓存
+profile:
+  store-selected: true
+  store-fake-ip: true
+
+# 自动同步时间以防止时间不准导致无法正常联网
+# ntp:
+#   enable: true
+#   # 是否同步至系统时间，需要 root/管理员权限
+#   write-to-system: false
+#   server: time.apple.com
+#   port: 123
+#   interval: 30
+
+# 域名嗅探
+sniffer:
+  enable: true
+  sniff:
+    TLS:
+      ports: [443, 8443]
+    HTTP:
+      ports: [80, 8080-8880]
+      override-destination: true
+
+# tun 模式
+tun:
+  enable: false # enable 'true'
+  stack: system # or 'gvisor'
+  dns-hijack:
+    - "any:53"
+    - "tcp://any:53"
+  auto-route: true
+  auto-detect-interface: true
+
+# dns 设置
+# 已配置 ipv6
+dns:
+  enable: true
+  cache-algorithm: arc
+  prefer-h3: false
+  use-hosts: true
+  use-system-hosts: true
+  respect-rules: false
+  listen: 0.0.0.0:1053
+  ipv6: false
+  default-nameserver:
+    - 223.5.5.5
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter-mode: blacklist
+  fake-ip-filter:
+    - rule-set:fake-ip-filterdomain
+    - rule-set:fudan
+    - rule-set:fudan-direct
+    - "+.launchpad.net"
+    - "launchpad.net"
+  nameserver-policy:
+    "+.arpa": "10.0.0.1"
+    "ruset:fudan": system
+    "ruset:fudan-direct": system
+    "rule-set:cndomain":
+      - https://doh.pub/dns-query
+      - https://dns.alidns.com/dns-query
+  nameserver:
+    - https://doh.pub/dns-query
+    - https://dns.alidns.com/dns-query
+  fallback:
+    - tls://8.8.4.4
+    - tls://1.1.1.1
+  proxy-server-nameserver:
+    - https://doh.pub/dns-query
+  fallback-filter:
+    geoip: true
+    geoip-code: CN
+    geosite:
+      - gfw
+    ipcidr:
+      - 240.0.0.0/4
+    domain:
+      - "+.google.com"
+      - "+.facebook.com"
+      - "+.youtube.com"
+
+# 多入站端口设置
+# listeners:
+#   - name: hk
+#     type: mixed
+#     port: 12991
+#     proxy: 香港
+
+#   - name: tw
+#     type: mixed
+#     port: 12992
+#     proxy: 台湾
+
+#   - name: sg
+#     type: mixed
+#     port: 12993
+#     proxy: 新加坡
+
+proxies:
+  - name: localhost_1081
+    type: http
+    server: 127.0.0.1
+    port: 1081
+  - name: arch_eva_1081
+    type: http
+    server: 192.168.31.88
+    port: 1081
+  - name: arch_dirichy_1081
+    type: http
+    server: 192.168.1.88
+    port: 1081
+  - name: dell_1081
+    type: http
+    server: 192.168.1.66
+    port: 1081
+  # - name: "WARP"
+  #   type: wireguard
+  #   server: engage.cloudflareclient.com
+  #   port: 2408
+  #   ip: "172.16.0.2/32"
+  #   ipv6: "2606::1/128"        # 自行替换
+  #   private-key: "private-key" # 自行替换
+  #   public-key: "public-key"   # 自行替换
+  #   udp: true
+  #   reserved: "abba"           # 自行替换
+  #   mtu: 1280
+  #   dialer-proxy: "WARP前置"
+  #   remote-dns-resolve: true
+  #   dns:
+  #     - https://dns.cloudflare.com/dns-query
+
+proxy-groups:
+  # 使用 WARP 的用户需要手动在下方的 proxies 字段内添加 WARP
+  # 例如 [WARP, 手动选择, 自动选择, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, DIRECT],
+  - {
+      name: 默认节点,
+      type: select,
+      proxies:
+        [自动选择, 手动选择, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, DIRECT],
+    }
+  # 这里的 dns 指海外解析 dns 走的节点，一般跟随默认节点即可
+  # - { name: dns, <<: *pr }
+  # WARP 配置链式出站
+  # - { name: WARP前置, <<: *pr, exclude-type: "wireguard" }
+  - {
+      name: Fudan,
+      type: url-test,
+      url: "https://icourse.fudan.edu.cn",
+      proxies:
+        [DIRECT, localhost_1081, arch_eva_1081, arch_dirichy_1081, dell_1081],
+    }
+  - { name: 广告拦截, type: select, proxies: [REJECT, DIRECT, 默认节点] }
+  - { name: 境外AI, <<: *pr }
+  - { name: 境外网站, <<: *pr }
+  - { name: Cdn, <<: *pr }
+  - { name: Ecommerce, <<: *pr }
+  - { name: Forum, <<: *pr }
+  - { name: Speedtest, <<: *pr }
+  # Apple 推荐走全局直连
+  - { name: Apple, <<: *pr }
+  - { name: Google, <<: *pr }
+  - { name: Telegram, <<: *pr }
+  - { name: Twitter, <<: *pr }
+  - { name: Pixiv, <<: *pr }
+  - { name: ehentai, <<: *pr }
+  # 下面两个看需求启用，打开之后会代理全站流量，可能导致部分版权视频反而无法播放或视频播放速度缓慢
+  # 下面 rules 两条也要启用
+  # - {name: 哔哩哔哩, <<: *pr}
+  # - {name: 哔哩东南亚, <<: *pr}
+  - { name: 巴哈姆特, <<: *pr }
+  - { name: YouTube, <<: *pr }
+  - { name: NETFLIX, <<: *pr }
+  - { name: TikTok, <<: *pr }
+  - { name: Spotify, <<: *pr }
+  - { name: Github, <<: *pr }
+  - { name: Steam, <<: *pr }
+  - { name: OneDrive, <<: *pr }
+  - { name: 微软服务, <<: *pr }
+  - {
+      name: 国内,
+      type: select,
+      proxies:
+        [
+          DIRECT,
+          默认节点,
+          香港,
+          台湾,
+          日本,
+          新加坡,
+          美国,
+          其它地区,
+          手动选择,
+          自动选择,
+        ],
+    }
+  # 其他就是所有规则没匹配到的
+  # 可以理解为 ACL4SSR 配置里的 漏网之鱼
+  # 换言之，其他走代理就是绕过中国大陆地址，不走就是 GFWList 模式
+  - { name: 其他, <<: *pr }
+
+  # 分隔,下面是地区分组
+  - {
+      name: 香港,
+      <<: *use,
+      filter: "(?i)港|hk|hongkong|hong kong",
+      hidden: true,
+    }
+  - { name: 台湾, <<: *use, filter: "(?i)台|tw|taiwan", hidden: true }
+  - { name: 日本, <<: *use, filter: "(?i)日本|jp|japan", hidden: true }
+  - {
+      name: 美国,
+      <<: *use,
+      filter: "(?i)美|us|unitedstates|united states",
+      hidden: true,
+    }
+  - { name: 新加坡, <<: *use, filter: "(?i)(新|sg|singapore)", hidden: true }
+  - {
+      name: 其它地区,
+      <<: *use,
+      filter: "(?i)^(?!.*(?:🇭🇰|🇯🇵|🇺🇸|🇸🇬|🇨🇳|港|hk|hongkong|台|tw|taiwan|日|jp|japan|新|sg|singapore|美|us|unitedstates)).*",
+      hidden: true,
+    }
+  - { name: 手动选择, <<: *use, type: select }
+  - {
+      name: 自动选择,
+      <<: *use,
+      type: url-test,
+      exclude-filter: "免费|下载专用",
+    }
+
+rules:
+  - RULE-SET,fudan-direct,DIRECT
+  - RULE-SET,fudan,Fudan
+  - DOMAIN-SUFFIX,tail182416.ts.net,DIRECT
+  # 若需禁用 QUIC 请取消注释 QUIC 两条规则
+  # 防止 YouTube 等使用 QUIC 导致速度不佳, 禁用 443 端口 UDP 流量（不包括国内）
+  # - AND,(AND,(DST-PORT,443),(NETWORK,UDP)),(NOT,((GEOSITE,cn))),REJECT
+  # - AND,(AND,(DST-PORT,443),(NETWORK,UDP)),(NOT,((GEOIP,CN))),REJECT
+
+  # - GEOSITE,biliintl,哔哩东南亚
+  # - GEOSITE,bilibili,哔哩哔哩
+  # - GEOSITE,category-scholar-!cn,境外AI
+  # - DOMAIN-SUFFIX,openai.com,境外AI
+  # - DOMAIN-SUFFIX,chatgpt.com,境外AI
+  # - DOMAIN-SUFFIX,ai.com,境外AI
+  # - DOMAIN-SUFFIX,ocp.openai.com,境外AI
+  # - DOMAIN-SUFFIX,cdn.openai.com,境外AI
+  - RULE-SET,dmcadomain,DIRECT
+  - RULE-SET,bilibilidomain,DIRECT
+  - RULE-SET,youtubedomain,YouTube
+  - RULE-SET,googledomain,Google
+  - RULE-SET,paypaldomain,Ecommerce
+  - RULE-SET,gitsdomain,Github
+  - RULE-SET,spotifydomain,Spotify
+  - RULE-SET,tiktokdomain,TikTok
+  - RULE-SET,dmmdomain,日本
+  - RULE-SET,onedrivedomain,OneDrive
+  - RULE-SET,aidomain,境外AI
+  - RULE-SET,microsoftdomain,微软服务
+  - RULE-SET,forumdomain,Forum
+  - RULE-SET,games-cndomain,DIRECT
+  - RULE-SET,gamesdomain,Steam
+  - RULE-SET,ecommercedomain,Ecommerce
+  - RULE-SET,apple-cndomain,DIRECT
+  - RULE-SET,microsoft-cndomain,DIRECT
+  - RULE-SET,googlefcmdomain,Google
+  - RULE-SET,apple-proxydomain,Apple
+  - RULE-SET,socialmedia-cndomain,DIRECT
+  - RULE-SET,socialmediadomain,Forum
+  - RULE-SET,apnsdomain,DIRECT
+  - RULE-SET,appledomain,DIRECT
+  - RULE-SET,cdndomain,Cdn
+  - RULE-SET,cndomain,DIRECT
+  - RULE-SET,httpdnsdomain,REJECT
+  - RULE-SET,privatedomain,DIRECT
+  - RULE-SET,speedtestdomain,Speedtest
+  - RULE-SET,iplocation-directdomain,DIRECT
+  - RULE-SET,iplocation-proxydomain,境外网站
+  - RULE-SET,proxydomain,境外网站
+  - RULE-SET,gfwdomain,境外网站
+  - RULE-SET,tld-proxydomain,境外网站
+  - RULE-SET,dmcaipcidr,DIRECT
+  - RULE-SET,spotifyipcidr,Spotify
+  - RULE-SET,bilibiliipcidr,DIRECT
+  - RULE-SET,gamesipcidr,Steam
+  - RULE-SET,youtubeipcidr,YouTube
+  - RULE-SET,googleipcidr,Google
+  - RULE-SET,googlefcmipcidr,Google
+  - RULE-SET,ecommerceipcidr,Ecommerce
+  - RULE-SET,socialmedia-cnipcidr,DIRECT
+  - RULE-SET,socialmediaipcidr,Forum
+  - RULE-SET,dmmipcidr,日本
+  - RULE-SET,apnsipcidr,DIRECT
+  - RULE-SET,appleipcidr,DIRECT
+  - RULE-SET,cnipcidr,DIRECT
+  - RULE-SET,httpdnsipcidr,REJECT
+  - RULE-SET,privateipcidr,DIRECT
+  - RULE-SET,proxyipcidr,境外网站
+  - RULE-SET,gfwipcidr,境外网站
+  - RULE-SET,iplocation-proxyipcidr,境外网站
+  - GEOSITE,apple,Apple
+  - GEOSITE,apple-cn,Apple
+  - GEOSITE,ehentai,ehentai
+  - GEOSITE,github,Github
+  - GEOSITE,twitter,Twitter
+  - GEOSITE,youtube,YouTube
+  - GEOSITE,google,Google
+  - GEOSITE,google-cn,Google # Google CN 不走代理会导致香港等地区节点 Play Store 异常
+  - GEOSITE,telegram,Telegram
+  - GEOSITE,netflix,NETFLIX
+  - GEOSITE,tiktok,TikTok
+  - GEOSITE,bahamut,巴哈姆特
+  - GEOSITE,spotify,Spotify
+  - GEOSITE,pixiv,Pixiv
+  - GEOSITE,onedrive,OneDrive
+  - GEOSITE,microsoft,微软服务
+  - GEOSITE,geolocation-!cn,其他
+  - GEOIP,google,Google
+  - GEOIP,netflix,NETFLIX
+  - GEOIP,telegram,Telegram
+  - GEOIP,twitter,Twitter
+  - GEOSITE,CN,国内
+  - GEOIP,CN,国内
+  # - RULE-SET,tld-proxyipcidr,境外网站
+  # 绕过局域网地址
+  - IP-CIDR,10.0.0.0/8,DIRECT
+  - IP-CIDR,172.16.0.0/12,DIRECT
+  - IP-CIDR,192.168.0.0/16,DIRECT
+  - IP-CIDR,100.64.0.0/10,DIRECT
+  - IP-CIDR,127.0.0.0/8,DIRECT
+  - MATCH,其他

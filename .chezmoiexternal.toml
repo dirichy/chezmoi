@@ -1,0 +1,20 @@
+{{if eq .chezmoi.os "darwin"}}
+{{template "hammerspoon_installspoon" "Caffeine"}}
+{{template "hammerspoon_installspoon" "EmmyLua"}}
+[".local/bin/fdu-connect"]
+type="archive-file"
+url="https://ghfast.top/https://github.com/AkiraSalvare/fdu-connect/releases/download/0.1.0/fdu-connect-darwin-arm64.zip"
+path="fdu-connect"
+executable=true
+{{end}}
+{{if eq .name "dirichy"}}
+[".local/share/gopass/stores/root/"]
+type = "git-repo"
+url = "https://ghfast.top/https://github.com/dirichy/gopass.git"
+refreshPeriod = "168h"
+{{end}}
+#
+# [".config/mihomo/ui"]
+# type = "git-repo"
+# url = "https://ghfast.top/https://github.com/metacubex/metacubexd.git"
+# refreshPeriod = "168h"

@@ -1,0 +1,1187 @@
+{
+    "global": { "show_in_menu_bar": false },
+    "profiles": [
+        {
+            "complex_modifications": {
+                "parameters": { "basic.to_delayed_action_delay_milliseconds": 200 },
+                "rules": [
+                    {
+                        "description": "Use command + key to open app",
+                        "manipulators": [
+                            {
+                                "from": {
+                                    "key_code": "spacebar",
+                                    "modifiers": { "mandatory": ["command"] }
+                                },
+                                "to": { "shell_command": "open -a \"Alfred 5.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "d",
+                                    "modifiers": { "mandatory": ["command"] }
+                                },
+                                "to": { "shell_command": "open -a \"Eudic.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "s",
+                                    "modifiers": { "mandatory": ["command"] }
+                                },
+                                "to": { "shell_command": "open -a \"sioyek.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "b",
+                                    "modifiers": { "mandatory": ["command"] }
+                                },
+                                "to": { "shell_command": "open -a \"Google Chrome.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "q",
+                                    "modifiers": { "mandatory": ["command"] }
+                                },
+                                "to": { "shell_command": "open -a \"QQ.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "t",
+                                    "modifiers": { "mandatory": ["command"] }
+                                },
+                                "to": { "shell_command": "open -a \"kitty.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "w",
+                                    "modifiers": { "mandatory": ["command"] }
+                                },
+                                "to": { "shell_command": "open -a \"WeChat.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "q",
+                                    "modifiers": { "mandatory": ["option"] }
+                                },
+                                "to": {
+                                    "key_code": "w",
+                                    "modifiers": ["command"]
+                                },
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
+                        "description": "fn to switch im",
+                        "manipulators": [
+                            {
+                                "conditions": [
+                                    {
+                                        "input_sources": [{ "language": "en" }],
+                                        "type": "input_source_if"
+                                    }
+                                ],
+                                "from": { "apple_vendor_top_case_key_code": "keyboard_fn" },
+                                "to": [{ "apple_vendor_top_case_key_code": "keyboard_fn" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": { "apple_vendor_top_case_key_code": "keyboard_fn" },
+                                "to": [
+                                    {
+                                        "apple_vendor_top_case_key_code": "keyboard_fn",
+                                        "lazy": true
+                                    }
+                                ],
+                                "to_if_alone": [{ "shell_command": "'/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote' -t" }],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
+                        "description": "Keybind for using joycon to control sioyek, see github.com/dirichy/dotfiles",
+                        "manipulators": [
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^info\\.sioyek\\.sioyek$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    },
+                                    {
+                                        "identifiers": [{ "vendor_id": 1406 }],
+                                        "type": "device_if"
+                                    }
+                                ],
+                                "from": { "generic_desktop": "dpad_down" },
+                                "to": [
+                                    {
+                                        "key_code": "l",
+                                        "modifiers": []
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^info\\.sioyek\\.sioyek$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    },
+                                    {
+                                        "identifiers": [{ "vendor_id": 1406 }],
+                                        "type": "device_if"
+                                    }
+                                ],
+                                "from": { "pointing_button": "button16" },
+                                "to": [
+                                    {
+                                        "key_code": "quote",
+                                        "modifiers": []
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^info\\.sioyek\\.sioyek$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    },
+                                    {
+                                        "identifiers": [{ "vendor_id": 1406 }],
+                                        "type": "device_if"
+                                    }
+                                ],
+                                "from": { "pointing_button": "button2" },
+                                "to": [
+                                    {
+                                        "key_code": "x",
+                                        "modifiers": []
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^info\\.sioyek\\.sioyek$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    },
+                                    {
+                                        "identifiers": [{ "vendor_id": 1406 }],
+                                        "type": "device_if"
+                                    }
+                                ],
+                                "from": { "generic_desktop": "dpad_up" },
+                                "to": [
+                                    {
+                                        "key_code": "h",
+                                        "modifiers": []
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^info\\.sioyek\\.sioyek$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    },
+                                    {
+                                        "identifiers": [{ "vendor_id": 1406 }],
+                                        "type": "device_if"
+                                    }
+                                ],
+                                "from": { "pointing_button": "button5" },
+                                "to": [
+                                    {
+                                        "key_code": "i",
+                                        "modifiers": ["right_control"]
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^info\\.sioyek\\.sioyek$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    },
+                                    {
+                                        "identifiers": [{ "vendor_id": 1406 }],
+                                        "type": "device_if"
+                                    }
+                                ],
+                                "from": { "pointing_button": "button4" },
+                                "to": [
+                                    {
+                                        "key_code": "y",
+                                        "modifiers": []
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^info\\.sioyek\\.sioyek$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    },
+                                    {
+                                        "identifiers": [{ "vendor_id": 1406 }],
+                                        "type": "device_if"
+                                    }
+                                ],
+                                "from": { "pointing_button": "button3" },
+                                "to": [
+                                    {
+                                        "key_code": "b",
+                                        "modifiers": []
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^info\\.sioyek\\.sioyek$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    },
+                                    {
+                                        "identifiers": [{ "vendor_id": 1406 }],
+                                        "type": "device_if"
+                                    }
+                                ],
+                                "from": { "pointing_button": "button6" },
+                                "to": [
+                                    {
+                                        "key_code": "o",
+                                        "modifiers": ["right_control"]
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^info\\.sioyek\\.sioyek$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    },
+                                    {
+                                        "identifiers": [{ "vendor_id": 1406 }],
+                                        "type": "device_if"
+                                    }
+                                ],
+                                "from": { "pointing_button": "button13" },
+                                "to": [
+                                    {
+                                        "key_code": "s",
+                                        "modifiers": []
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^info\\.sioyek\\.sioyek$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    },
+                                    {
+                                        "identifiers": [{ "vendor_id": 1406 }],
+                                        "type": "device_if"
+                                    }
+                                ],
+                                "from": { "pointing_button": "button15" },
+                                "to": [
+                                    {
+                                        "key_code": "m",
+                                        "modifiers": []
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^info\\.sioyek\\.sioyek$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    },
+                                    {
+                                        "identifiers": [{ "vendor_id": 1406 }],
+                                        "type": "device_if"
+                                    }
+                                ],
+                                "from": { "generic_desktop": "dpad_left" },
+                                "to": [
+                                    {
+                                        "key_code": "j",
+                                        "modifiers": []
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^info\\.sioyek\\.sioyek$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    },
+                                    {
+                                        "identifiers": [{ "vendor_id": 1406 }],
+                                        "type": "device_if"
+                                    }
+                                ],
+                                "from": { "pointing_button": "button1" },
+                                "to": [
+                                    {
+                                        "key_code": "a",
+                                        "modifiers": []
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^info\\.sioyek\\.sioyek$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    },
+                                    {
+                                        "identifiers": [{ "vendor_id": 1406 }],
+                                        "type": "device_if"
+                                    }
+                                ],
+                                "from": { "generic_desktop": "dpad_right" },
+                                "to": [
+                                    {
+                                        "key_code": "k",
+                                        "modifiers": []
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^info\\.sioyek\\.sioyek$"
+                                        ],
+                                        "type": "frontmost_application_if"
+                                    },
+                                    {
+                                        "identifiers": [{ "vendor_id": 1406 }],
+                                        "type": "device_if"
+                                    }
+                                ],
+                                "from": { "pointing_button": "button10" },
+                                "to": [
+                                    {
+                                        "key_code": "equal_sign",
+                                        "modifiers": ["right_shift"]
+                                    }
+                                ],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
+                        "description": "Use left hand to move",
+                        "manipulators": [
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "left_hand",
+                                        "type": "variable_if",
+                                        "value": 0
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "escape",
+                                    "modifiers": { "mandatory": ["command"] }
+                                },
+                                "to": [
+                                    {
+                                        "set_variable": {
+                                            "name": "left_hand",
+                                            "value": 1
+                                        }
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "left_hand",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "escape",
+                                    "modifiers": { "mandatory": ["command"] }
+                                },
+                                "to": [
+                                    {
+                                        "set_variable": {
+                                            "name": "left_hand",
+                                            "value": 0
+                                        }
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "left_hand",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "left_option" },
+                                "to": [{ "key_code": "left_option" }],
+                                "to_if_alone": [{ "key_code": "right_arrow" }],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "left_hand",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "left_control" },
+                                "to": [{ "key_code": "left_control" }],
+                                "to_if_alone": [{ "key_code": "down_arrow" }],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "left_hand",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "left_shift" },
+                                "to": [{ "key_code": "left_shift" }],
+                                "to_if_alone": [{ "key_code": "up_arrow" }],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "left_hand",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "apple_vendor_top_case_key_code": "keyboard_fn" },
+                                "to": [{ "apple_vendor_top_case_key_code": "keyboard_fn" }],
+                                "to_if_alone": [{ "key_code": "left_arrow" }],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
+                        "description": "Use thumb_on_touch+key or two finger on touch + key to open app",
+                        "manipulators": [
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_palm_count_total",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "spacebar" },
+                                "to": { "shell_command": "open -a \"Alfred 5.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_finger_count_total",
+                                        "type": "variable_if",
+                                        "value": 2
+                                    }
+                                ],
+                                "from": { "key_code": "spacebar" },
+                                "to": { "shell_command": "open -a \"Alfred 5.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_palm_count_total",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "k" },
+                                "to": { "shell_command": "open -a \"kitty.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_finger_count_total",
+                                        "type": "variable_if",
+                                        "value": 2
+                                    }
+                                ],
+                                "from": { "key_code": "k" },
+                                "to": { "shell_command": "open -a \"kitty.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_palm_count_total",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "v" },
+                                "to": { "shell_command": "open -a \"VLC.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_finger_count_total",
+                                        "type": "variable_if",
+                                        "value": 2
+                                    }
+                                ],
+                                "from": { "key_code": "v" },
+                                "to": { "shell_command": "open -a \"VLC.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_palm_count_total",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "e" },
+                                "to": { "shell_command": "open -a \"Karabiner-EventViewer.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_finger_count_total",
+                                        "type": "variable_if",
+                                        "value": 2
+                                    }
+                                ],
+                                "from": { "key_code": "e" },
+                                "to": { "shell_command": "open -a \"Karabiner-EventViewer.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_palm_count_total",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "w" },
+                                "to": { "shell_command": "open -a \"WeChat.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_finger_count_total",
+                                        "type": "variable_if",
+                                        "value": 2
+                                    }
+                                ],
+                                "from": { "key_code": "w" },
+                                "to": { "shell_command": "open -a \"WeChat.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_palm_count_total",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "g" },
+                                "to": { "shell_command": "open -a \"Gnucash.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_finger_count_total",
+                                        "type": "variable_if",
+                                        "value": 2
+                                    }
+                                ],
+                                "from": { "key_code": "g" },
+                                "to": { "shell_command": "open -a \"Gnucash.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_palm_count_total",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "t" },
+                                "to": { "shell_command": "open -a \"Telegram.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_finger_count_total",
+                                        "type": "variable_if",
+                                        "value": 2
+                                    }
+                                ],
+                                "from": { "key_code": "t" },
+                                "to": { "shell_command": "open -a \"Telegram.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_palm_count_total",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "a" },
+                                "to": { "shell_command": "open -a \"Karabiner-Elements.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_finger_count_total",
+                                        "type": "variable_if",
+                                        "value": 2
+                                    }
+                                ],
+                                "from": { "key_code": "a" },
+                                "to": { "shell_command": "open -a \"Karabiner-Elements.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_palm_count_total",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "d" },
+                                "to": { "shell_command": "open -a \"Eudic.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_finger_count_total",
+                                        "type": "variable_if",
+                                        "value": 2
+                                    }
+                                ],
+                                "from": { "key_code": "d" },
+                                "to": { "shell_command": "open -a \"Eudic.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_palm_count_total",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "c" },
+                                "to": { "shell_command": "open -a \"Google Chrome.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_finger_count_total",
+                                        "type": "variable_if",
+                                        "value": 2
+                                    }
+                                ],
+                                "from": { "key_code": "c" },
+                                "to": { "shell_command": "open -a \"Google Chrome.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_palm_count_total",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "n" },
+                                "to": { "shell_command": "open -a \"noteful.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_finger_count_total",
+                                        "type": "variable_if",
+                                        "value": 2
+                                    }
+                                ],
+                                "from": { "key_code": "n" },
+                                "to": { "shell_command": "open -a \"noteful.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_palm_count_total",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "m" },
+                                "to": { "shell_command": "open -a \"MenubarX.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_finger_count_total",
+                                        "type": "variable_if",
+                                        "value": 2
+                                    }
+                                ],
+                                "from": { "key_code": "m" },
+                                "to": { "shell_command": "open -a \"MenubarX.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_palm_count_total",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "s" },
+                                "to": { "shell_command": "open -a \"sioyek.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_finger_count_total",
+                                        "type": "variable_if",
+                                        "value": 2
+                                    }
+                                ],
+                                "from": { "key_code": "s" },
+                                "to": { "shell_command": "open -a \"sioyek.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_palm_count_total",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "q" },
+                                "to": { "shell_command": "open -a \"QQ.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "multitouch_extension_finger_count_total",
+                                        "type": "variable_if",
+                                        "value": 2
+                                    }
+                                ],
+                                "from": { "key_code": "q" },
+                                "to": { "shell_command": "open -a \"QQ.app\"" },
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
+                        "description": "capslock as escape",
+                        "manipulators": [
+                            {
+                                "from": { "key_code": "caps_lock" },
+                                "to": [
+                                    {
+                                        "key_code": "left_control",
+                                        "lazy": true
+                                    }
+                                ],
+                                "to_if_alone": [{ "key_code": "escape" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": { "key_code": "escape" },
+                                "to": [
+                                    {
+                                        "set_variable": {
+                                            "name": "esc_down",
+                                            "value": 1
+                                        }
+                                    }
+                                ],
+                                "to_after_key_up": [
+                                    {
+                                        "set_variable": {
+                                            "name": "esc_down",
+                                            "value": 0
+                                        }
+                                    }
+                                ],
+                                "to_if_alone": [
+                                    {
+                                        "key_code": "c",
+                                        "modifiers": ["control", "shift", "command", "option"]
+                                    }
+                                ],
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "esc_down",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "k" },
+                                "to": [{ "shell_command": "open -a kitty.app" }],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
+                        "description": "Use esc+number to shottr",
+                        "manipulators": [
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "esc_down",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "1" },
+                                "to": { "shell_command": "echo 'tell application \"System Events\" to tell process \"Shottr\"\n        click menu item \"Capture Screen\" of menu 1 of menu bar 2\n    end tell' | osascript\n  " },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "esc_down",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "2" },
+                                "to": { "shell_command": "echo 'tell application \"System Events\" to tell process \"Shottr\"\n        click menu item \"Capture Area\" of menu 1 of menu bar 2\n    end tell' | osascript\n  " },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "esc_down",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "3" },
+                                "to": { "shell_command": "echo 'tell application \"System Events\" to tell process \"Shottr\"\n        click menu item \"Scrolling Capture\" of menu 1 of menu bar 2\n    end tell' | osascript\n  " },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "esc_down",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "9" },
+                                "to": { "shell_command": "echo 'tell application \"System Events\" to tell process \"Shottr\"\n        click menu item \"Recongize Text/QR\" of menu 1 of menu bar 2\n    end tell' | osascript\n  " },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "esc_down",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "7" },
+                                "to": { "shell_command": "echo 'tell application \"System Events\" to tell process \"Shottr\"\n        click menu item \"Delayed Screenshot (3S)\" of menu \"more\" of menu item \"more\" of menu 1 of menu bar 2\n    end tell' | osascript\n  " },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "esc_down",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "8" },
+                                "to": { "shell_command": "echo 'tell application \"System Events\" to tell process \"Shottr\"\n        click menu item \"Repeat Area Capture\" of menu \"more\" of menu item \"more\" of menu 1 of menu bar 2\n    end tell' | osascript\n  " },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "esc_down",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "5" },
+                                "to": { "shell_command": "echo 'tell application \"System Events\" to tell process \"Shottr\"\n        click menu item \"Capture Active Window\" of menu \"more\" of menu item \"more\" of menu 1 of menu bar 2\n    end tell' | osascript\n  " },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "esc_down",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "6" },
+                                "to": { "shell_command": "echo 'tell application \"System Events\" to tell process \"Shottr\"\n        click menu item \"Capture Any Window\" of menu \"more\" of menu item \"more\" of menu 1 of menu bar 2\n    end tell' | osascript\n  " },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "name": "esc_down",
+                                        "type": "variable_if",
+                                        "value": 1
+                                    }
+                                ],
+                                "from": { "key_code": "4" },
+                                "to": { "shell_command": "echo 'tell application \"System Events\" to tell process \"Shottr\"\n        click menu item \"Scrolling (Up)\" of menu \"more\" of menu item \"more\" of menu 1 of menu bar 2\n    end tell' | osascript\n  " },
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
+                        "description": "Use fn+hjkl to move mouse, fn+a to tap and fn+s to right tap",
+                        "manipulators": [
+                            {
+                                "from": {
+                                    "key_code": "j",
+                                    "modifiers": {
+                                        "mandatory": ["fn"],
+                                        "optional": ["any"]
+                                    }
+                                },
+                                "to": [{ "mouse_key": { "vertical_wheel": 32 } }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "k",
+                                    "modifiers": {
+                                        "mandatory": ["fn"],
+                                        "optional": ["any"]
+                                    }
+                                },
+                                "to": [{ "mouse_key": { "vertical_wheel": -32 } }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "l",
+                                    "modifiers": {
+                                        "mandatory": ["fn"],
+                                        "optional": ["any"]
+                                    }
+                                },
+                                "to": [{ "mouse_key": { "horizontal_wheel": -32 } }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "h",
+                                    "modifiers": {
+                                        "mandatory": ["fn"],
+                                        "optional": ["any"]
+                                    }
+                                },
+                                "to": [{ "mouse_key": { "horizontal_wheel": 32 } }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "a",
+                                    "modifiers": {
+                                        "mandatory": ["fn"],
+                                        "optional": ["any"]
+                                    }
+                                },
+                                "to": [{ "pointing_button": "button1" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "s",
+                                    "modifiers": {
+                                        "mandatory": ["fn"],
+                                        "optional": ["any"]
+                                    }
+                                },
+                                "to": [{ "pointing_button": "button2" }],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
+                        "description": "Let fn+f4 behave same as command+space, so that can open alfred",
+                        "manipulators": [
+                            {
+                                "from": {
+                                    "key_code": "f4",
+                                    "modifiers": {
+                                        "mandatory": ["fn"],
+                                        "optional": ["any"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "open -a \"Alfred 5.app\"" }],
+                                "type": "basic"
+                            },
+                            {
+                                "from": {
+                                    "key_code": "spacebar",
+                                    "modifiers": {
+                                        "mandatory": ["left_command"],
+                                        "optional": ["any"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "open -a \"Alfred 5.app\"" }],
+                                "type": "basic"
+                            }
+                        ]
+                    }
+                ]
+            },
+            "devices": [
+                {
+                    "identifiers": {
+                        "is_game_pad": true,
+                        "product_id": 8199,
+                        "vendor_id": 1406
+                    },
+                    "ignore": false,
+                    "ignore_vendor_events": true
+                },
+                {
+                    "identifiers": {
+                        "is_game_pad": true,
+                        "product_id": 8198,
+                        "vendor_id": 1406
+                    },
+                    "ignore_vendor_events": true
+                },
+                {
+                    "identifiers": {
+                        "is_pointing_device": true,
+                        "product_id": 641,
+                        "vendor_id": 1452
+                    },
+                    "pointing_motion_xy_multiplier": 1.3
+                },
+                {
+                    "identifiers": {
+                        "is_keyboard": true,
+                        "is_pointing_device": true,
+                        "vendor_id": 29
+                    },
+                    "ignore": false,
+                    "ignore_vendor_events": true,
+                    "treat_as_built_in_keyboard": true
+                }
+            ],
+            "fn_function_keys": [
+                {
+                    "from": { "key_code": "f6" },
+                    "to": [{ "consumer_key_code": "play_or_pause" }]
+                }
+            ],
+            "name": "Default profile",
+            "selected": true,
+            "simple_modifications": [
+                {
+                    "from": { "apple_vendor_top_case_key_code": "keyboard_fn" },
+                    "to": [{ "key_code": "left_control" }]
+                },
+                {
+                    "from": { "key_code": "left_control" },
+                    "to": [{ "apple_vendor_top_case_key_code": "keyboard_fn" }]
+                }
+            ],
+            "virtual_hid_keyboard": { "keyboard_type_v2": "ansi" }
+        }
+    ]
+}

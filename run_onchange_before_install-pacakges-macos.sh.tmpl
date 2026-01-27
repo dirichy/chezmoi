@@ -1,0 +1,26 @@
+{{- if eq .chezmoi.os "darwin" -}}
+#!/usr/bin/env zsh
+xcode-select --install
+echo "Install xcode from the popup window, if not popup, then use command+tab to find it. "
+echo "Press any key to continue after xcode installed..."
+read -n 1
+
+function install_brew(){
+  git clone --depth=1 https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/install.git brew-install
+/bin/bash brew-install/install.sh
+rm -rf brew-install
+}
+export HOMEBREW_API_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api"
+export HOMEBREW_BOTTLE_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles"
+export HOMEBREW_BREW_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git"
+export HOMEBREW_CORE_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git"
+export HOMEBREW_INSTALL_FROM_API=1
+export HOMEBREW_PIP_INDEX_URL="https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
+(( $+commands[brew] )) || install_brew
+eval "$(/opt/homebrew/bin/brew shellenv)"
+export HOMEBREW_BREW_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git"
+/opt/homebrew/bin/brew tap laishulu/homebrew
+/opt/homebrew/bin/brew tap zegervdv/zathura
+/opt/homebrew/bin/brew install git neovim jq lazygit autossh chezmoi curl fd ffmpeg fzf gcc gh git lsd lua luajit mihomo macism opencc perl stow texlive tex-fmt tldr tmux tree-sitter wget xz yazi yarn npm zathura zoxide zathura-djvu zathura-pdf-mupdf mpv
+/opt/homebrew/bin/brew install --cask hammerspoon karabiner-elements kitty easydict font-jetbrains-mono-nerd-font keycastr loop mac-mouse-fix maccy sioyek topit tailscale-app rar
+{{- end -}}

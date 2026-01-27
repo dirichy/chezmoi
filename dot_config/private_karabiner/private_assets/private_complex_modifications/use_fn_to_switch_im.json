@@ -1,0 +1,48 @@
+{
+  "title": "use fn to change rime ascii_mode",
+  "rules": [
+    {
+      "description": "fn to switch im",
+      "manipulators": [
+        {
+          "conditions": [
+            {
+              "input_sources": [
+                {
+                  "language": "en"
+                }
+              ],
+              "type": "input_source_if"
+            }
+          ],
+          "from": {
+            "apple_vendor_top_case_key_code": "keyboard_fn"
+          },
+          "to": [
+            {
+              "apple_vendor_top_case_key_code": "keyboard_fn"
+            }
+          ],
+          "type": "basic"
+        },
+        {
+          "from": {
+            "apple_vendor_top_case_key_code": "keyboard_fn"
+          },
+          "to": [
+            {
+              "apple_vendor_top_case_key_code": "keyboard_fn",
+              "lazy": true
+            }
+          ],
+          "to_if_alone": [
+            {
+              "shell_command": "'/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote' -t"
+            }
+          ],
+          "type": "basic"
+        }
+      ]
+    }
+  ]
+}

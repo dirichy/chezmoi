@@ -1,0 +1,39 @@
+# COMMENT_STRING #
+Host server
+  Hostname {{secret "serverIP" "0.0.0.0"}}
+  Port 22
+  User root
+
+Match host dell exec "ip neigh show $(ip route show default | awk '{print $3}')  | awk '{print $5}'  | grep -qi '^24:5a:5f:78:33:fa$'"
+  Hostname 192.168.1.66
+  Port 22
+# Match host dell exec "tailscale status --json | jq -e --arg name 'dell.tail182416.ts.net.' '.Peer[] | select(.DNSName==$name) | .Online' | grep -q true"
+#   Hostname dell.tail182416.ts.net
+#   Port 22
+Host dell
+  Hostname {{secret "serverIP" "0.0.0.0"}}
+  Port 520
+  User dirichy
+
+Match host wyy exec "tailscale status --json | jq -e --arg name 'arch-eva.tail182416.ts.net.' '.Peer[] | select(.DNSName==$name) | .Online' | grep -q true"
+  Hostname arch-eva.tail182416.ts.net
+  Port 22
+  ProxyJump none
+Host wyy
+  Hostname {{secret "serverIP" "0.0.0.0"}}
+  Port 1314
+  User eva
+
+Match host byl exec "ip neigh show $(ip route show default | awk '{print $3}')  | awk '{print $5}'  | grep -qi '^24:5a:5f:78:33:fa$'"
+  Hostname 192.168.1.88
+  Port 22
+  ProxyJump none
+# Match host byl exec "tailscale status --json | jq -e --arg name 'arch-dirichy.tail182416.ts.net.' '.Peer[] | select(.DNSName==$name) | .Online' | grep -q true"
+#   Hostname arch-dirichy.tail182416.ts.net
+#   Port 22
+#   ProxyJump none
+Host byl
+  Hostname 192.168.1.88
+  Port 22
+  User dirichy
+  ProxyJump dell
