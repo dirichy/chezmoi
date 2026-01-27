@@ -1,0 +1,14 @@
+{{- if eq .chezmoi.os "darwin" -}}
+#!/usr/bin/env zsh
+if xcode-select --install; then
+  echo "Install xcode from the popup window, if not popup, then use command+tab to find it. "
+  echo "Press any key to continue after xcode installed..."
+  read -n 1
+fi
+echo "detecting network by ping google..."
+if curl --max-time 5 google.com > /dev/null; then
+  {{template "macos_install_softwares_proxy"}}
+else
+  {{template "macos_install_softwares_in_cn"}}
+fi
+{{- end -}}
