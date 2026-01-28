@@ -2,6 +2,7 @@
 {{if ne .chezmoi.os "darwin"}}
 .hammerspoon/*
 .config/karabiner/*
+.config/aerospace/*
 .local/bin/fcitx5-remote
 .local/bin/fdu-connect
 {{end}}
