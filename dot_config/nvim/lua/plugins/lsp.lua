@@ -88,7 +88,6 @@ return {
 				dockerls = {},
 				docker_compose_language_service = {},
 				bashls = {},
-				taplo = {},
 				clangd = {},
 			}
 			if vim.uv.os_uname().release:match("android") then

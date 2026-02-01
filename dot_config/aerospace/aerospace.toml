@@ -112,10 +112,11 @@ on-mode-changed = []
     alt-comma = 'layout accordion horizontal vertical'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#focus
-    alt-h = 'focus left'
-    alt-j = 'focus down'
-    alt-k = 'focus up'
-    alt-l = 'focus right'
+    alt-h = 'focus --ignore-floating left'
+    alt-j = 'focus --ignore-floating down'
+    alt-k = 'focus --ignore-floating up'
+    alt-l = 'focus --ignore-floating right'
+    alt-q = 'close'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#move
     alt-shift-h = 'move left'
