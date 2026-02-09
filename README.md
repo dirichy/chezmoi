@@ -4,12 +4,17 @@
 | 前端 |用户目录|
 |-------|-------|
 |鼠须管 |~/Library/Rime/|
-|fcitx-rime |~/.local/share/fcitx/rime|
+|fcitx-rime |~/.local/share/fcitx5/rime|
 ### 修改Rime-ice 的配置
 
 后端配置在用户目录下的 default.yaml 中； 鼠须管前端配置在squirrel.yaml, squirrel.custom.yaml
 
 修改配置后，重新部署才生效。
+linux 重新部署的命令为 
+``` bash 
+fcitx5-remote -r
+```
+若部署不成功尝试reboot。
 
 ## keyd 配置:
 keyd 是linux 上的键位映射软件。配置文件在/etc/keyd, 
