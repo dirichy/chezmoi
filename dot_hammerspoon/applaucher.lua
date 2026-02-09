@@ -45,6 +45,12 @@ for key, value in pairs(shortcuts) do
 			},
 		},
 		to = { shell_command = 'open -a "' .. value .. '"' },
+		conditions = {
+			{
+				bundle_identifiers = { "^com\\.moonlight-stream\\.Moonlight$" },
+				type = "frontmost_application_unless",
+			},
+		},
 		type = "basic",
 	}
 	-- applaucher.rules[1].manipulators[#applaucher.rules[1].manipulators + 1] = mani
@@ -54,11 +60,11 @@ applaucher.rules[1].manipulators[#applaucher.rules[1].manipulators + 1] = {
 	from = {
 		key_code = "q",
 		modifiers = {
-			mandatory = { "option" },
+			mandatory = { "right_command" },
 		},
 	},
 	to = {
-		key_code = "w",
+		key_code = "q",
 		modifiers = {
 			"command",
 		},
