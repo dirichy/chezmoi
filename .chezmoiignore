@@ -1,12 +1,15 @@
 README.md
 .local/bin/gopass-safe
 {{if ne .chezmoi.os "darwin"}}
-.hammerspoon/*
-.config/karabiner/*
-.config/aerospace/*
+.hammerspoon/
+.config/karabiner/
+.config/aerospace/
 .local/bin/fcitx5-remote
 .local/bin/fdu-connect
+Library/
 {{end}}
 {{if ne .chezmoi.os "linux"}}
-.config/hypr/*
+.config/hypr/
+.config/waybar/
+.config/wofi/
 {{end}}

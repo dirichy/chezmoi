@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# hypr_exec_safe — 防抖版
+# 如果同一命令在 THRESHOLD 秒内连续触发，只执行最后一次
+
+LOCKDIR="/tmp/hypr_exec_safe"
+THRESHOLD=3  # 秒数防抖时间
+
+mkdir -p "$LOCKDIR"
+
+cmd="$*"
+hash=$(echo "$cmd" | md5sum | cut -d' ' -f1)
+lockfile="$LOCKDIR/$hash.lock"
+pidfile="$LOCKDIR/$hash.pid"
+
+# 如果有正在等待执行的任务，kill掉
+if [ -f "$pidfile" ]; then
+    oldpid=$(cat "$pidfile")
+    if kill -0 "$oldpid" 2>/dev/null; then
+        kill "$oldpid" 2>/dev/null
+    fi
+fi
+
+# 启动新的延迟执行任务
+(
+    sleep $THRESHOLD
+    echo "[$(date)] Exec running: $cmd" >> /tmp/exec.log
+    eval "$cmd" &
+) &
+newpid=$!
+echo "$newpid" > "$pidfile"
