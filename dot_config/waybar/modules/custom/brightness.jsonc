@@ -1,0 +1,12 @@
+{"custom/brightness": {
+    "format": "{icon} {percentage}%",
+    "format-icons":["a","b","c"],
+    "tooltip": false,
+    "exec": "hyprlua 'hypr.monitor.waybar()'",
+    "return-type":"json",
+    "interval": 5,
+    "on-scroll-up": "hyprlua 'hypr.monitor.setBrightness(\"+5\")'",
+    "on-scroll-down": "hyprlua 'hypr.monitor.setBrightness(\"-5\")'",
+    "on-scroll-up-shift": "hyprlua 'hypr.monitor.setBrightness(\"+1\")'",
+    "on-scroll-down-shift": "hyprlua 'hypr.monitor.setBrightness(\"-1\")'"
+}}
