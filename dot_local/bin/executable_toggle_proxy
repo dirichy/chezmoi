@@ -1,0 +1,27 @@
+#!/bin/bash
+
+SERVICE="Wi-Fi"
+
+# 读取 HTTPS 代理状态（判断一个就够）
+STATE=$(networksetup -getsecurewebproxy "$SERVICE" \
+        | awk '/^Enabled:/ {print $2; exit}')
+
+if [ "$STATE" = "Yes" ]; then
+  # 关闭全部代理
+  networksetup -setwebproxystate "$SERVICE" off
+  networksetup -setsecurewebproxystate "$SERVICE" off
+  networksetup -setsocksfirewallproxystate "$SERVICE" off
+   /opt/homebrew/bin/hs -c 'hs.alert("Proxy off")'
+else
+  # 打开全部代理
+  networksetup -setwebproxy "$SERVICE" 127.0.0.1 7890
+  networksetup -setsecurewebproxy "$SERVICE" 127.0.0.1 7890
+  networksetup -setsocksfirewallproxy "$SERVICE" 127.0.0.1 7890
+
+  networksetup -setwebproxystate "$SERVICE" on
+  networksetup -setsecurewebproxystate "$SERVICE" on
+  networksetup -setsocksfirewallproxystate "$SERVICE" on
+  /opt/homebrew/bin/hs -c 'hs.alert("Proxy on(7890)")'
+
+fi
+

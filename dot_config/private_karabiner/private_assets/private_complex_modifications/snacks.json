@@ -1,0 +1,32 @@
+{
+  "rules": [
+    {
+      "description": "Provide some small tips in daily uses",
+      "manipulators": [
+        {
+          "type": "basic",
+          "from": {
+            "key_code": "p",
+            "modifiers":
+                {
+                  "mandatory": [
+                    "left_control",
+                    "fn"
+                  ],
+                  "optional": [
+                    "any"
+                  ]
+
+                }
+          },
+          "to": [
+            {
+              "shell_command": "$HOME/.local/bin/toggle_proxy"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "title": "snacks"
+}
