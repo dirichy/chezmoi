@@ -15,10 +15,10 @@ Host dell
   Port 520
   User dirichy
 
-Match host wyy exec "tailscale status --json | jq -e --arg name 'arch-eva.tail182416.ts.net.' '.Peer[] | select(.DNSName==$name) | .Online' | grep -q true"
-  Hostname arch-eva.tail182416.ts.net
-  Port 22
-  ProxyJump none
+# Match host wyy exec "tailscale status --json | jq -e --arg name 'arch-eva.tail182416.ts.net.' '.Peer[] | select(.DNSName==$name) | .Online' | grep -q true"
+#   Hostname arch-eva.tail182416.ts.net
+#   Port 22
+#   ProxyJump none
 Host wyy
   Hostname {{secret "serverIP" "0.0.0.0"}}
   Port 1314

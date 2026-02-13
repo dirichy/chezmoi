@@ -6,6 +6,22 @@
                 "parameters": { "basic.to_delayed_action_delay_milliseconds": 200 },
                 "rules": [
                     {
+                        "description": "Provide some small tips in daily uses",
+                        "manipulators": [
+                            {
+                                "from": {
+                                    "key_code": "p",
+                                    "modifiers": {
+                                        "mandatory": ["left_control", "fn"],
+                                        "optional": ["any"]
+                                    }
+                                },
+                                "to": [{ "shell_command": "$HOME/.local/bin/toggle_proxy" }],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
                         "description": "Keybind for moonlight",
                         "manipulators": [
                             {
@@ -112,10 +128,10 @@
                                     }
                                 ],
                                 "from": {
-                                    "key_code": "w",
+                                    "key_code": "spacebar",
                                     "modifiers": { "mandatory": ["left_command"] }
                                 },
-                                "to": { "shell_command": "open -a \"WeChat.app\"" },
+                                "to": { "shell_command": "open -a \"Alfred 5.app\"" },
                                 "type": "basic"
                             },
                             {
@@ -128,10 +144,26 @@
                                     }
                                 ],
                                 "from": {
-                                    "key_code": "q",
+                                    "key_code": "t",
                                     "modifiers": { "mandatory": ["left_command"] }
                                 },
-                                "to": { "shell_command": "open -a \"QQ.app\"" },
+                                "to": { "shell_command": "open -a \"kitty.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.moonlight-stream\\.Moonlight$"
+                                        ],
+                                        "type": "frontmost_application_unless"
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "w",
+                                    "modifiers": { "mandatory": ["left_command"] }
+                                },
+                                "to": { "shell_command": "open -a \"WeChat.app\"" },
                                 "type": "basic"
                             },
                             {
@@ -160,10 +192,10 @@
                                     }
                                 ],
                                 "from": {
-                                    "key_code": "s",
+                                    "key_code": "q",
                                     "modifiers": { "mandatory": ["left_command"] }
                                 },
-                                "to": { "shell_command": "open -a \"sioyek.app\"" },
+                                "to": { "shell_command": "open -a \"QQ.app\"" },
                                 "type": "basic"
                             },
                             {
@@ -192,35 +224,19 @@
                                     }
                                 ],
                                 "from": {
-                                    "key_code": "spacebar",
+                                    "key_code": "s",
                                     "modifiers": { "mandatory": ["left_command"] }
                                 },
-                                "to": { "shell_command": "open -a \"Alfred 5.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "bundle_identifiers": [
-                                            "^com\\.moonlight-stream\\.Moonlight$"
-                                        ],
-                                        "type": "frontmost_application_unless"
-                                    }
-                                ],
-                                "from": {
-                                    "key_code": "t",
-                                    "modifiers": { "mandatory": ["left_command"] }
-                                },
-                                "to": { "shell_command": "open -a \"kitty.app\"" },
+                                "to": { "shell_command": "open -a \"sioyek.app\"" },
                                 "type": "basic"
                             },
                             {
                                 "from": {
                                     "key_code": "q",
-                                    "modifiers": { "mandatory": ["option"] }
+                                    "modifiers": { "mandatory": ["right_command"] }
                                 },
                                 "to": {
-                                    "key_code": "w",
+                                    "key_code": "q",
                                     "modifiers": ["command"]
                                 },
                                 "type": "basic"

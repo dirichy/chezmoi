@@ -5,7 +5,7 @@ hs.g = {}
 hs.loadSpoon("EmmyLua")
 spoon.EmmyLua:init()
 require("wifi_mute")
-require("pasteboard")
+-- require("pasteboard")
 -- require("corner")
 -- require("rusty")
 -- require("vlc")

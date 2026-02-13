@@ -2,9 +2,9 @@
 command = "nvim"
 args = ["-d", "{{ "{{ .Destination }}" }}", "{{"{{ .Source }}"}}", "{{"{{ .Target }}"}}"]
 [data]
-name = {{ ( or ( index . "name" ) ( promptStringOnce . "name" "name" ) ) | quote }}
-email = {{ ( or ( index . "email" ) ( promptStringOnce . "email" "email" ) ) | quote }}
-inputMethod = {{ ( or ( index . "inputMethod" ) ( promptStringOnce . "inputMethod, tiger or flypy" "inputMethod, tiger or flypy" ) ) | quote }}
+name = {{ ( promptStringOnce . "name" "name" ) | quote }}
+email = {{ ( promptStringOnce . "email" "email" ) | quote }}
+inputMethod = {{ ( promptStringOnce . "inputMethod" "inputMethod, tiger or flypy" ) | quote }}
 {{ if ( index . "screenResolution" ) }}
 screenResolution = [{{ ( or (index ( index . "screenResolution" ) 0) ( promptStringOnce . "screenwidth" "screenwidth" ) ) }},{{ ( or (index ( index . "screenResolution" ) 1) ( promptStringOnce . "screenheight" "screenheight" ) ) }}]
 {{else}}
