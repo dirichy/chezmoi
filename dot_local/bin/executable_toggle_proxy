@@ -1,26 +1,35 @@
 #!/bin/bash
 
-SERVICE="Wi-Fi"
+WIFI_SERVICE="Wi-Fi"
+USB_SERVICE="Thunderbolt Bridge"
 
 # 读取 HTTPS 代理状态（判断一个就够）
-STATE=$(networksetup -getsecurewebproxy "$SERVICE" \
+STATE=$(networksetup -getsecurewebproxy "$WIFI_SERVICE" \
         | awk '/^Enabled:/ {print $2; exit}')
 
 if [ "$STATE" = "Yes" ]; then
   # 关闭全部代理
-  networksetup -setwebproxystate "$SERVICE" off
-  networksetup -setsecurewebproxystate "$SERVICE" off
-  networksetup -setsocksfirewallproxystate "$SERVICE" off
+  networksetup -setwebproxystate "$WIFI_SERVICE" off
+  networksetup -setsecurewebproxystate "$WIFI_SERVICE" off
+  networksetup -setsocksfirewallproxystate "$WIFI_SERVICE" off
+  networksetup -setwebproxystate "$USB_SERVICE" off
+  networksetup -setsecurewebproxystate "$USB_SERVICE" off
+  networksetup -setsocksfirewallproxystate "$USB_SERVICE" off
    /opt/homebrew/bin/hs -c 'hs.alert("Proxy off")'
 else
   # 打开全部代理
-  networksetup -setwebproxy "$SERVICE" 127.0.0.1 7890
-  networksetup -setsecurewebproxy "$SERVICE" 127.0.0.1 7890
-  networksetup -setsocksfirewallproxy "$SERVICE" 127.0.0.1 7890
-
-  networksetup -setwebproxystate "$SERVICE" on
-  networksetup -setsecurewebproxystate "$SERVICE" on
-  networksetup -setsocksfirewallproxystate "$SERVICE" on
+  networksetup -setwebproxy "$WIFI_SERVICE" 127.0.0.1 7890
+  networksetup -setsecurewebproxy "$WIFI_SERVICE" 127.0.0.1 7890
+  networksetup -setsocksfirewallproxy "$WIFI_SERVICE" 127.0.0.1 7890
+  networksetup -setwebproxystate "$WIFI_SERVICE" on
+  networksetup -setsecurewebproxystate "$WIFI_SERVICE" on
+  networksetup -setsocksfirewallproxystate "$WIFI_SERVICE" on
+  networksetup -setwebproxy "$USB_SERVICE" 127.0.0.1 7890
+  networksetup -setsecurewebproxy "$USB_SERVICE" 127.0.0.1 7890
+  networksetup -setsocksfirewallproxy "$USB_SERVICE" 127.0.0.1 7890
+  networksetup -setwebproxystate "$USB_SERVICE" on
+  networksetup -setsecurewebproxystate "$USB_SERVICE" on
+  networksetup -setsocksfirewallproxystate "$USB_SERVICE" on
   /opt/homebrew/bin/hs -c 'hs.alert("Proxy on(7890)")'
 
 fi
