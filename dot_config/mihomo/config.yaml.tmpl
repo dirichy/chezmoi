@@ -660,6 +660,13 @@ proxies:
     type: http
     server: 192.168.1.66
     port: 1081
+  - name: server_maimai
+    server: {{secret "serverIP" "0.0.0.0"}}
+    port: 8033
+    type: ss
+    cipher: 2022-blake3-aes-256-gcm
+    password: {{secret "maimaiSSpassword" "abcdefghijklmnopqrstuvwxyz" | quote}}
+    udp: true
   # - name: "WARP"
   #   type: wireguard
   #   server: engage.cloudflareclient.com
@@ -685,6 +692,12 @@ proxy-groups:
       proxies:
         [自动选择, 手动选择, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, DIRECT],
     }
+  - name: maimai_lxns
+    type: select
+    proxies:
+      - maimai
+      - server_maimai
+      - DIRECT
   # 这里的 dns 指海外解析 dns 走的节点，一般跟随默认节点即可
   # - { name: dns, <<: *pr }
   # WARP 配置链式出站
@@ -779,6 +792,7 @@ rules:
   - RULE-SET,fudan-direct,DIRECT
   - RULE-SET,fudan,Fudan
   - DOMAIN-SUFFIX,tail182416.ts.net,DIRECT
+  - DOMAIN-SUFFIX,wahlap.com,maimai_lxns
   # 若需禁用 QUIC 请取消注释 QUIC 两条规则
   # 防止 YouTube 等使用 QUIC 导致速度不佳, 禁用 443 端口 UDP 流量（不包括国内）
   # - AND,(AND,(DST-PORT,443),(NETWORK,UDP)),(NOT,((GEOSITE,cn))),REJECT
