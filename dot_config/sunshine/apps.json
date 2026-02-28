@@ -1,0 +1,89 @@
+{
+  "apps": [
+    {
+      "auto-detach": true,
+      "exclude-global-prep-cmd": false,
+      "exit-timeout": 5,
+      "image-path": "desktop.png",
+      "name": "Desktop",
+      "prep-cmd": [],
+      "wait-all": true
+    },
+    {
+      "auto-detach": true,
+      "exclude-global-prep-cmd": false,
+      "exit-timeout": 5,
+      "image-path": "desktop.png",
+      "name": "Mirror",
+      "prep-cmd": [],
+      "wait-all": true
+    },
+    {
+      "auto-detach": true,
+      "cmd": [],
+      "elevated": false,
+      "exclude-global-prep-cmd": false,
+      "exit-timeout": 5,
+      "image-path": "",
+      "name": "ipad/only",
+      "prep-cmd": [
+        {
+          "do": "/root/.config/sunshine/ipad/only/start.sh",
+          "undo": "/root/.config/sunshine/ipad/only/stop.sh"
+        }
+      ],
+      "wait-all": true
+    },
+    {
+      "auto-detach": true,
+      "cmd": [],
+      "elevated": false,
+      "exclude-global-prep-cmd": false,
+      "exit-timeout": 5,
+      "image-path": "",
+      "name": "ipad/expand",
+      "prep-cmd": [
+        {
+          "do": "/root/.config/sunshine/ipad/expand/start.sh",
+          "undo": "/root/.config/sunshine/ipad/expand/stop.sh"
+        }
+      ],
+      "wait-all": true
+    },
+    {
+      "auto-detach": true,
+      "cmd": [],
+      "elevated": false,
+      "exclude-global-prep-cmd": false,
+      "exit-timeout": 5,
+      "image-path": "",
+      "name": "mac/only",
+      "prep-cmd": [
+        {
+          "do": "/root/.config/sunshine/mac/only/start.sh",
+          "undo": "/root/.config/sunshine/mac/only/stop.sh"
+        }
+      ],
+      "wait-all": true
+    },
+    {
+      "auto-detach": true,
+      "cmd": [],
+      "elevated": false,
+      "exclude-global-prep-cmd": false,
+      "exit-timeout": 5,
+      "image-path": "",
+      "name": "mac/expand",
+      "prep-cmd": [
+        {
+          "do": "/root/.config/sunshine/mac/expand/start.sh",
+          "undo": "/root/.config/sunshine/mac/expand/stop.sh"
+        }
+      ],
+      "wait-all": true
+    }
+  ],
+  "env": {
+    "PATH": "$(PATH):$(HOME)/.local/bin"
+  }
+}
