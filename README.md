@@ -39,4 +39,15 @@ Karabiner 是mac上的键位映射软件。配置文件在~/.config/karabiner，
 然后通过app界面加入该功能，选择开启或者关闭这个功能。
 
 ### 写一个具体的键位映射
-在每一个键位映射是表格maniplitors的元素，按规则添加condition，from，to。
+在每一个键位映射是表格maniplitors的元素，按规则添加condition，from，to。详情见documenration 
+https://karabiner-elements.pqrs.org/docs/
+
+## chezmoi 使用：
+### step one:
+把在对应配置中修改的文件通过
+```bash 
+chezmoi add /path/to/dotfiles
+```
+添加 
+### step two: 
+mac上在~/.local/share/chezmoi/ 中进行 pull，commit，push。

@@ -660,6 +660,13 @@ proxies:
     type: http
     server: 192.168.1.66
     port: 1081
+  - name: server_maimai
+    server: {{secret "serverIP" "0.0.0.0"}}
+    port: 8033
+    type: ss
+    cipher: 2022-blake3-aes-256-gcm
+    password: {{secret "maimaiSSpassword" "abcdefghijklmnopqrstuvwxyz" | quote}}
+    udp: true
   # - name: "WARP"
   #   type: wireguard
   #   server: engage.cloudflareclient.com
@@ -685,16 +692,29 @@ proxy-groups:
       proxies:
         [自动选择, 手动选择, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, DIRECT],
     }
+  - name: maimai_lxns
+    type: select
+    proxies:
+      - server_maimai
+      - DIRECT
   # 这里的 dns 指海外解析 dns 走的节点，一般跟随默认节点即可
   # - { name: dns, <<: *pr }
   # WARP 配置链式出站
   # - { name: WARP前置, <<: *pr, exclude-type: "wireguard" }
   - {
       name: Fudan,
-      type: url-test,
-      url: "https://icourse.fudan.edu.cn",
+      type: fallback,
+      url: "https://mirrors.fducslg.com",
       proxies:
-        [DIRECT, localhost_1081, arch_eva_1081, arch_dirichy_1081, dell_1081],
+        [DIRECT, localhost_1081, dell_1081, arch_dirichy_1081, arch_eva_1081],
+    }
+  - { name: 其他, <<: *pr }
+  - { name: 手动选择, <<: *use, type: select }
+  - {
+      name: 自动选择,
+      <<: *use,
+      type: url-test,
+      exclude-filter: "免费|下载专用",
     }
   - { name: 广告拦截, type: select, proxies: [REJECT, DIRECT, 默认节点] }
   - { name: 境外AI, <<: *pr }
@@ -743,7 +763,6 @@ proxy-groups:
   # 其他就是所有规则没匹配到的
   # 可以理解为 ACL4SSR 配置里的 漏网之鱼
   # 换言之，其他走代理就是绕过中国大陆地址，不走就是 GFWList 模式
-  - { name: 其他, <<: *pr }
 
   # 分隔,下面是地区分组
   - {
@@ -767,18 +786,12 @@ proxy-groups:
       filter: "(?i)^(?!.*(?:🇭🇰|🇯🇵|🇺🇸|🇸🇬|🇨🇳|港|hk|hongkong|台|tw|taiwan|日|jp|japan|新|sg|singapore|美|us|unitedstates)).*",
       hidden: true,
     }
-  - { name: 手动选择, <<: *use, type: select }
-  - {
-      name: 自动选择,
-      <<: *use,
-      type: url-test,
-      exclude-filter: "免费|下载专用",
-    }
 
 rules:
   - RULE-SET,fudan-direct,DIRECT
   - RULE-SET,fudan,Fudan
   - DOMAIN-SUFFIX,tail182416.ts.net,DIRECT
+  - DOMAIN-SUFFIX,wahlap.com,maimai_lxns
   # 若需禁用 QUIC 请取消注释 QUIC 两条规则
   # 防止 YouTube 等使用 QUIC 导致速度不佳, 禁用 443 端口 UDP 流量（不包括国内）
   # - AND,(AND,(DST-PORT,443),(NETWORK,UDP)),(NOT,((GEOSITE,cn))),REJECT

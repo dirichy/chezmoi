@@ -27,7 +27,7 @@ return {
 				"<leader>tb",
 				function()
 					vim.cmd.wall()
-					require("nvimtex.compile").arara()
+					require("nvimtex.compile").default()
 				end,
 				desc = "Compile LaTeX File",
 			},
@@ -94,7 +94,7 @@ return {
 		end,
 	},
 	{
-		enabled = true,
+		enabled = false,
 		vim.fn.isdirectory(vim.env.HOME .. "/latex_concealer.nvim/") == 0 and "dirichy/latex_concealer.nvim",
 		dir = vim.fn.isdirectory(vim.env.HOME .. "/latex_concealer.nvim/") == 1
 			and vim.env.HOME .. "/latex_concealer.nvim",
