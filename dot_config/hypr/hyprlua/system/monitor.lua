@@ -7,6 +7,25 @@ local bus = 1
 local current
 local max
 local target = nil
+local setup_stdout = uv.new_pipe(false)
+local setup_handle
+setup_handle = uv.spawn(ddc, { args = { "detect" }, stdio = { nil, setup_stdout, nil } }, function(code, signal)
+	uv.close(setup_handle)
+end)
+local setup_output = ""
+uv.read_start(setup_stdout, function(err, data)
+	if data then
+		setup_output = setup_output .. data
+	else
+		bus = tonumber(string.match(setup_output, "I2C%s*bus:%s*/dev/i2c%-(%d*)"))
+		if not bus then
+			bus = 0
+			print("can't find i2c bus!")
+		end
+		setup_stdout:close()
+	end
+end)
+
 local function getBrightness()
 	local stdout = uv.new_pipe(false)
 	local handle
