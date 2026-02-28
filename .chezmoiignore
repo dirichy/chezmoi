@@ -6,6 +6,7 @@ README.md
 .config/aerospace/
 .local/bin/fcitx5-remote
 .local/bin/fdu-connect
+.local/bin/toggle_proxy
 Library/
 {{end}}
 {{if ne .chezmoi.os "linux"}}
