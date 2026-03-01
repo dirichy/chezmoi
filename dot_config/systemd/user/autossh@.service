@@ -1,0 +1,16 @@
+; use systemctl --user enable autossh@port_number to enable this service
+[Unit]
+After=network.target sshdgenkeys.service sshd.service network-online.target network.target
+Description=Make my pc accessable in internet
+Documentation=man:autossh
+Wants=sshdgenkeys.service sshd.service ssh-access.target network-online.target
+
+[Service]
+Type=simple
+ExecStartPre=/usr/bin/sleep 5
+ExecStart=/usr/bin/autossh -M 20000 -N -o "ServerAliveInterval=30" -o "ServerAliveCountMax=3" -R %i:localhost:22 server
+KillMode=process
+Restart=always
+
+[Install]
+WantedBy=default.target

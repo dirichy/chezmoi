@@ -1,0 +1,16 @@
+[Unit]
+Description=User-level HTTP server for mihomo config
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/.config/mihomo
+ExecStart=/usr/bin/python3 -m http.server 8080 --bind 0.0.0.0
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target
+
