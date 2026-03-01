@@ -15,7 +15,7 @@ Library
 .config/wofi
 .config/systemd
 .Xresources
-.cache/sync_to_root
+.cache/rsync_to_root
 .config/sunshine
 .local/bin/hyprlua
 {{end}}

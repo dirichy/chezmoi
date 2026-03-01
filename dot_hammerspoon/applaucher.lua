@@ -1,6 +1,6 @@
 local shortcuts = {
 	-- a = "Karabiner-Elements.app",
-	b = "Google Chrome.app",
+	b = "zen.app",
 	d = "Eudic.app",
 	-- e = "Karabiner-EventViewer.app",
 	-- g = "Gnucash.app",
