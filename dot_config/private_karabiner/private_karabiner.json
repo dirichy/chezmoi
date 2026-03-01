@@ -128,6 +128,22 @@
                                     }
                                 ],
                                 "from": {
+                                    "key_code": "w",
+                                    "modifiers": { "mandatory": ["left_command"] }
+                                },
+                                "to": { "shell_command": "open -a \"WeChat.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.moonlight-stream\\.Moonlight$"
+                                        ],
+                                        "type": "frontmost_application_unless"
+                                    }
+                                ],
+                                "from": {
                                     "key_code": "spacebar",
                                     "modifiers": { "mandatory": ["left_command"] }
                                 },
@@ -160,42 +176,10 @@
                                     }
                                 ],
                                 "from": {
-                                    "key_code": "w",
+                                    "key_code": "s",
                                     "modifiers": { "mandatory": ["left_command"] }
                                 },
-                                "to": { "shell_command": "open -a \"WeChat.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "bundle_identifiers": [
-                                            "^com\\.moonlight-stream\\.Moonlight$"
-                                        ],
-                                        "type": "frontmost_application_unless"
-                                    }
-                                ],
-                                "from": {
-                                    "key_code": "b",
-                                    "modifiers": { "mandatory": ["left_command"] }
-                                },
-                                "to": { "shell_command": "open -a \"Google Chrome.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "bundle_identifiers": [
-                                            "^com\\.moonlight-stream\\.Moonlight$"
-                                        ],
-                                        "type": "frontmost_application_unless"
-                                    }
-                                ],
-                                "from": {
-                                    "key_code": "q",
-                                    "modifiers": { "mandatory": ["left_command"] }
-                                },
-                                "to": { "shell_command": "open -a \"QQ.app\"" },
+                                "to": { "shell_command": "open -a \"sioyek.app\"" },
                                 "type": "basic"
                             },
                             {
@@ -224,10 +208,26 @@
                                     }
                                 ],
                                 "from": {
-                                    "key_code": "s",
+                                    "key_code": "q",
                                     "modifiers": { "mandatory": ["left_command"] }
                                 },
-                                "to": { "shell_command": "open -a \"sioyek.app\"" },
+                                "to": { "shell_command": "open -a \"QQ.app\"" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.moonlight-stream\\.Moonlight$"
+                                        ],
+                                        "type": "frontmost_application_unless"
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "b",
+                                    "modifiers": { "mandatory": ["left_command"] }
+                                },
+                                "to": { "shell_command": "open -a \"zen.app\"" },
                                 "type": "basic"
                             },
                             {
