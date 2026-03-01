@@ -1,16 +1,17 @@
+{{$routerIp := ".chezmoitemplates/unknownRouterIp"}}
 {{- if eq .chezmoi.os "linux" -}}
-{{$routerIp := "linuxRouterIP"}}
+{{$routerIp = ".chezmoitemplates/linuxRouterIP"}}
 {{- else if eq .chezmoi.os "darwin" -}}
-{{$routerIp := "darwinRouterIP"}}
-{{- else -}}
-{{$routerIp := "unknownRouterIp"}}
+{{$routerIp = ".chezmoitemplates/darwinRouterIP"}}
 {{- end -}}
+
+
 Host server
   Hostname {{secret "serverIP" "0.0.0.0"}}
   Port 22
   User root
 
-Match host dell exec "{{template $routerIp "24:5a:5f:78:33:fa"}}"
+Match host dell exec "{{includeTemplate $routerIp "24:5a:5f:78:33:fa"}}"
   Hostname 192.168.1.66
   Port 22
 Host dell
@@ -18,7 +19,7 @@ Host dell
   Port 520
   User dirichy
 
-Match host wyy exec "{{template $routerIp "a4:ba:70:8:bc:3d"}}"
+Match host wyy exec "{{includeTemplate $routerIp "a4:ba:70:8:bc:3d"}}"
   Hostname 192.168.1.66
   Port 22
 Host wyy
@@ -26,7 +27,7 @@ Host wyy
   Port 1314
   User eva
 
-Match host byl exec "{{template $routerIp "24:5a:5f:78:33:fa"}}"
+Match host byl exec "{{includeTemplate $routerIp "24:5a:5f:78:33:fa"}}"
   Hostname 192.168.1.88
   Port 22
   ProxyJump none
