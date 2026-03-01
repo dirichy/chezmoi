@@ -1,0 +1,6 @@
+{{- if lookPath "tailscale" -}}
+external_ip = {{ index (output "tailscale" "status" "--json"| fromJson).Self.TailscaleIPs 0 -}}
+{{- end }}
+locale = zh
+output_name = 0
+wan_encryption_mode = 0
