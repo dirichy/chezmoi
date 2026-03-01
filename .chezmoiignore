@@ -1,16 +1,21 @@
 README.md
 .local/bin/gopass-safe
 {{if ne .chezmoi.os "darwin"}}
-.hammerspoon/
-.config/karabiner/
-.config/aerospace/
+.hammerspoon
+.config/karabiner
+.config/aerospace
 .local/bin/fcitx5-remote
 .local/bin/fdu-connect
 .local/bin/toggle_proxy
-Library/
+Library
 {{end}}
 {{if ne .chezmoi.os "linux"}}
-.config/hypr/
-.config/waybar/
-.config/wofi/
+.config/hypr
+.config/waybar
+.config/wofi
+.config/systemd
+.Xresources
+.cache/sync_to_root
+.config/sunshine
+.local/bin/hyprlua
 {{end}}
