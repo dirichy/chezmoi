@@ -1,3 +1,6 @@
+## chezmoi:
+### gotmpl:
+在 tmpl 中， template 的参数一定得是静态的字符串，而 includeTemplate 的参数可以是动态的。所以如果要作 os dispatch ，可以用 includeTemplate 。
 ## Rime-ice 配置：
 ### 下载Rime-ice 到 对应前端的用户目录，
 
