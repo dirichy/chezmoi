@@ -19,13 +19,23 @@ Host dell
   Port 520
   User dirichy
 
-Match host wyy exec {{includeTemplate $routerIp "a4:ba:70:8:bc:3d" }}
-  Hostname 192.168.1.66
+Match host yoga exec {{includeTemplate $routerIp "a4:ba:70:8:bc:3d" }}
+  Hostname 192.168.31.55
   Port 22
-Host wyy
+Host yoga
   Hostname {{secret "serverIP" "0.0.0.0"}}
   Port 1314
   User eva
+
+Match host wyy exec {{includeTemplate $routerIp "a4:ba:70:8:bc:3d" }}
+  Hostname 192.168.31.88
+  Port 22
+  ProxyJump none
+Host wyy
+  Hostname 192.168.31.88
+  Port 22
+  User eva
+  ProxyJump yoga
 
 Match host byl exec {{includeTemplate $routerIp "24:5a:5f:78:33:fa" }}
   Hostname 192.168.1.88
