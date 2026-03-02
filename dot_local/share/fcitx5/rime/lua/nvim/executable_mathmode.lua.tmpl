@@ -1,0 +1,19 @@
+local trig = {
+	jj = "jj",
+	tt = "tt",
+  [";j"] = ";j",
+  [";t"] = ";t",
+}
+local auto_put = function(key, env)
+	local input = env.engine.context.input
+  {{- if eq .chezmoi.os "darwin" }}
+    input=input..string.char(key.keycode)
+  {{- end }}
+	if trig[input] then
+		env.engine:commit_text(trig[input])
+		env.engine.context:clear()
+		return 1
+	end
+	return 2
+end
+return auto_put
