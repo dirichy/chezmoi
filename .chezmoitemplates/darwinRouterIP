@@ -1,1 +1,1 @@
-arp $(route -n get default | grep gateway | awk '{print $2}') | awk '{print $4}' | grep -qi '^{{.}}$'
+"arp $(route -n get default | grep gateway | awk '{print $2}') | awk '{print $4}' | grep -qi '^{{.}}$'"{{- "" -}}
