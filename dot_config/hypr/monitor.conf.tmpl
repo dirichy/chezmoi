@@ -1,0 +1,3 @@
+{{$hyprmonitor:=printf "%s%s" .chezmoi.homeDir "/.local/share/chezmoi/dot_local/bin/executable_hyprmonitor"}}
+monitor = desc:{{output $hyprmonitor "description"}},{{output $hyprmonitor "width"}}x{{output $hyprmonitor "height"}}@{{output $hyprmonitor "refreshRate"}},0x0,{{.monitorScale}}
+

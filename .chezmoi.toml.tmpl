@@ -10,5 +10,6 @@ screenResolution = [{{ ( or (index ( index . "screenResolution" ) 0) ( promptStr
 {{else}}
 screenResolution = [{{ (  ( promptStringOnce . "screenwidth" "screenwidth" ) ) }},{{ (  ( promptStringOnce . "screenheight" "screenheight" ) ) }}]
 {{end}}
+monitorScale = {{ ( promptStringOnce . "monitorScale" "monitorScale" ) }}
 [secret]
 command="{{.chezmoi.sourceDir}}/dot_local/bin/executable_gopass-safe"

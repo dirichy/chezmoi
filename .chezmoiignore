@@ -1,5 +1,6 @@
 README.md
 .local/bin/gopass-safe
+.local/bin/hyprmonitor
 {{if ne .chezmoi.os "darwin"}}
 .hammerspoon
 .config/karabiner
