@@ -1,0 +1,11 @@
+#!/usr/bin/env bash 
+hint=$1 
+result=""
+if command -v hyprctl &> /dev/null && command -v jq &> /dev/null; then 
+  result=$(hyprctl monitors -j | jq '.[0].'"$hint" | jq -r 'numbers |=round' 2>/dev/null)
+fi 
+if [ -z "$result" ]; then 
+  printf "missing"
+else
+  printf "$result"
+fi
