@@ -73,6 +73,7 @@ engine:
   segmentors: # 分段
     - ascii_segmentor
     - matcher
+    - lua_segmentor@*fixed4segmentor
     # - affix_segmentor@easy_english #英文相关
     - abc_segmentor
     - punct_segmentor
@@ -89,6 +90,7 @@ engine:
     - lua_translator@number_translator # 数字转大写
     - lua_translator@calculator_translator # 简易计算器
     - lua_translator@date_translator # 高级时间
+    - echo_translator
 
   filters:
     - lua_filter@core2022 #自定义字集过滤lua；放在最上面完美解决简繁滤镜出错的问题
@@ -107,9 +109,9 @@ engine:
     - uniquifier #过滤重复
 
 speller:
-  # auto_clear: max_length # 3种选择， manual|auto|max_length 空码按下一键确认清屏|空码自动清|达到最长码时后码顶上清屏
+  auto_clear: none # 3种选择， manual|auto|max_length 空码按下一键确认清屏|空码自动清|达到最长码时后码顶上清屏
   auto_select: true
-  max_code_length: 5
+  # max_code_length: 4
   alphabet: "[;'zyxwvutsrqponmlkjihgfedcba]"
   # initials: "abcdefghijklmnopqrstuvwxyz;'"
   auto_select_pattern: ^;\w+ #自动上屏规则  对 [;] 引导的编码实行候选唯一自动上屏
@@ -119,9 +121,9 @@ translator:
   dictionary: tiger
   enable_charset_filter: false
   enable_encoder: false
-  enable_sentence: true
+  enable_sentence: false
   encode_commit_history: false
-  # max_phrase_length: 4
+  max_phrase_length: 4
   enable_user_dict: false
   enable_completion: false # 编码提示 true 开启  false 关闭
   comment_format: #提示码自定义
