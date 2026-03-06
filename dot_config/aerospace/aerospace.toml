@@ -117,6 +117,7 @@ on-mode-changed = []
     alt-k = 'focus --ignore-floating up'
     alt-l = 'focus --ignore-floating right'
     alt-q = 'close'
+    alt-f = 'fullscreen'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#move
     alt-shift-h = 'move left'
@@ -188,3 +189,6 @@ on-mode-changed = []
     if.app-id = 'cc.ffitch.shottr'
     if.window-title-regex-substring = 'Shottr'
     run = 'close'
+[[on-window-detected]]
+    if.app-id = 'com.moonlight-stream.Moonlight'
+    run = 'macos-native-fullscreen'

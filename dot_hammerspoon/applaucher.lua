@@ -1,18 +1,18 @@
 local shortcuts = {
-	-- a = "Karabiner-Elements.app",
-	b = "zen.app",
-	d = "Eudic.app",
-	-- e = "Karabiner-EventViewer.app",
-	-- g = "Gnucash.app",
-	t = "kitty.app",
-	-- m = "MenubarX.app",
-	-- n = "noteful.app",
-	q = "QQ.app",
-	s = "sioyek.app",
-	-- t = "Telegram.app",
-	w = "WeChat.app",
-	-- v = "VLC.app",
-	spacebar = "Alfred 5.app",
+	-- a = "open -a Karabiner-Elements.app",
+	b = "open -a zen.app",
+	d = "open -a Eudic.app",
+	-- e = "open -a Karabiner-EventViewer.app",
+	-- g = "open -a Gnucash.app",
+	t = "/Applications/kitty.app/Contents/MacOS/kitty --detach -d " .. os.getenv("HOME"),
+	-- m = "open -a MenubarX.app",
+	-- n = "open -a noteful.app",
+	q = "open -a QQ.app",
+	s = "open -a sioyek.app",
+	-- t = "open -a Telegram.app",
+	w = "open -a WeChat.app",
+	-- v = "open -a VLC.app",
+	spacebar = "open -a 'Alfred 5.app'",
 }
 local JSON = require("cjson")
 local applaucher = {
@@ -25,18 +25,6 @@ local applaucher = {
 	},
 }
 for key, value in pairs(shortcuts) do
-	local mani = {
-		from = { key_code = key },
-		to = { shell_command = 'open -a "' .. value .. '"' },
-		conditions = { { type = "variable_if", name = "multitouch_extension_palm_count_total", value = 1 } },
-		type = "basic",
-	}
-	local mani2 = {
-		from = { key_code = key },
-		to = { shell_command = 'open -a "' .. value .. '"' },
-		conditions = { { type = "variable_if", name = "multitouch_extension_finger_count_total", value = 2 } },
-		type = "basic",
-	}
 	local mani3 = {
 		from = {
 			key_code = key,
@@ -44,7 +32,7 @@ for key, value in pairs(shortcuts) do
 				mandatory = { "left_command" },
 			},
 		},
-		to = { shell_command = 'open -a "' .. value .. '"' },
+		to = { shell_command = value },
 		conditions = {
 			{
 				bundle_identifiers = { "^com\\.moonlight-stream\\.Moonlight$" },

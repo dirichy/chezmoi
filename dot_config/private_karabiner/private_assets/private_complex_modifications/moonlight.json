@@ -75,6 +75,33 @@
                 "^com\\.moonlight-stream\\.Moonlight$"
               ],
               "type": "frontmost_application_if"
+            }
+          ],
+          "from": {
+            "key_code": "v",
+            "modifiers": {
+              "mandatory": [
+                "fn"
+              ]
+            }
+          },
+          "to": {
+            "key_code": "v",
+            "modifiers": [
+              "left_control",
+              "left_option",
+              "left_shift"
+            ]
+          },
+          "type": "basic"
+        },
+        {
+          "conditions": [
+            {
+              "bundle_identifiers": [
+                "^com\\.moonlight-stream\\.Moonlight$"
+              ],
+              "type": "frontmost_application_if"
             },
             {
               "name": "esc_down",
