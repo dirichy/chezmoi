@@ -14,6 +14,8 @@ uv.check_start(check, function()
 	hypr.keyword = require("util").keyword
 	hypr.debounce = require("util").debounce
 	hypr.keybind = require("keybind")
+	hypr.sunshine = require("sunshine")
+	hypr.input = require("system.input")
 	pcall(require, "config")
 	uv.check_stop(check) -- 只执行一次
 end)
