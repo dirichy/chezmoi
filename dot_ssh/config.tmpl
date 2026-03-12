@@ -14,7 +14,7 @@ Host server
 Match host dell exec {{includeTemplate $routerIp "24:5a:5f:78:33:fa" }}
   Hostname 192.168.1.66
   Port 22
-Match host byl exec "tailscale ping --timeout=500ms 100.65.71.79"
+Match host dell exec "tailscale ping --timeout=500ms 100.65.71.79"
   Hostname 100.65.71.79
   Port 22
   ProxyJump none
