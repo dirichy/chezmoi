@@ -10,6 +10,13 @@ return {
 		},
 		keys = {
 			{
+				"<leader>tr",
+				function()
+					require("nvimtex.conceal").forceRefresh()
+				end,
+				desc = "force refresh conceal",
+			},
+			{
 				"<leader>tv",
 				function()
 					require("nvimtex.view").view()
