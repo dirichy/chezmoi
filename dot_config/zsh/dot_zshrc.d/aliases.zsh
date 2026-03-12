@@ -51,4 +51,22 @@ function cd() {
     z $*
     return $?
 }
+function wol(){
+    local -A cmd
+    cmd=(
+        byl "ssh dell wakeonlan 34:5a:60:a6:66:44"
+    )
+    local c=$cmd[$1]
+    if [[ -z c ]]; then
+        local -A mac=()
+        local m=$mac[$1]
+        if [[ -z m ]]; then
+            wakeonlan $1
+        else
+            wakeonlan $m
+        fi
+    else
+        zsh -c $c
+    fi
+}
 # for macos
