@@ -11,5 +11,6 @@ screenResolution = [{{ ( or (index ( index . "screenResolution" ) 0) ( promptStr
 screenResolution = [{{ (  ( promptStringOnce . "screenwidth" "screenwidth" ) ) }},{{ (  ( promptStringOnce . "screenheight" "screenheight" ) ) }}]
 {{end}}
 monitorScale = {{ ( promptStringOnce . "monitorScale" "monitorScale" ) }}
+fduConnect = {{ eq ( promptStringOnce . "fduConnect" "enable fdu-connect? (y/N)" ) "y"}}
 [secret]
 command="{{.chezmoi.sourceDir}}/dot_local/bin/executable_gopass-safe"

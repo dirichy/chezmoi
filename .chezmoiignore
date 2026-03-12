@@ -19,4 +19,5 @@ Library
 .cache/rsync_to_root
 .config/sunshine
 .local/bin/hyprlua
+.local/bin/sioyek
 {{end}}

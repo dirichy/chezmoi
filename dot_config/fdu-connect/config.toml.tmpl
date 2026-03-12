@@ -1,4 +1,4 @@
-# COMMENT_STRING #
+{{- if .fduConnect -}}
 username = {{secret "fduID" "your fduID"|quote}}
 password = {{secret "fduSecret" "your fduSecret"| quote}}
 totp_secret = ""
@@ -46,3 +46,4 @@ custom_proxy_domain = [
 #    "science.org",
 #    "nature.com"
 ]
+{{- end -}}
