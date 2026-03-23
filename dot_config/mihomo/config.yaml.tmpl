@@ -660,6 +660,10 @@ proxies:
     type: http
     server: 192.168.1.66
     port: 1081
+  - name: yoga_1081
+    type: http
+    server: 192.168.31.99
+    port: 1081
     {{- if eq .chezmoi.username "dirichy"}}
   - name: server_maimai
     server: {{secret "serverIP" "0.0.0.0"}}
@@ -710,7 +714,7 @@ proxy-groups:
       type: fallback,
       url: "https://mirrors.fducslg.com",
       proxies:
-        [DIRECT, localhost_1081, dell_1081, arch_dirichy_1081, arch_eva_1081],
+        [DIRECT, localhost_1081, dell_1081, yoga_1081, arch_dirichy_1081, arch_eva_1081],
     }
   - { name: 其他, <<: *pr }
   - { name: 手动选择, <<: *use, type: select }
