@@ -32,9 +32,11 @@ M.qq.start = function()
 	hypr.cmd(
 		"env",
 		"GDK_SCALE=1",
+		"GTK_IM_MODULE=fcitx",
+		"QT_IM_MODULE=fcitx",
 		os.getenv("HOME") .. "/.local/bin/_tencentqq",
-		"--enable-features=UseOzonePlatform",
-		"--ozone-platform=x11",
+		"--enable-features=UseOzonePlatform,WaylandClipboard",
+		"--ozone-platform=wayland",
 		"--enable-wayland-ime",
 		{
 			async = true,
