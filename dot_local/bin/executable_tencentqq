@@ -1,0 +1,3 @@
+#!/usr/bin/sh
+# ~/.local/bin/tencentqq
+/home/dirichy/.local/bin/hyprlua 'hypr.tencent.qq.active()'
