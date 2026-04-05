@@ -20,4 +20,5 @@ Library
 .config/sunshine
 .local/bin/hyprlua
 .local/bin/sioyek
+.local/bin/tencentqq
 {{end}}
