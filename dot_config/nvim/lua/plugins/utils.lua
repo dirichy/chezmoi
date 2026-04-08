@@ -1489,6 +1489,7 @@ return {
 				{ "<leader>b", group = "Buffer" },
 				{ "<leader>t", group = "LaTeX", icon = { cat = "filetype", name = "tex" } },
 				{ "<leader>f", group = "Find", icon = { icon = "", color = "blue" } },
+				{ "<leader>g", group = "Git" },
 				{ "<leader>q", group = "Session" },
 				{ "g", group = "Goto" },
 				{ "<leader>u", group = "Toggle" },
