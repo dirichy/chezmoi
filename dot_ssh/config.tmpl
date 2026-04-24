@@ -14,15 +14,23 @@ Host server
 Match host dell exec {{includeTemplate $routerIp "24:5a:5f:78:33:fa" }}
   Hostname 192.168.1.66
   Port 22
+  ProxyJump none
 Match host dell exec "tailscale ping --timeout=500ms --c 2 100.65.71.79"
   Hostname 100.65.71.79
   Port 22
   ProxyJump none
 
 Host dell
-  Hostname {{secret "serverIP" "0.0.0.0"}}
+  Hostname localhost
   Port 520
   User dirichy
+  ProxyJump server
+
+Host dell_s
+  Hostname localhost
+  Port 520
+  User dirichy
+  ProxyJump server
 
 Match host yoga exec {{includeTemplate $routerIp "a4:ba:70:8:bc:3d" }}
   Hostname 192.168.31.99
@@ -54,4 +62,4 @@ Host byl
   Hostname 192.168.1.88
   Port 22
   User dirichy
-  ProxyJump dell
+  ProxyJump dell_s
