@@ -10,7 +10,7 @@ GRN='\033[1;32m'
 BLU='\033[1;34m'
 RST='\033[0m'
 
-HELPER=$(command -v yay trizen pikaur paru pakku pacaur aurman aura |
+HELPER=$(command -v paru yay trizen pikaur pakku pacaur aurman aura |
 	head -n 1 | xargs -- basename)
 
 check-updates() {
