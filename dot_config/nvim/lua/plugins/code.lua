@@ -102,6 +102,7 @@ return {
 					tex = { "tex-fmt", "injected" }, --, "pangu", "puncture" },
 					-- tex = { "tex-fmt", "injected", "pangu", "puncture" },
 					c = { "clang-format" },
+					cuda = { "clang-format" },
 					json = { "clang-format" },
 					jsonc = { "prettierd" },
 					zsh = { "beautysh" },

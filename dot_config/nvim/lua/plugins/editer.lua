@@ -4,53 +4,107 @@ return {
 		"tanvirtin/vgit.nvim",
 		dependencies = { "nvim-lua/plenary.nvim", "nvim-tree/nvim-web-devicons" },
 		-- Lazy loading on 'VimEnter' event is necessary.
+		event = "VimEnter",
 		keys = {
 			{
-				"]h",
+				"[h",
 				function()
 					require("vgit").hunk_up()
 				end,
-				desc = "prev hunk",
+				desc = "Git: Previous hunk",
 				mode = { "n" },
 			},
 			{
-				"[h",
-				mode = { "n" },
+				"]h",
 				function()
 					require("vgit").hunk_down()
 				end,
-				desc = "Go down in the direction of the hunk",
+				desc = "Git: Next hunk",
+				mode = { "n" },
+			},
+
+			-- Stage / Reset / Preview hunk
+			{
+				"<leader>gs",
+				function()
+					require("vgit").buffer_hunk_stage()
+				end,
+				desc = "Git: Stage current hunk",
+				mode = { "n" },
+			},
+			{
+				"<leader>gr",
+				function()
+					require("vgit").buffer_hunk_reset()
+				end,
+				desc = "Git: Reset current hunk",
+				mode = { "n" },
+			},
+			{
+				"<leader>gp",
+				function()
+					require("vgit").buffer_hunk_preview()
+				end,
+				desc = "Git: Preview current hunk",
+				mode = { "n" },
+			},
+
+			-- Git info
+			{
+				"<leader>gb",
+				function()
+					require("vgit").buffer_blame_preview()
+				end,
+				desc = "Git: Blame preview",
+				mode = { "n" },
+			},
+			{
+				"<leader>gf",
+				function()
+					require("vgit").buffer_diff_preview()
+				end,
+				desc = "Git: Buffer diff preview",
+				mode = { "n" },
+			},
+			{
+				"<leader>gh",
+				function()
+					require("vgit").buffer_history_preview()
+				end,
+				desc = "Git: File history",
+				mode = { "n" },
+			},
+
+			-- Reset / Project
+			{
+				"<leader>gu",
+				function()
+					require("vgit").buffer_reset()
+				end,
+				desc = "Git: Reset buffer",
+				mode = { "n" },
+			},
+			{
+				"<leader>gd",
+				function()
+					require("vgit").project_diff_preview()
+				end,
+				desc = "Git: Project diff",
+				mode = { "n" },
+			},
+
+			-- Toggle
+			{
+				"<leader>gx",
+				function()
+					require("vgit").toggle_diff_preference()
+				end,
+				desc = "Git: Toggle diff preference",
+				mode = { "n" },
 			},
 		},
 		config = function()
 			require("vgit").setup({
-				keymaps = {
-					["n <leader>gs"] = function()
-						require("vgit").buffer_hunk_stage()
-					end,
-					["n <leader>gr"] = function()
-						require("vgit").buffer_hunk_reset()
-					end,
-					["n <leader>gp"] = function()
-						require("vgit").buffer_hunk_preview()
-					end,
-					["n <leader>gb"] = "buffer_blame_preview",
-					["n <leader>gf"] = function()
-						require("vgit").buffer_diff_preview()
-					end,
-					["n <leader>gh"] = function()
-						require("vgit").buffer_history_preview()
-					end,
-					["n <leader>gu"] = function()
-						require("vgit").buffer_reset()
-					end,
-					["n <leader>gd"] = function()
-						require("vgit").project_diff_preview()
-					end,
-					["n <leader>gx"] = function()
-						require("vgit").toggle_diff_preference()
-					end,
-				},
 				settings = {
 					-- You can either allow corresponding mapping for existing hl, or re-define them yourself entirely.
 					hls = {
