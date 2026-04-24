@@ -432,13 +432,15 @@ return {
 				bigfile = {
 					enabled = true,
 					notify = true, -- show notification when big file detected
-					size = 1.5 * 1024 * 1024, -- 1.5MB
+					size = 1 * 1024 * 1024, -- 1.5MB
 					line_length = 10000,
 					-- Enable or disable features when big file detected
 					---@param ctx {buf: number, ft:string}
 					setup = function(ctx)
 						vim.g.latex_concealer_disabled = true
-						vim.cmd([[NoMatchParen]])
+						vim.g.matchparen_disable = 1
+						-- vim.cmd([[NoMatchParen]])
+						vim.bo[ctx.buf].syntax = "off"
 						require("snacks").util.wo(0, { foldmethod = "manual", statuscolumn = "", conceallevel = 0 })
 						vim.b.minianimate_disable = true
 						vim.schedule(function()
@@ -1504,13 +1506,13 @@ return {
 		event = { "BufNewFile", "BufRead" },
 		config = function()
 			local ai = require("mini.ai")
-			ai.setup({
-				custom_textobjects = require("nvimtex.textobject"),
-			})
-			vim.g.TEST = function()
-				vim.api.nvim_feedkeys("v", "n", true)
-				vim.api.nvim_win_set_cursor(0, { 2, 2 })
-			end
+			-- ai.setup({
+			-- 	custom_textobjects = require("nvimtex.textobject"),
+			-- })
+			-- vim.g.TEST = function()
+			-- 	vim.api.nvim_feedkeys("v", "n", true)
+			-- 	vim.api.nvim_win_set_cursor(0, { 2, 2 })
+			-- end
 		end,
 	},
 	{
