@@ -1,5 +1,5 @@
 [Unit]
-Description=Hammerspoon-like lua ipc tool for hyprland
+Description=Hammerspoon-like lua ipc tool for Hyprland
 PartOf=graphical-session.target
 Requires=graphical-session.target
 After=graphical-session.target
@@ -7,15 +7,16 @@ ConditionEnvironment=WAYLAND_DISPLAY
 
 [Service]
 Type=simple
-ExecStart= /bin/zsh -c 'cd ~/.config/hypr/hyprlua && ./init.lua'
-EnvironmentFile=%h/.zshenv
 
+WorkingDirectory=%h/.config/hypr/hyprlua
+ExecStart=%h/.config/hypr/hyprlua/init.lua
+
+; EnvironmentFile=%h/.config/hypr/hyprlua/env
 
 Slice=session.slice
 Restart=always
 StartLimitBurst=2
 StartLimitIntervalSec=60
-
 
 [Install]
 WantedBy=graphical-session.target
