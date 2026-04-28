@@ -2,6 +2,7 @@ README.md
 .local/bin/gopass-safe
 .local/bin/hyprmonitor
 {{if ne .chezmoi.os "darwin"}}
+.gnupg/gpg-agent.conf
 .hammerspoon
 .config/karabiner
 .config/aerospace
@@ -11,6 +12,8 @@ README.md
 Library
 {{end}}
 {{if ne .chezmoi.os "linux"}}
+.config/fcitx5
+.config/wireplumber
 .config/hypr
 .config/waybar
 .config/wofi
