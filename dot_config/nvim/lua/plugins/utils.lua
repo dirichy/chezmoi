@@ -1335,11 +1335,11 @@ return {
 						vim.cmd([[Neotree close]])
 					end
 					--HACK: If load session while oil is loading, will cause filetype of file buffer as Oil
-					if package.loaded["oil.loading"] then
+					if package.loaded["oil"] then
 						local buffer = vim.api.nvim_win_get_buf(0)
 						if vim.bo[buffer].filetype == "oil" then
 							local timer = vim.uv.new_timer()
-							timer:start(0, 50, function()
+							timer:start(400, 0, function()
 								vim.schedule(function()
 									vim.cmd([[lua require("persistence").load()]])
 								end)
