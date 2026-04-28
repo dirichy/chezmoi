@@ -83,6 +83,19 @@ return {
 			},
 		},
 	},
+	config = function()
+		require("nvim-treesitter").setup()
+		vim.api.nvim_create_autocmd("FileType", {
+			callback = function(event)
+				local lang = vim.treesitter.language.get_lang(vim.bo[event.buf].filetype)
+				if vim.tbl_contains(vim.treesitter.language._complete(), lang) then
+					vim.schedule(function()
+						vim.treesitter.start()
+					end)
+				end
+			end,
+		})
+	end,
 	-- config = function(_, opts)
 	-- 	-- local parser_config = require("nvim-treesitter.parsers").get_parser_configs()
 	-- 	-- parser_config.latexconceal = {
