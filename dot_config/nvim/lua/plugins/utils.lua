@@ -1336,18 +1336,19 @@ return {
 					end
 					--HACK: If load session while oil is loading, will cause filetype of file buffer as Oil
 					if package.loaded["oil.loading"] then
-						local oil_loading = require("oil.loading")
 						local buffer = vim.api.nvim_win_get_buf(0)
-						local timer = vim.uv.new_timer()
-						timer:start(0, 50, function()
-							if not oil_loading.is_loading(buffer) then
+						if vim.bo[buffer].filetype == "oil" then
+							local timer = vim.uv.new_timer()
+							timer:start(0, 50, function()
 								vim.schedule(function()
 									vim.cmd([[lua require("persistence").load()]])
 								end)
 								timer:stop()
 								timer:close()
-							end
-						end)
+							end)
+						else
+							vim.cmd([[lua require("persistence").load()]])
+						end
 					else
 						vim.cmd([[lua require("persistence").load()]])
 					end
