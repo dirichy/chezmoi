@@ -1,6 +1,7 @@
 README.md
 .local/bin/gopass-safe
 .local/bin/hyprmonitor
+.config/fcitx5/conf/cached_layouts
 {{if ne .chezmoi.os "darwin"}}
 .gnupg/gpg-agent.conf
 .hammerspoon
@@ -9,10 +10,21 @@ README.md
 .local/bin/fcitx5-remote
 .local/bin/fdu-connect
 .local/bin/toggle_proxy
+.config/fcitx5/conf/macosfrontend.conf
+.config/fcitx5/conf/macosnotifications.conf
+.config/fcitx5/conf/imselector.conf
+.config/fcitx5/conf/keyboard.conf
 Library
 {{end}}
 {{if ne .chezmoi.os "linux"}}
-.config/fcitx5
+.config/fcitx5/conf/classicui.conf
+.config/fcitx5/conf/kimpanel.conf
+.config/fcitx5/conf/notifications.conf
+.config/fcitx5/conf/virtualkeyboardadapter.conf
+.config/fcitx5/conf/wayland.conf
+.config/fcitx5/conf/waylandim.conf
+.config/fcitx5/conf/xcb.conf
+.config/fcitx5/conf/xim.conf
 .config/wireplumber
 .config/hypr
 .config/waybar

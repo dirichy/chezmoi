@@ -1,19 +1,20 @@
 [Hotkey]
-# Enumerate when holding modifier of Toggle key
+# 按住切换键的修饰键时进行轮换切换
 EnumerateWithTriggerKeys=True
-# Enumerate Input Method Forward
+# 临时切换输入法
+AltTriggerKeys=
+# 向前切换输入法
 EnumerateForwardKeys=
-# Enumerate Input Method Backward
+# 向后切换输入法
 EnumerateBackwardKeys=
-# Skip first input method while enumerating
+# 轮换输入法时跳过第一个输入法
 EnumerateSkipFirst=False
-# Time limit in milliseconds for triggering modifier key shortcuts
+# 触发修饰键快捷键的时限 (毫秒)
 ModifierOnlyKeyTimeout=250
 
 [Hotkey/TriggerKeys]
-0=Control+space
-1=Zenkaku_Hankaku
-2=Hangul
+0=Zenkaku_Hankaku
+1=Hangul
 
 [Hotkey/ActivateKeys]
 0=Hangul_Hanja
@@ -46,27 +47,27 @@ ModifierOnlyKeyTimeout=250
 0=Control+Alt+P
 
 [Behavior]
-# Active By Default
-ActiveByDefault=False
-# Reset state on Focus In
+# 默认状态为激活
+ActiveByDefault=True
+# 重新聚焦时重置状态
 resetStateWhenFocusIn=No
-# Share Input State
-ShareInputState=No
-# Show preedit in application
+# 共享输入状态
+ShareInputState=Program
+# 在程序中显示预编辑文本
 PreeditEnabledByDefault=True
-# Show Input Method Information when switch input method
+# 切换输入法时显示输入法信息
 ShowInputMethodInformation=True
-# Show Input Method Information when changing focus
-showInputMethodInformationWhenFocusIn=False
-# Show compact input method information
+# 在焦点更改时显示输入法信息
+showInputMethodInformationWhenFocusIn=True
+# 显示紧凑的输入法信息
 CompactInputMethodInformation=True
-# Show first input method information
+# 显示第一个输入法的信息
 ShowFirstInputMethodInformation=True
-# Default page size
+# 默认页大小
 DefaultPageSize=5
-# Override XKB Option
+# 覆盖 XKB 选项
 OverrideXkbOption=False
-# Custom XKB Option
+# 自定义 XKB 选项
 CustomXkbOption=
 # Force Enabled Addons
 EnabledAddons=
@@ -74,10 +75,10 @@ EnabledAddons=
 DisabledAddons=
 # Preload input method to be used by default
 PreloadInputMethod=True
-# Allow input method in the password field
-AllowInputMethodForPassword=False
-# Show preedit text when typing password
-ShowPreeditForPassword=False
-# Interval of saving user data in minutes
+# 允许在密码框中使用输入法
+AllowInputMethodForPassword=True
+# 输入密码时显示预编辑文本
+ShowPreeditForPassword=True
+# 保存用户数据的时间间隔（以分钟为单位）
 AutoSavePeriod=30
 
