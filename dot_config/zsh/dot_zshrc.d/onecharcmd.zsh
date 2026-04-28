@@ -49,7 +49,18 @@ function t() {
     __tmux_ls=$(tmux ls | awk -F ':' '{print $1}' | nl)
     __tmux_ls_count=$(echo "$__tmux_ls" | grep -c .)
     if [ $__tmux_ls_count -eq 1 ]; then
-        tmux attach
+        if [[ -z $TMUX ]]; then
+            tmux attach
+        else
+            echo "There is no other session, input a name to create a session!"
+            read __session_name
+            if [ -z $__session_name ]; then
+                __session_name="default"
+            fi
+            tmux new -s $__session_name -d
+            tmux switch -t $__session_name
+            return $?
+        fi
         return 0
     fi
     echo "There is mutiple sessions, input number to choose"
@@ -58,7 +69,11 @@ function t() {
     if [[ -z $__number ]]; then
         __number=1
     fi
-    tmux attach -t $(echo "$__tmux_ls" | grep "^\s*$__number\s" | awk -F '	' '{print $2}')
+    if [[ -z $TMUX ]]; then
+        tmux attach -t $(echo "$__tmux_ls" | grep "^\s*$__number\s" | awk -F '	' '{print $2}')
+    else
+        tmux switch -t $(echo "$__tmux_ls" | grep "^\s*$__number\s" | awk -F '	' '{print $2}')
+    fi
     return $?
 }
 function v() {
