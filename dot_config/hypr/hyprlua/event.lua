@@ -27,7 +27,7 @@ M.listen = setmetatable({}, {
 local function callback(ev, data)
 	for index, f in ipairs(events[ev]) do
 		print(ev, data)
-		f(data)
+		f(data, ev)
 	end
 end
 
@@ -63,7 +63,7 @@ hypr_client:read_start(function(err, data)
 				-- 解析事件
 				local event, payload = line:match("([^>]+)>>(.+)")
 				if event and payload then
-					callback(event, payload)
+					coroutine.wrap(callback)(event, payload)
 					print("[Hyprland Event] ", event, payload)
 				else
 					print("[Hyprland Raw] ", line)

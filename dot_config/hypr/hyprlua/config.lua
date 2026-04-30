@@ -3,6 +3,7 @@ local shift = hypr.keybind.modifier.SHIFT
 local ctrl = hypr.keybind.modifier.CTRL
 local alt = hypr.keybind.modifier.ALT
 local super = hypr.keybind.modifier.SUPER
+local im = require("fcitx")
 
 hypr.event.listen.workspacev2(hypr.debounce(function(data)
 	local workspace = string.match(data, "^(%d+)")
@@ -13,6 +14,32 @@ hypr.event.listen.workspacev2(hypr.debounce(function(data)
 	-- timer:close()
 	-- end)
 end, 100))
+local im_state = {
+	kitty = false,
+	wofi = false,
+	QQ = true,
+}
+local current_class = ""
+hypr.event.listen({ "activewindow", "openlayer" }, function(data, ev)
+	local class, title
+	if ev == "activewindow" then
+		class, title = string.match(data, "^([^,]*),(.*)$")
+	else
+		class = data
+	end
+	if current_class == class then
+		return
+	end
+	im.is_active(coroutine.wrap(function(b)
+		im_state[current_class] = b
+		current_class = class
+		if im_state[class] then
+			im.active()
+		else
+			im.disable()
+		end
+	end))
+end)
 -- hypr.event.listen.bell(hypr.debounce(function()
 -- 	hypr.cmd("/usr/bin/notify-send", "Belling")
 -- end, 1000))

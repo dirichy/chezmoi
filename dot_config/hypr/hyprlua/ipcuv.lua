@@ -31,7 +31,7 @@ tcp_server:listen(128, function(err)
 				if not fn then
 					res = "Compile error: " .. err
 				else
-					local ok, r = pcall(fn)
+					local ok, r = pcall(coroutine.wrap(fn))
 					if ok then
 						res = tostring(r)
 					else
