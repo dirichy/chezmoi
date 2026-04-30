@@ -585,6 +585,9 @@ return {
 					},
 					-- what buffers to animate
 					filter = function(buf)
+						if vim.env.SSH_TTY then
+							return false
+						end
 						return vim.g.snacks_scroll ~= false
 							and vim.b[buf].snacks_scroll ~= false
 							and vim.bo[buf].buftype ~= "terminal"
