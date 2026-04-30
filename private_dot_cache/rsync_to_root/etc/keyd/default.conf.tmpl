@@ -1,9 +1,9 @@
 [ids]
 
 *
+a8a5:2255
 -2333:6666
 -057e:2007
--a8a5:2255
 -beef:dead
 
 [main]
@@ -16,6 +16,21 @@ esc = `
 # leftshift=overloadt(shift,C-space,150)
 leftmeta=overload(vitualM,C-space)
 rightmeta=overload(vitualM,C-space)
+mouse1=overload(vitualMa,mouse1)
+mouse2=overload(vitualMb,mouse2)
+scrolllock=overload(vitualMc,scrolllock)
+[vitualMa]
+leftmouse=M-leftmouse
+rightmouse=M-rightmouse
+[vitualMb]
+
+[vitualMc]
+
+[vitualMl]
+
+[vitualMr]
+
+[vitualMm]
 
 {{ $letters := splitList "" "abcdefghijklmnopqrstuvwxyz1234567890`-=[];'\\,./" -}}
 {{- $extraLetters := list "mouse1" "mouse2" "mouseback" "mouseforward" "leftmouse" "rightmouse" "middlemouse" "backspace" "tab" "enter" "space" "capslock" "f1" "f2" "f3" "f4" "f5" "f6" "f7" "f8" "f9" "f10" "f11" "f12" "left" "right" "up" "down" -}}

@@ -432,13 +432,15 @@ return {
 				bigfile = {
 					enabled = true,
 					notify = true, -- show notification when big file detected
-					size = 1.5 * 1024 * 1024, -- 1.5MB
+					size = 1 * 1024 * 1024, -- 1.5MB
 					line_length = 10000,
 					-- Enable or disable features when big file detected
 					---@param ctx {buf: number, ft:string}
 					setup = function(ctx)
 						vim.g.latex_concealer_disabled = true
-						vim.cmd([[NoMatchParen]])
+						vim.g.matchparen_disable = 1
+						-- vim.cmd([[NoMatchParen]])
+						vim.bo[ctx.buf].syntax = "off"
 						require("snacks").util.wo(0, { foldmethod = "manual", statuscolumn = "", conceallevel = 0 })
 						vim.b.minianimate_disable = true
 						vim.schedule(function()
@@ -1336,19 +1338,20 @@ return {
 						vim.cmd([[Neotree close]])
 					end
 					--HACK: If load session while oil is loading, will cause filetype of file buffer as Oil
-					if package.loaded["oil.loading"] then
-						local oil_loading = require("oil.loading")
+					if package.loaded["oil"] then
 						local buffer = vim.api.nvim_win_get_buf(0)
-						local timer = vim.uv.new_timer()
-						timer:start(0, 50, function()
-							if not oil_loading.is_loading(buffer) then
+						if vim.bo[buffer].filetype == "oil" then
+							local timer = vim.uv.new_timer()
+							timer:start(400, 0, function()
 								vim.schedule(function()
 									vim.cmd([[lua require("persistence").load()]])
 								end)
 								timer:stop()
 								timer:close()
-							end
-						end)
+							end)
+						else
+							vim.cmd([[lua require("persistence").load()]])
+						end
 					else
 						vim.cmd([[lua require("persistence").load()]])
 					end
@@ -1508,13 +1511,13 @@ return {
 		event = { "BufNewFile", "BufRead" },
 		config = function()
 			local ai = require("mini.ai")
-			ai.setup({
-				custom_textobjects = require("nvimtex.textobject"),
-			})
-			vim.g.TEST = function()
-				vim.api.nvim_feedkeys("v", "n", true)
-				vim.api.nvim_win_set_cursor(0, { 2, 2 })
-			end
+			-- ai.setup({
+			-- 	custom_textobjects = require("nvimtex.textobject"),
+			-- })
+			-- vim.g.TEST = function()
+			-- 	vim.api.nvim_feedkeys("v", "n", true)
+			-- 	vim.api.nvim_win_set_cursor(0, { 2, 2 })
+			-- end
 		end,
 	},
 	{
