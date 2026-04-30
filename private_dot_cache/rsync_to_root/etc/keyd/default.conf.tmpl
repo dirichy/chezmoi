@@ -14,7 +14,7 @@ capslock = overload(vitualC,esc)
 # Remaps the escape key to capslock
 esc = `
 # leftshift=overloadt(shift,C-space,150)
-leftmeta=overload(vitualM,C-space)
+leftmeta=overload(vitualM,command(systemd-run --user --machine={{.chezmoi.username}}@ fcitx5-remote -t))
 rightmeta=overload(vitualM,C-space)
 mouse1=overload(vitualMa,mouse1)
 mouse2=overload(vitualMb,mouse2)
