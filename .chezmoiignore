@@ -2,6 +2,9 @@ README.md
 .local/bin/gopass-safe
 .local/bin/hyprmonitor
 .config/fcitx5/conf/cached_layouts
+{{if eq (env "HYPRLAND_INSTANCE_SIGNATURE") ""}}
+.config/hypr/monitor.conf
+{{end}}
 {{if ne .chezmoi.os "darwin"}}
 .gnupg/gpg-agent.conf
 .hammerspoon
