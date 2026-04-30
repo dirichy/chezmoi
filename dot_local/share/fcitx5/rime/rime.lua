@@ -25,6 +25,7 @@ single_char_only = require("candidate_sorting.single_char_only")
 unicode_input = require("unicode_input")
 
 auto_put = require("nvim.mathmode")
+clear_on_missing_code = require("clear_on_missing_code")
 charset_comment_filter = require("charset_comment_filter") --Unicode分区提示
 core2022 = require("core2022_filter") --自定义字符集过滤（常用字集）
 -- dz_ci = require("dz_ci_filter") --单字模式 这个别用，有问题的
