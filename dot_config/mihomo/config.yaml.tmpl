@@ -664,6 +664,11 @@ proxies:
     type: http
     server: 192.168.31.99
     port: 1081
+  - name: MajsoulMax
+    type: http
+    server: 127.0.0.1
+    port: 23410
+    tls: true
     {{- if eq .chezmoi.username "dirichy"}}
   - name: server_maimai
     server: {{secret "serverIP" "0.0.0.0"}}
@@ -705,6 +710,11 @@ proxy-groups:
       - server_maimai
       - DIRECT
     {{- end}}
+  - name: Majsoul
+    type: select
+    proxies:
+      - DIRECT
+      - MajsoulMax
   # 这里的 dns 指海外解析 dns 走的节点，一般跟随默认节点即可
   # - { name: dns, <<: *pr }
   # WARP 配置链式出站
@@ -799,9 +809,17 @@ rules:
   - RULE-SET,fudan-direct,DIRECT
   - RULE-SET,fudan,Fudan
   - DOMAIN-SUFFIX,tail182416.ts.net,DIRECT
+  - DOMAIN-SUFFIX,tailscale.com,DIRECT
     {{- if eq .chezmoi.username "dirichy"}}
   - DOMAIN-SUFFIX,wahlap.com,maimai_lxns
     {{- end}}
+  - PROCESS-NAME,wineserver,Majsoul
+  # - PROCESS-NAME,steam,Majsoul
+  - AND, ((DOMAIN-KEYWORD,majsoul),(PROCESS-NAME,wineserver)),Majsoul
+  - AND, ((DOMAIN-KEYWORD,maj-soul),(PROCESS-NAME,wineserver)),Majsoul
+  - AND, ((DOMAIN-KEYWORD,mahjongsoul),(PROCESS-NAME,wineserver)),Majsoul
+  - AND, ((DOMAIN-KEYWORD,catmjstudio),(PROCESS-NAME,wineserver)),Majsoul
+  - AND, ((PROCESS-NAME-REGEX, python.*?), (OR, ((PROCESS-NAME,wineserver),(DOMAIN-KEYWORD,majsoul),(DOMAIN-KEYWORD,maj-soul),(DOMAIN-KEYWORD,mahjongsoul),(DOMAIN-KEYWORD,catmjstudio)))), DIRECT
   # 若需禁用 QUIC 请取消注释 QUIC 两条规则
   # 防止 YouTube 等使用 QUIC 导致速度不佳, 禁用 443 端口 UDP 流量（不包括国内）
   # - AND,(AND,(DST-PORT,443),(NETWORK,UDP)),(NOT,((GEOSITE,cn))),REJECT
