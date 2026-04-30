@@ -48,3 +48,4 @@ fzf --zsh | eval
 # chruby ruby-3.3.5
 [[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
 . "${ZDOTDIR:-$HOME}/scripts/baipan/main.zsh"
+(( $+commands[micromamba] )) && eval "$(micromamba shell hook --shell zsh)"
