@@ -14,7 +14,7 @@ sudo systemctl enable --now sshd greetd keyd
 paru -S --needed mihomo tailscale networkmanager
 sudo systemctl enable --now NetworkManager
 # util_gui
-paru -S --needed kitty mpv zen-browser-bin wofi xorg-xrdb zathura sioyek-git zenity
+paru -S --needed kitty mpv zen-browser-bin wofi xorg-xrdb zathura sioyek-git zenity linuxqq-nt-bwrap wechat-universal-bwrap
 # util_cli
 paru -S --needed ffmpeg-full git gopass gopass-jsonapi fzf zoxide thefuck ripgrep tree-sitter-cli unzip tar wget curl zsh uv tmux luarocks lua luajit imagemagick lsd fd jq
 # language
@@ -26,6 +26,9 @@ paru -S --needed hyprland hyprpaper waybar hypridle udisken sunshine socat ddcut
 sudo luarocks --lua-version=5.1 install luasocket
 sudo luarocks --lua-version=5.1 install lua-cjson 
 sudo luarocks --lua-version=5.1 install luv
+sudo luarocks install luasocket
+sudo luarocks install lua-cjson 
+sudo luarocks install luv
 systemctl --user start hyprpaper waybar hypridle udisken sunshine
 # latex
 paru -S --needed texlive

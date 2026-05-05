@@ -1,0 +1,99 @@
+#!/bin/bash
+#
+# wechat-universal.sh - wrapper for WeChat Universal
+# Copyright (C) 2024 Guoxin "7Ji" Pu <pugokushin@gmail.com>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+#
+
+dbus_call() { # $1: dest, $2: object path, $3: method
+  local args=(timeout 0.1s dbus-send --session --dest="$1" --print-reply "${@:2}")
+  echo "D-Bus calling with: ${args[@]}" >&2
+  "${args[@]}"
+}
+# Based on: https://github.com/web1n/wechat-universal-flatpak/blob/91f5d0d246881077812881e800a22f5a02cea438/wechat.sh#L3
+notifier_get() {
+  local dbus_item
+  for dbus_item in $(
+    dbus_call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.ListNames 2>/dev/null |
+      sed -n 's/      string "\(.*\)"/\1/p'
+    )
+  do
+    if dbus_call "${dbus_item}" \
+      /StatusNotifierItem \
+      org.freedesktop.DBus.Properties.Get \
+      string:org.kde.StatusNotifierItem \
+      string:Id |
+      grep -q 'string "chrome_status_icon_1"'
+  then
+    echo "${dbus_item}"
+    return 0
+    fi
+  done
+  return 0
+}
+
+try_move_foreground() {
+  if pgrep -af "/usr/bin/qq"; then
+    # Try to find existing WeChat window first and display it, before actually opening a new one
+    notifier_item=$(cat /tmp/qq.dbus_item)
+    echo $notifier_item
+    if dbus_call "${notifier_item}" \
+      /StatusNotifierItem \
+      org.freedesktop.DBus.Properties.Get \
+      string:org.kde.StatusNotifierItem \
+      string:Id |
+      grep -q 'string "chrome_status_icon_1"'
+  then
+    echo 'QQ is already running, moving it to foreground'
+    # Based on: https://github.com/web1n/wechat-universal-flatpak/blob/91f5d0d246881077812881e800a22f5a02cea438/wechat.sh#L25
+    dbus_call "${notifier_item}" \
+      /StatusNotifierItem \
+      org.kde.StatusNotifierItem.Activate \
+      int32:0 \
+      int32:0
+    return $?
+  else
+    notifier_item=$(notifier_get)
+    if [[ "${notifier_item}" ]]; then
+      echo $notifier_item >/tmp/qq.dbus_item
+      echo 'QQ is already running, moving it to foreground'
+      # Based on: https://github.com/web1n/wechat-universal-flatpak/blob/91f5d0d246881077812881e800a22f5a02cea438/wechat.sh#L25
+      dbus_call "${notifier_item}" \
+        /StatusNotifierItem \
+        org.kde.StatusNotifierItem.Activate \
+        int32:0 \
+        int32:0
+      return $?
+    fi
+    fi
+  fi
+  return 1
+}
+
+try_start() {
+  nohup /usr/bin/qq --enable-features=UseOzonePlatform,WaylandClipboard --ozone-platform=wayland --enable-wayland-ime > /dev/null 2>&1 < /dev/null &
+  # setsid b >/tmp/b.log 2>&1 < /dev/null &
+  notifier_item=$(notifier_get)
+  while [[ -z "${notifier_item}" ]]; do
+    sleep 1
+    notifier_item=$(notifier_get)
+  done
+  echo $notifier_item >/tmp/qq.dbus_item
+}
+
+try_move_foreground || try_start 
+
+exit $?
