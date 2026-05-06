@@ -3,7 +3,6 @@ local s = ls.snippet
 local i = ls.insert_node
 local f = ls.function_node
 local fmta = require("luasnip.extras.fmt").fmta
-
 return {
 	s(
 		{ trig = "if" },
@@ -61,5 +60,43 @@ end
 				i(3),
 			}
 		)
+	),
+	s(
+		{ trig = "do" },
+		fmta(
+			[[
+do
+  <>
+end
+      ]],
+			{ i(1) }
+		),
+		{
+			condition = function(line_to_cursor)
+				return line_to_cursor:match("^while%s")
+			end,
+			show_condition = function(line_to_cursor)
+				return line_to_cursor:match("^while%s")
+			end,
+		}
+	),
+	s(
+		{ trig = "then" },
+		fmta(
+			[[
+then
+  <>
+end
+      ]],
+			{ i(1) }
+		),
+		{
+			condition = function(line_to_cursor)
+				return line_to_cursor:match("^if%s")
+			end,
+			show_condition = function(line_to_cursor)
+				return line_to_cursor:match("^if%s")
+			end,
+		}
 	),
 }
