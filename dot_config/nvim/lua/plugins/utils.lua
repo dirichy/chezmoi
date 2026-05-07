@@ -1511,13 +1511,7 @@ return {
 		event = { "BufNewFile", "BufRead" },
 		config = function()
 			local ai = require("mini.ai")
-			-- ai.setup({
-			-- 	custom_textobjects = require("nvimtex.textobject"),
-			-- })
-			-- vim.g.TEST = function()
-			-- 	vim.api.nvim_feedkeys("v", "n", true)
-			-- 	vim.api.nvim_win_set_cursor(0, { 2, 2 })
-			-- end
+			ai.setup()
 		end,
 	},
 	{
