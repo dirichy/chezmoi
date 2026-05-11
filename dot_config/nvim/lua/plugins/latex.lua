@@ -10,6 +10,20 @@ return {
 		},
 		keys = {
 			{
+				"m<C-a>",
+				function()
+					require("nvimtex.surround").upgrade_math()
+				end,
+				desc = "upgrade math environment",
+			},
+			{
+				"m<C-x>",
+				function()
+					require("nvimtex.surround").downgrade_math()
+				end,
+				desc = "downgrade math environment",
+			},
+			{
 				"<leader>tr",
 				function()
 					require("nvimtex.conceal").forceRefresh()
