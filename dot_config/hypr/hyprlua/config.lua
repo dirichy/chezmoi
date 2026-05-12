@@ -25,6 +25,9 @@ hypr.event.listen({ "activewindow", "openlayer" }, function(data, ev)
 	if ev == "activewindow" then
 		class, title = string.match(data, "^([^,]*),(.*)$")
 	else
+		if data == "notifications" then
+			return
+		end
 		class = data
 	end
 	if current_class == class then
