@@ -192,3 +192,7 @@ on-mode-changed = []
 [[on-window-detected]]
     if.app-id = 'com.moonlight-stream.Moonlight'
     run = 'macos-native-fullscreen'
+[[on-window-detected]]
+    # if.app-id = 'NULL-APP-BUNDLE-ID'
+    if.window-title-regex-substring = 'mpv'
+    run = 'macos-native-fullscreen'

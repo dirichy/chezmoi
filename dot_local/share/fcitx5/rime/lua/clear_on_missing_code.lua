@@ -13,9 +13,8 @@ if system == "Linux" then
 		io.popen('notify-send "' .. str:gsub('"', '\\"') .. '"'):close()
 	end
 elseif system == "Darwin" then
-	os.execute()
 	notify = function(str)
-		io.popen('hs -c \'hs.notify.send("tiger","' .. str:gsub('"', '\\"') .. '","")\''):close()
+		io.popen('/opt/homebrew/bin/hs -c \'hs.notify.show("tiger","' .. str:gsub('"', '\\"') .. '","")\''):close()
 	end
 else
 	notify = function(str) end
