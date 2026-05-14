@@ -59,7 +59,7 @@ karabiner.modifier = {
 local JSON = require("cjson")
 karabiner.condition = {
 	always = function()
-		return JSON.empty_array
+		return karabiner.condition.application_unless("^com\\.moonlight-stream\\.Moonlight$")
 	end,
 	application = function(applications)
 		if type(applications) == "string" then
@@ -184,9 +184,22 @@ if arg[1] == "karabiner" then
 		{ "r", SUPER, "window --toggle split" },
 		{ "v", SUPER, "window --toggle float" },
 		{ "p", SUPER, "window --toggle sticky" },
+		{ "q", SUPER, "window --close" },
 	}
 	for _, map in ipairs(yabai_maps) do
 		karabiner.bind(map[1], map[2], yabai_m(map[3]))
+	end
+	local shortcuts = {
+		b = "open -a zen.app",
+		d = "open -a Eudic.app",
+		t = "/Applications/kitty.app/Contents/MacOS/kitty --detach -1 -d '~'",
+		q = "open -a QQ.app",
+		s = "open -a sioyek.app",
+		w = "open -a WeChat.app",
+		spacebar = "open -a 'Alfred 5.app'",
+	}
+	for key, cmd in pairs(shortcuts) do
+		karabiner.bind(key, ALT, karabiner.shell(cmd))
 	end
 	print(karabiner.tojson())
 end
