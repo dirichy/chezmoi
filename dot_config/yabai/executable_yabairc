@@ -7,3 +7,7 @@ yabai -m config active_window_opacity 1.0
 yabai -m config normal_window_opacity 0.95
 yabai -m rule --add app="^System Preferences$" manage=off
 yabai -m rule --add app="^系统设置$" manage=off
+yabai -m rule --add app="^微信$" manage=off
+yabai -m rule --add app="^QQ$" manage=off
+yabai -m rule --add app="^Karabiner-Elements$" manage=off
+yabai -m rule --add app="^Karabiner-EventViewer$" manage=off
