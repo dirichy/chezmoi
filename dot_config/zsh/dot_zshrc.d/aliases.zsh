@@ -55,6 +55,7 @@ function wol(){
     local -A cmd
     cmd=(
         byl "ssh dell wakeonlan 34:5a:60:a6:66:44"
+        wyy "ssh yoga wakeonlan 34:5a:60:a6:66:47"
     )
     local c=$cmd[$1]
     if [[ -z c ]]; then
