@@ -103,20 +103,33 @@ function karabiner.int2mods(mod)
 	return ret
 end
 karabiner._shell = {}
+---@class SHELL
+---@field cmd string
+
+local SHELL = {}
+SHELL.__index = SHELL
+function SHELL.new(cmd)
+	local res = { cmd = cmd }
+	return setmetatable(res, SHELL)
+end
+---@type fun(a:SHELL,b:SHELL):SHELL
+function SHELL.__bor(a, b)
+	return SHELL.new("(" .. a.cmd .. ") || (" .. b.cmd .. ")")
+end
 karabiner.shell = function(cmd)
-	return { karabiner._shell, cmd }
+	return SHELL.new(cmd)
 end
 ---@param key string|integer
 ---@param mod lua_keymapper.mod[]|integer
----@param fn string|table
+---@param fn string|table|SHELL
 ---@param priority integer?
 ---@param conditions table?
 karabiner.bind = function(key, mod, fn, conditions, priority)
 	local to
 	if type(fn) == "string" then
 		to = { keycode = fn }
-	elseif fn[1] == karabiner._shell then
-		to = { shell_command = fn[2] }
+	elseif getmetatable(fn) == SHELL then
+		to = { shell_command = fn.cmd }
 	else
 		to = { keycode = fn[1], modifiers = fn[2] }
 	end
@@ -174,11 +187,15 @@ if arg[1] == "karabiner" then
 		karabiner.bind(key, SUPER + SHIFT, yabai_m("window --swap " .. dir))
 	end
 	for i = 1, 9 do
-		karabiner.bind(tostring(i), SUPER, yabai_m("space --focus " .. tostring(i)))
+		karabiner.bind(
+			tostring(i),
+			SUPER,
+			yabai_m("space --focus fullscreen" .. tostring(i)) | yabai_m("space --focus " .. tostring(i))
+		)
 		karabiner.bind(tostring(i), SUPER + SHIFT, yabai_m("window --space " .. tostring(i) .. " --focus"))
 	end
 	local yabai_maps = {
-		{ "f", SUPER, "window --toggle native-fullscreen" },
+		-- { "f", SUPER, "window --toggle native-fullscreen" },
 		{ "f", SUPER + SHIFT, "window --toggle zoom-fullscreen" },
 		{ "r", SUPER + SHIFT, "space --rotate 90" },
 		{ "r", SUPER, "window --toggle split" },
@@ -189,6 +206,13 @@ if arg[1] == "karabiner" then
 	for _, map in ipairs(yabai_maps) do
 		karabiner.bind(map[1], map[2], yabai_m(map[3]))
 	end
+	karabiner.bind(
+		"f",
+		SUPER,
+		karabiner.shell(
+			"YABAI_CURRENT_SPACE=$(/opt/homebrew/bin/yabai -m query --spaces --space | jq '.index');  /opt/homebrew/bin/yabai -m window --toggle native-fullscreen;  sleep 1;  /opt/homebrew/bin/yabai -m space --label fullscreen$YABAI_CURRENT_SPACE;  "
+		)
+	)
 	local shortcuts = {
 		b = "open -a zen.app",
 		d = "open -a Eudic.app",
