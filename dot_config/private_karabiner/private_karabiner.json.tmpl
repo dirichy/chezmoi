@@ -5,25 +5,10 @@
             "complex_modifications": {
                 "parameters": { "basic.to_delayed_action_delay_milliseconds": 200 },
                 "rules": [
+                {{output (joinPath .chezmoi.sourceDir "dot_local" "bin" "executable_lua_keymapper") "karabiner"}},
                     {
                         "description": "Use command + key to open app",
                         "manipulators": [
-                            {
-                                "conditions": [
-                                    {
-                                        "bundle_identifiers": [
-                                            "^com\\.moonlight-stream\\.Moonlight$"
-                                        ],
-                                        "type": "frontmost_application_unless"
-                                    }
-                                ],
-                                "from": {
-                                    "key_code": "spacebar",
-                                    "modifiers": { "mandatory": ["left_command"] }
-                                },
-                                "to": { "shell_command": "open -a 'Alfred 5.app'" },
-                                "type": "basic"
-                            },
                             {
                                 "conditions": [
                                     {
@@ -50,10 +35,10 @@
                                     }
                                 ],
                                 "from": {
-                                    "key_code": "t",
+                                    "key_code": "spacebar",
                                     "modifiers": { "mandatory": ["left_command"] }
                                 },
-                                "to": { "shell_command": "/Applications/kitty.app/Contents/MacOS/kitty --detach -1 -d /Users/dirichy" },
+                                "to": { "shell_command": "open -a 'Alfred 5.app'" },
                                 "type": "basic"
                             },
                             {
@@ -66,26 +51,10 @@
                                     }
                                 ],
                                 "from": {
-                                    "key_code": "q",
+                                    "key_code": "d",
                                     "modifiers": { "mandatory": ["left_command"] }
                                 },
-                                "to": { "shell_command": "open -a QQ.app" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "bundle_identifiers": [
-                                            "^com\\.moonlight-stream\\.Moonlight$"
-                                        ],
-                                        "type": "frontmost_application_unless"
-                                    }
-                                ],
-                                "from": {
-                                    "key_code": "b",
-                                    "modifiers": { "mandatory": ["left_command"] }
-                                },
-                                "to": { "shell_command": "open -a zen.app" },
+                                "to": { "shell_command": "open -a Eudic.app" },
                                 "type": "basic"
                             },
                             {
@@ -114,10 +83,42 @@
                                     }
                                 ],
                                 "from": {
-                                    "key_code": "d",
+                                    "key_code": "b",
                                     "modifiers": { "mandatory": ["left_command"] }
                                 },
-                                "to": { "shell_command": "open -a Eudic.app" },
+                                "to": { "shell_command": "open -a zen.app" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.moonlight-stream\\.Moonlight$"
+                                        ],
+                                        "type": "frontmost_application_unless"
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "q",
+                                    "modifiers": { "mandatory": ["left_command"] }
+                                },
+                                "to": { "shell_command": "open -a QQ.app" },
+                                "type": "basic"
+                            },
+                            {
+                                "conditions": [
+                                    {
+                                        "bundle_identifiers": [
+                                            "^com\\.moonlight-stream\\.Moonlight$"
+                                        ],
+                                        "type": "frontmost_application_unless"
+                                    }
+                                ],
+                                "from": {
+                                    "key_code": "t",
+                                    "modifiers": { "mandatory": ["left_command"] }
+                                },
+                                "to": { "shell_command": "/Applications/kitty.app/Contents/MacOS/kitty --detach -1 -d '~'" },
                                 "type": "basic"
                             },
                             {
@@ -258,100 +259,6 @@
                                     }
                                 },
                                 "to": [{ "shell_command": "$HOME/.local/bin/toggle_proxy" }],
-                                "type": "basic"
-                            }
-                        ]
-                    },
-                    {
-                        "description": "Keybind for moonlight",
-                        "manipulators": [
-                            {
-                                "conditions": [
-                                    {
-                                        "bundle_identifiers": [
-                                            "^com\\.moonlight-stream\\.Moonlight$"
-                                        ],
-                                        "type": "frontmost_application_if"
-                                    }
-                                ],
-                                "from": { "key_code": "left_command" },
-                                "to": [{ "key_code": "left_option" }],
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "bundle_identifiers": [
-                                            "^com\\.moonlight-stream\\.Moonlight$"
-                                        ],
-                                        "type": "frontmost_application_if"
-                                    }
-                                ],
-                                "from": { "key_code": "left_option" },
-                                "to": [{ "key_code": "left_command" }],
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "bundle_identifiers": [
-                                            "^com\\.moonlight-stream\\.Moonlight$"
-                                        ],
-                                        "type": "frontmost_application_if"
-                                    },
-                                    {
-                                        "name": "esc_down",
-                                        "type": "variable_if",
-                                        "value": 1
-                                    }
-                                ],
-                                "from": { "key_code": "q" },
-                                "to": {
-                                    "key_code": "q",
-                                    "modifiers": ["left_control", "left_option", "left_shift"]
-                                },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "bundle_identifiers": [
-                                            "^com\\.moonlight-stream\\.Moonlight$"
-                                        ],
-                                        "type": "frontmost_application_if"
-                                    },
-                                    {
-                                        "name": "esc_down",
-                                        "type": "variable_if",
-                                        "value": 1
-                                    }
-                                ],
-                                "from": { "key_code": "z" },
-                                "to": {
-                                    "key_code": "z",
-                                    "modifiers": ["left_control", "left_option", "left_shift"]
-                                },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "bundle_identifiers": [
-                                            "^com\\.moonlight-stream\\.Moonlight$"
-                                        ],
-                                        "type": "frontmost_application_if"
-                                    },
-                                    {
-                                        "name": "esc_down",
-                                        "type": "variable_if",
-                                        "value": 1
-                                    }
-                                ],
-                                "from": { "key_code": "f" },
-                                "to": {
-                                    "key_code": "x",
-                                    "modifiers": ["left_control", "left_option", "left_shift"]
-                                },
                                 "type": "basic"
                             }
                         ]
@@ -921,347 +828,6 @@
                                 "from": { "apple_vendor_top_case_key_code": "keyboard_fn" },
                                 "to": [{ "apple_vendor_top_case_key_code": "keyboard_fn" }],
                                 "to_if_alone": [{ "key_code": "left_arrow" }],
-                                "type": "basic"
-                            }
-                        ]
-                    },
-                    {
-                        "description": "Use thumb_on_touch+key or two finger on touch + key to open app",
-                        "manipulators": [
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_palm_count_total",
-                                        "type": "variable_if",
-                                        "value": 1
-                                    }
-                                ],
-                                "from": { "key_code": "spacebar" },
-                                "to": { "shell_command": "open -a \"Alfred 5.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_finger_count_total",
-                                        "type": "variable_if",
-                                        "value": 2
-                                    }
-                                ],
-                                "from": { "key_code": "spacebar" },
-                                "to": { "shell_command": "open -a \"Alfred 5.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_palm_count_total",
-                                        "type": "variable_if",
-                                        "value": 1
-                                    }
-                                ],
-                                "from": { "key_code": "k" },
-                                "to": { "shell_command": "open -a \"kitty.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_finger_count_total",
-                                        "type": "variable_if",
-                                        "value": 2
-                                    }
-                                ],
-                                "from": { "key_code": "k" },
-                                "to": { "shell_command": "open -a \"kitty.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_palm_count_total",
-                                        "type": "variable_if",
-                                        "value": 1
-                                    }
-                                ],
-                                "from": { "key_code": "v" },
-                                "to": { "shell_command": "open -a \"VLC.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_finger_count_total",
-                                        "type": "variable_if",
-                                        "value": 2
-                                    }
-                                ],
-                                "from": { "key_code": "v" },
-                                "to": { "shell_command": "open -a \"VLC.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_palm_count_total",
-                                        "type": "variable_if",
-                                        "value": 1
-                                    }
-                                ],
-                                "from": { "key_code": "e" },
-                                "to": { "shell_command": "open -a \"Karabiner-EventViewer.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_finger_count_total",
-                                        "type": "variable_if",
-                                        "value": 2
-                                    }
-                                ],
-                                "from": { "key_code": "e" },
-                                "to": { "shell_command": "open -a \"Karabiner-EventViewer.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_palm_count_total",
-                                        "type": "variable_if",
-                                        "value": 1
-                                    }
-                                ],
-                                "from": { "key_code": "w" },
-                                "to": { "shell_command": "open -a \"WeChat.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_finger_count_total",
-                                        "type": "variable_if",
-                                        "value": 2
-                                    }
-                                ],
-                                "from": { "key_code": "w" },
-                                "to": { "shell_command": "open -a \"WeChat.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_palm_count_total",
-                                        "type": "variable_if",
-                                        "value": 1
-                                    }
-                                ],
-                                "from": { "key_code": "g" },
-                                "to": { "shell_command": "open -a \"Gnucash.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_finger_count_total",
-                                        "type": "variable_if",
-                                        "value": 2
-                                    }
-                                ],
-                                "from": { "key_code": "g" },
-                                "to": { "shell_command": "open -a \"Gnucash.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_palm_count_total",
-                                        "type": "variable_if",
-                                        "value": 1
-                                    }
-                                ],
-                                "from": { "key_code": "t" },
-                                "to": { "shell_command": "open -a \"Telegram.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_finger_count_total",
-                                        "type": "variable_if",
-                                        "value": 2
-                                    }
-                                ],
-                                "from": { "key_code": "t" },
-                                "to": { "shell_command": "open -a \"Telegram.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_palm_count_total",
-                                        "type": "variable_if",
-                                        "value": 1
-                                    }
-                                ],
-                                "from": { "key_code": "a" },
-                                "to": { "shell_command": "open -a \"Karabiner-Elements.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_finger_count_total",
-                                        "type": "variable_if",
-                                        "value": 2
-                                    }
-                                ],
-                                "from": { "key_code": "a" },
-                                "to": { "shell_command": "open -a \"Karabiner-Elements.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_palm_count_total",
-                                        "type": "variable_if",
-                                        "value": 1
-                                    }
-                                ],
-                                "from": { "key_code": "d" },
-                                "to": { "shell_command": "open -a \"Eudic.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_finger_count_total",
-                                        "type": "variable_if",
-                                        "value": 2
-                                    }
-                                ],
-                                "from": { "key_code": "d" },
-                                "to": { "shell_command": "open -a \"Eudic.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_palm_count_total",
-                                        "type": "variable_if",
-                                        "value": 1
-                                    }
-                                ],
-                                "from": { "key_code": "c" },
-                                "to": { "shell_command": "open -a \"Google Chrome.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_finger_count_total",
-                                        "type": "variable_if",
-                                        "value": 2
-                                    }
-                                ],
-                                "from": { "key_code": "c" },
-                                "to": { "shell_command": "open -a \"Google Chrome.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_palm_count_total",
-                                        "type": "variable_if",
-                                        "value": 1
-                                    }
-                                ],
-                                "from": { "key_code": "n" },
-                                "to": { "shell_command": "open -a \"noteful.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_finger_count_total",
-                                        "type": "variable_if",
-                                        "value": 2
-                                    }
-                                ],
-                                "from": { "key_code": "n" },
-                                "to": { "shell_command": "open -a \"noteful.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_palm_count_total",
-                                        "type": "variable_if",
-                                        "value": 1
-                                    }
-                                ],
-                                "from": { "key_code": "m" },
-                                "to": { "shell_command": "open -a \"MenubarX.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_finger_count_total",
-                                        "type": "variable_if",
-                                        "value": 2
-                                    }
-                                ],
-                                "from": { "key_code": "m" },
-                                "to": { "shell_command": "open -a \"MenubarX.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_palm_count_total",
-                                        "type": "variable_if",
-                                        "value": 1
-                                    }
-                                ],
-                                "from": { "key_code": "s" },
-                                "to": { "shell_command": "open -a \"sioyek.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_finger_count_total",
-                                        "type": "variable_if",
-                                        "value": 2
-                                    }
-                                ],
-                                "from": { "key_code": "s" },
-                                "to": { "shell_command": "open -a \"sioyek.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_palm_count_total",
-                                        "type": "variable_if",
-                                        "value": 1
-                                    }
-                                ],
-                                "from": { "key_code": "q" },
-                                "to": { "shell_command": "open -a \"QQ.app\"" },
-                                "type": "basic"
-                            },
-                            {
-                                "conditions": [
-                                    {
-                                        "name": "multitouch_extension_finger_count_total",
-                                        "type": "variable_if",
-                                        "value": 2
-                                    }
-                                ],
-                                "from": { "key_code": "q" },
-                                "to": { "shell_command": "open -a \"QQ.app\"" },
                                 "type": "basic"
                             }
                         ]
