@@ -62,6 +62,7 @@ engine:
   processors:
     # - lua_processor@hammerspoon
     - lua_processor@clear_on_missing_code
+    # - lua_processor@notify_on_missing_simp
     - ascii_composer
     - recognizer
     - key_binder
