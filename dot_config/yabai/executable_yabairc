@@ -12,6 +12,8 @@ yabai -m rule --add app="^微信$" manage=off
 yabai -m rule --add app="^QQ$" manage=off
 yabai -m rule --add app="^Karabiner-Elements$" manage=off
 yabai -m rule --add app="^Karabiner-EventViewer$" manage=off
+yabai -m signal --add event=window_created action="/Users/dirichy/.config/yabai/autofullscreen.sh"
+
 n=$(yabai -m query --spaces | jq '9 - length')
 if [ "$n" -gt 0 ]; then
   for i in $(seq 1 "$n"); do
