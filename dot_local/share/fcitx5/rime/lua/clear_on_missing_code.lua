@@ -14,7 +14,7 @@ if system == "Linux" then
 	end
 elseif system == "Darwin" then
 	notify = function(str)
-		io.popen('/opt/homebrew/bin/hs -c \'hs.notify.show("tiger","' .. str:gsub('"', '\\"') .. '","")\''):close()
+		os.execute("osascript -e 'display notification \"" .. str:gsub('"', '\\"') .. '" with title "rime"\'')
 	end
 else
 	notify = function(str) end
