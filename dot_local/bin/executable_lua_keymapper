@@ -1,4 +1,29 @@
 #!/usr/bin/env lua
+---@class SHELL
+---@field cmd string
+
+local SHELL = {}
+SHELL.__index = SHELL
+function SHELL.new(cmd)
+	local res = { cmd = cmd }
+	return setmetatable(res, SHELL)
+end
+---@type fun(a:SHELL,b:SHELL):SHELL
+function SHELL.__bor(a, b)
+	return SHELL.new("(" .. a.cmd .. ") || (" .. b.cmd .. ")")
+end
+---@type fun(a:SHELL,b:SHELL):SHELL
+function SHELL.__band(a, b)
+	return SHELL.new("(" .. a.cmd .. ") && (" .. b.cmd .. ")")
+end
+---@type fun(a:SHELL,b:SHELL):SHELL
+function SHELL.__add(a, b)
+	return SHELL.new("(" .. a.cmd .. ") ; (" .. b.cmd .. ")")
+end
+function SHELL:karabiner()
+	return { shell_command = self.cmd }
+end
+
 local karabiner = {}
 local keyd = {}
 local aerospace = {}
@@ -48,6 +73,11 @@ local function mod2int(mods)
 	return ret
 end
 --For karabiner
+---@class Karabiner.json.to
+---@field shell_command string?
+---@field key_code string?
+---@field modifiers (table<number,string>)?
+---@alias Karabiner.to string|table|SHELL
 karabiner.modifier = {
 	shift = 1,
 	control = 2,
@@ -55,10 +85,15 @@ karabiner.modifier = {
 	option = 8,
 	fn = 16,
 }
+karabiner.vitualMod = {}
+karabiner._next_vitual_mod_value = 32
 
 local JSON = require("cjson")
 karabiner.condition = {
 	always = function()
+		return JSON.empty_array
+	end,
+	not_moonlight = function()
 		return karabiner.condition.application_unless("^com\\.moonlight-stream\\.Moonlight$")
 	end,
 	application = function(applications)
@@ -91,33 +126,62 @@ for i = 0, 31 do
 end
 
 function karabiner.int2mods(mod)
-	if not mod then
-		return nil
+	if type(mod) ~= "number" then
+		return mod
 	end
+	local flag = nil
 	local ret = {}
 	for index, value in pairs(karabiner.modifier) do
 		if mod & value ~= 0 then
+			flag = true
 			ret[#ret + 1] = index
 		end
 	end
-	return ret
+	return flag and ret
 end
-karabiner._shell = {}
----@class SHELL
----@field cmd string
+function karabiner.int2vitualmods(mod)
+	if not mod then
+		return nil
+	end
+	local flag = nil
+	local ret = {}
+	for index, value in pairs(karabiner.vitualMod) do
+		if mod & value ~= 0 then
+			ret[#ret + 1] = index
+			flag = true
+		end
+	end
+	return flag and ret
+end
 
-local SHELL = {}
-SHELL.__index = SHELL
-function SHELL.new(cmd)
-	local res = { cmd = cmd }
-	return setmetatable(res, SHELL)
-end
----@type fun(a:SHELL,b:SHELL):SHELL
-function SHELL.__bor(a, b)
-	return SHELL.new("(" .. a.cmd .. ") || (" .. b.cmd .. ")")
-end
-karabiner.shell = function(cmd)
-	return SHELL.new(cmd)
+--- Change Karabiner.to into Karabiner.json.to
+---@param to Karabiner.to?
+---@return Karabiner.json.to?
+function karabiner.convert_to(to)
+	if not to then
+		return
+	end
+	if type(to) == "string" then
+		if to == "fn" then
+			return {
+				apple_vendor_top_case_key_code = "keyboard_fn",
+			}
+		else
+			return { key_code = to }
+		end
+	elseif getmetatable(to) == SHELL then
+		return to:karabiner()
+	else
+		to[2] = karabiner.int2mods(to[2])
+		if to[1] == "fn" then
+			return {
+				apple_vendor_top_case_key_code = "keyboard_fn",
+				modifiers = to[2],
+			}
+		else
+			return { key_code = to[1], modifiers = to[2] }
+		end
+	end
 end
 ---@param key string|integer
 ---@param mod lua_keymapper.mod[]|integer
@@ -125,19 +189,12 @@ end
 ---@param priority integer?
 ---@param conditions table?
 karabiner.bind = function(key, mod, fn, conditions, priority)
-	local to
-	if type(fn) == "string" then
-		to = { keycode = fn }
-	elseif getmetatable(fn) == SHELL then
-		to = { shell_command = fn.cmd }
-	else
-		to = { keycode = fn[1], modifiers = fn[2] }
-	end
+	local to = karabiner.convert_to(fn)
 	mod = mod2int(mod)
 	priority = priority or 100
 	if not conditions then
 		priority = 1
-		conditions = karabiner.condition.always()
+		conditions = karabiner.condition.not_moonlight()
 	end
 	if not karabiner.bindlist[mod][key] then
 		karabiner.bindlist[mod][key] = {}
@@ -151,18 +208,113 @@ karabiner.bind = function(key, mod, fn, conditions, priority)
 	end
 	table.insert(karabiner.bindlist[mod][key], i, { to = to, conditions = conditions, priority = priority })
 end
+
+--- Create a vitual modifier with name `name` and key `key`.
+---@param key string
+---@param name string
+---@param overload string|table|SHELL|nil if has any value, this modifier will be lazy, i.e., when press with other key, it will be mod; when pressed alone, it will trig `overload`
+function karabiner.createmod(key, name, overload, conditions)
+	if not conditions then
+		conditions = karabiner.condition.not_moonlight()
+	end
+	if karabiner.modifier[name] then
+		table.insert(karabiner.rule.manipulators, {
+			from = {
+				key_code = key,
+			},
+			to = {
+				key_code = name ~= "fn" and "left_" .. name or nil,
+				apple_vendor_top_case_key_code = name == "fn" and "keyboard_fn" or nil,
+				lazy = overload and true,
+			},
+			to_if_alone = karabiner.convert_to(overload),
+			conditions = conditions,
+			type = "basic",
+		})
+		return karabiner.modifier[name]
+	elseif karabiner.vitualMod[name] then
+		table.insert(karabiner.rule.manipulators, {
+			from = {
+				key_code = key,
+			},
+			to = {
+				set_variable = {
+					name = "vitual_mod_" .. name,
+					value = 1,
+				},
+			},
+			to_after_key_up = {
+				set_variable = {
+					name = "vitual_mod_" .. name,
+					value = 0,
+				},
+			},
+			to_if_alone = karabiner.convert_to(overload),
+			type = "basic",
+		})
+		return karabiner.vitualMod[name]
+	else
+		table.insert(karabiner.rule.manipulators, {
+			from = {
+				key_code = key,
+			},
+			to = {
+				set_variable = {
+					name = "vitual_mod_" .. name,
+					value = 1,
+				},
+			},
+			to_after_key_up = {
+				set_variable = {
+					name = "vitual_mod_" .. name,
+					value = 0,
+				},
+			},
+			to_if_alone = karabiner.convert_to(overload),
+			type = "basic",
+		})
+		karabiner.vitualMod[name] = karabiner._next_vitual_mod_value
+		karabiner._next_vitual_mod_value = karabiner._next_vitual_mod_value * 2
+		for i = karabiner.vitualMod[name], karabiner._next_vitual_mod_value - 1 do
+			karabiner.bindlist[i] = {}
+		end
+		return karabiner.vitualMod[name]
+	end
+end
+
 function karabiner.tojson()
 	for mod, mod_t in ipairs(karabiner.bindlist) do
 		for key, key_t in pairs(mod_t) do
 			for _, to in ipairs(key_t) do
-				table.insert(karabiner.rule.manipulators, {
+				local vitualmods = karabiner.int2vitualmods(mod)
+				if vitualmods then
+					to.conditions = to.conditions or JSON.empty_array
+					for _, vitualmod in ipairs(vitualmods) do
+						table.insert(to.conditions, {
+							name = "vitual_mod_" .. vitualmod,
+							type = "variable_if",
+							value = 1,
+						})
+					end
+				end
+				local phymods = karabiner.int2mods(mod)
+				local modifiers = phymods and {
+					mandatory = phymods,
+				}
+				local from
+				if key == "fn" then
+					from = { apple_vendor_top_case_key_code = "keyboard_fn", modifiers = modifiers }
+				else
 					from = {
 						key_code = key,
-						modifiers = {
-							mandatory = karabiner.int2mods(mod),
-						},
-					},
+						modifiers = modifiers,
+					}
+				end
+				table.insert(karabiner.rule.manipulators, {
+					from = from,
 					to = to.to,
+					to_if_alone = to.to_if_alone,
+					to_after_key_up = to.to_after_key_up,
 					conditions = to.conditions,
 					type = "basic",
 				})
@@ -172,8 +324,43 @@ function karabiner.tojson()
 	return JSON.encode(karabiner.rule)
 end
 if arg[1] == "karabiner" then
+	karabiner.createmod("caps_lock", "control", "escape")
+	local ESC = karabiner.createmod("escape", "esc")
+	local shottr_simp_shortcuts = {
+		["1"] = "Capture Screen",
+		["2"] = "Capture Area",
+		["3"] = "Scrolling Capture",
+		["9"] = "Recongize Text/QR",
+	}
+	local shottr_complex_shortcuts = {
+		["4"] = "Scrolling (Up)",
+		["5"] = "Capture Active Window",
+		["6"] = "Capture Any Window",
+		["7"] = "Delayed Screenshot (3S)",
+		["8"] = "Repeat Area Capture",
+	}
+	for key, value in pairs(shottr_simp_shortcuts) do
+		karabiner.bind(
+			key,
+			ESC,
+			SHELL.new([=[osascript -e 'tell application "System Events" to tell process "Shottr"
+        click menu item "]=] .. value .. [=[" of menu 1 of menu bar 2
+    end tell'
+    ]=])
+		)
+	end
+	for key, value in pairs(shottr_complex_shortcuts) do
+		karabiner.bind(
+			key,
+			ESC,
+			SHELL.new([=[osascript -e 'tell application "System Events" to tell process "Shottr"
+        click menu item "]=] .. value .. [=[" of menu "more" of menu item "more" of menu 1 of menu bar 2
+    end tell'
+  ]=])
+		)
+	end
 	local function yabai_m(cmd)
-		return karabiner.shell("/opt/homebrew/bin/yabai -m " .. cmd)
+		return SHELL.new("/opt/homebrew/bin/yabai -m " .. cmd)
 	end
 	local direction = {
 		h = "west",
@@ -209,8 +396,8 @@ if arg[1] == "karabiner" then
 	karabiner.bind(
 		"f",
 		SUPER,
-		karabiner.shell(
-			"YABAI_CURRENT_SPACE=$(/opt/homebrew/bin/yabai -m query --spaces --space | jq '.index');  /opt/homebrew/bin/yabai -m window --toggle native-fullscreen;  sleep 1;  /opt/homebrew/bin/yabai -m space --label fullscreen$YABAI_CURRENT_SPACE;  "
+		SHELL.new(
+			"YABAI_CURRENT_SPACE=$(/opt/homebrew/bin/yabai -m query --spaces --space | jq '.index');YABAI_NEW_SPACE_INDEX=$(/opt/homebrew/bin/yabai -m query --spaces | jq 'length+1');  /opt/homebrew/bin/yabai -m window --toggle native-fullscreen; /opt/homebrew/bin/yabai -m space $YABAI_NEW_SPACE_INDEX --label fullscreen$YABAI_CURRENT_SPACE;  "
 		)
 	)
 	local shortcuts = {
@@ -223,8 +410,9 @@ if arg[1] == "karabiner" then
 		spacebar = "open -a 'Alfred 5.app'",
 	}
 	for key, cmd in pairs(shortcuts) do
-		karabiner.bind(key, ALT, karabiner.shell(cmd))
+		karabiner.bind(key, ALT, SHELL.new(cmd))
 	end
+	karabiner.bind("p", FN + CTRL, SHELL.new("$HOME/.local/bin/toggle_proxy"))
 	print(karabiner.tojson())
 end
 return M
