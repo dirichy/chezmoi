@@ -49,3 +49,4 @@ fzf --zsh | eval
 [[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
 . "${ZDOTDIR:-$HOME}/scripts/baipan/main.zsh"
 (( $+commands[micromamba] )) && eval "$(micromamba shell hook --shell zsh)"
+return 0
