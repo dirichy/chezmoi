@@ -77,7 +77,11 @@ end
 ---@field shell_command string?
 ---@field key_code string?
 ---@field modifiers (table<number,string>)?
----@alias Karabiner.to string|table|SHELL
+
+---@alias Karabiner.to.key_code string
+---@alias Karabiner.to.key_with_mod {[1]:string,[2]:table|integer}
+---@alias Karabiner.to.shell SHELL
+---@alias Karabiner.to Karabiner.to.key_code|Karabiner.to.key_with_mod|Karabiner.to.shell
 karabiner.modifier = {
 	shift = 1,
 	control = 2,
@@ -185,7 +189,7 @@ function karabiner.convert_to(to)
 end
 ---@param key string|integer
 ---@param mod lua_keymapper.mod[]|integer
----@param fn string|table|SHELL
+---@param fn Karabiner.to
 ---@param priority integer?
 ---@param conditions table?
 karabiner.bind = function(key, mod, fn, conditions, priority)
@@ -283,7 +287,9 @@ function karabiner.createmod(key, name, overload, conditions)
 end
 
 function karabiner.tojson()
-	for mod, mod_t in ipairs(karabiner.bindlist) do
+	for i = #karabiner.bindlist, 0, -1 do
+		local mod = i
+		local mod_t = karabiner.bindlist[i]
 		for key, key_t in pairs(mod_t) do
 			for _, to in ipairs(key_t) do
 				local vitualmods = karabiner.int2vitualmods(mod)
@@ -380,7 +386,31 @@ if arg[1] == "karabiner" then
 			yabai_m("space --focus fullscreen" .. tostring(i)) | yabai_m("space --focus " .. tostring(i))
 		)
 		karabiner.bind(tostring(i), SUPER + SHIFT, yabai_m("window --space " .. tostring(i) .. " --focus"))
+		karabiner.bind(
+			tostring(i),
+			FN,
+			yabai_m("space --focus fullscreen" .. tostring(i)) | yabai_m("space --focus " .. tostring(i)),
+			karabiner.condition.always()
+		)
+		karabiner.bind(
+			tostring(i),
+			FN + SHIFT,
+			yabai_m("window --space " .. tostring(i) .. " --focus"),
+			karabiner.condition.always()
+		)
 	end
+	-- karabiner.bind(
+	-- 	tostring(0),
+	-- 	FN,
+	-- 	yabai_m("space --focus fullscreen" .. tostring(0)) | yabai_m("space --focus " .. tostring(0)),
+	-- 	karabiner.condition.always()
+	-- )
+	-- karabiner.bind(
+	-- 	tostring(i),
+	-- 	FN + SHIFT,
+	-- 	yabai_m("window --space " .. tostring(i) .. " --focus"),
+	-- 	karabiner.condition.always()
+	-- )
 	local yabai_maps = {
 		-- { "f", SUPER, "window --toggle native-fullscreen" },
 		{ "f", SUPER + SHIFT, "window --toggle zoom-fullscreen" },
@@ -413,6 +443,10 @@ if arg[1] == "karabiner" then
 		karabiner.bind(key, ALT, SHELL.new(cmd))
 	end
 	karabiner.bind("p", FN + CTRL, SHELL.new("$HOME/.local/bin/toggle_proxy"))
+	karabiner.bind("q", FN + ALT, { "q", ALT })
+	karabiner.bind("q", ESC + ALT, { "q", ALT })
+	karabiner.bind("return_or_enter", 0, { "return_or_enter", CTRL }, karabiner.condition.application("com.tencent.qq"))
+	karabiner.bind("return_or_enter", CTRL, "return_or_enter", karabiner.condition.application("com.tencent.qq"))
 	print(karabiner.tojson())
 end
 return M
