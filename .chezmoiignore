@@ -10,6 +10,7 @@ README.md
 .hammerspoon
 .config/karabiner
 .config/aerospace
+.config/yabai
 .local/bin/fcitx5-remote
 .local/bin/fdu-connect
 .local/bin/toggle_proxy
