@@ -1,0 +1,9 @@
+{
+  "Lua.runtime.path": [
+    "plugins/?.yazi/main.lua"
+  ],
+  "runtime.version": "Lua 5.4",
+  "workspace.library": [
+    "~/.config/yazi/plugins/types.yazi/"
+  ]
+}
