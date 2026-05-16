@@ -57,12 +57,12 @@ return {
 		cmdline = {
 			keymap = {
 				preset = "super-tab",
-				["<Tab>"] = { "show_and_insert", "select_next" },
-				["<S-Tab>"] = { "select_prev" },
+				-- ["<Tab>"] = { "accept", "show_and_insert", "select_next" },
+				-- ["<S-Tab>"] = { "select_prev" },
 			},
 			completion = {
 				menu = {
-					auto_show = false,
+					auto_show = true,
 				},
 			},
 		},
