@@ -227,7 +227,7 @@ M.debounce = function(fn, delay)
 		end
 		timer = uv.new_timer()
 		timer:start(delay, 0, function()
-			fn(unpack(args))
+			fn(table.unpack(args))
 			timer:stop()
 			timer:close()
 			timer = nil

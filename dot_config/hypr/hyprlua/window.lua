@@ -103,35 +103,35 @@ function M:moveToWorkspace(workspace)
 end
 local dist = {
 	h = function(win2, win1)
-		local x1, y1, w1, h1 = unpack(win1:frame())
+		local x1, y1, w1, h1 = table.unpack(win1:frame())
 		if not win2 then
 			return -x1 - w1
 		end
-		local x2, y2, w2, h2 = unpack(win2:frame())
+		local x2, y2, w2, h2 = table.unpack(win2:frame())
 		return y1 + h1 > y2 and y1 < y2 + h2 and x1 + w1 < x2 and x2 - x1 - w1
 	end,
 	l = function(win2, win1)
-		local x1, y1, w1, h1 = unpack(win1:frame())
+		local x1, y1, w1, h1 = table.unpack(win1:frame())
 		if not win2 then
 			return x1
 		end
-		local x2, y2, w2, h2 = unpack(win2:frame())
+		local x2, y2, w2, h2 = table.unpack(win2:frame())
 		return y2 + h2 > y1 and y2 < y1 + h1 and x2 + w2 < x1 and x1 - x2 - w2
 	end,
 	k = function(win2, win1)
-		local x1, y1, w1, h1 = unpack(win1:frame())
+		local x1, y1, w1, h1 = table.unpack(win1:frame())
 		if not win2 then
 			return -y1 - h1
 		end
-		local x2, y2, w2, h2 = unpack(win2:frame())
+		local x2, y2, w2, h2 = table.unpack(win2:frame())
 		return x1 + w1 > x2 and x1 < x2 + w2 and y1 + h1 < y2 and y2 - y1 - h1
 	end,
 	j = function(win2, win1)
-		local x1, y1, w1, h1 = unpack(win1:frame())
+		local x1, y1, w1, h1 = table.unpack(win1:frame())
 		if not win2 then
 			return y1
 		end
-		local x2, y2, w2, h2 = unpack(win2:frame())
+		local x2, y2, w2, h2 = table.unpack(win2:frame())
 		return x2 + w2 > x1 and x2 < x1 + w1 and y2 + h2 < y1 and y1 - y2 - h2
 	end,
 }

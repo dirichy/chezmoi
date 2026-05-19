@@ -1,4 +1,4 @@
-local uv = hypr.uv
+local uv = require("luv")
 
 -- =========================
 -- 类型定义
