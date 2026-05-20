@@ -202,8 +202,8 @@ for i = 1, 9 do
 end
 kmap.bind("backspace", winmod, wm.space(11))
 kmap.bind("backspace", winmod + SHIFT, wm.move_win_to_space(11))
-kmap.bind("mouse:272", winmod, hl.dsp.window.move())
-kmap.bind("mouse:273", winmod, hl.dsp.window.resize())
+kmap.bind("mouse:272", winmod, hl.dsp.window.drag(), nil, nil, { mouse = true })
+kmap.bind("mouse:273", winmod, hl.dsp.window.resize(), nil, nil, { mouse = true })
 kmap.bind("mouse:272", winmod, hl.dsp.window.fullscreen())
 kmap.bind("mouse:273", winmod, hl.dsp.window.float())
 
