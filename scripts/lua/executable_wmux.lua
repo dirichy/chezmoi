@@ -25,13 +25,13 @@ for key, fn in pairs(wm_keymap) do
 	kmap.bind(key, winmod, fn)
 end
 for i = 1, 9 do
-	kmap.bind(tostring(i), winmod, wm.space(i))
+	kmap.bind(tostring(i), winmod, wm.move_to_space(i))
 	kmap.bind(tostring(i), winmod + SHIFT, wm.move_win_to_space(i))
 	if FN then
-		kmap.bind(tostring(i), FN, wm.space(i))
+		kmap.bind(tostring(i), FN, wm.move_to_space(i))
 	end
 end
--- kmap.bind("backspace", winmod, wm.space(11))
+-- kmap.bind("backspace", winmod, wm.move_to_space(11))
 -- kmap.bind("backspace", winmod + SHIFT, wm.move_win_to_space(11))
 
 local app_keymap = {

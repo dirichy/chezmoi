@@ -1,6 +1,6 @@
 local shell = require("wmux.shell")
 local hypr = {}
-function hypr.space(space)
+function hypr.move_to_space(space)
 	return hl.dsp.focus({ workspace = space, on_current_monitor = true })
 end
 local dir_table = {
