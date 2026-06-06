@@ -32,11 +32,14 @@ return {
 			},
 			["<tab>"] = {
 				function()
-					-- if require("luasnip").expandable() then
-					-- 	vim.schedule(function()
-					-- 		require("luasnip").expand()
-					-- 	end)
-					-- end
+					if require("luasnip").expandable() then
+						local tex = require("nvimtex.conditions.luasnip")
+						if tex.in_math() then
+							vim.schedule(function()
+								require("luasnip").expand()
+							end)
+						end
+					end
 					if require("luasnip").jumpable(1) then
 						vim.schedule(function()
 							require("luasnip").jump(1)
