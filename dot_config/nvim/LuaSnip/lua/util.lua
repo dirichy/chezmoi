@@ -1,8 +1,41 @@
 local ls = require("luasnip")
 local s = ls.snippet
+local sn = ls.sn
 local i = ls.insert_node
 local f = ls.function_node
+local d = ls.dynamic_node
 local fmta = require("luasnip.extras.fmt").fmta
+local line_begin = require("luasnip.extras.expand_conditions").line_begin
+local expression_context = {
+	expression_list = ",",
+	table_constructor = ",",
+	arguments = "",
+	field = ",",
+	return_statement = "",
+}
+local statement_context = {
+	block = true,
+	chunk = true,
+}
+local function is_express_fn()
+	local node = vim.treesitter.get_node()
+
+	while node do
+		local t = node:type()
+
+		if expression_context[t] then
+			return expression_context[t]
+		end
+
+		if statement_context[t] then
+			return false
+		end
+
+		node = node:parent()
+	end
+
+	return false
+end
 return {
 	s(
 		{ trig = "if" },
@@ -50,16 +83,36 @@ until <>
 		{ trig = "fn" },
 		fmta(
 			[[
-function <>(<>)
+<>function <>(<>)
   <>
-end
+end<>
   ]],
 			{
-				i(1, "name"),
-				i(2, "arglist"),
+				f(function(args, parent)
+					local name = args[1][1]
+					if string.match(name, "[:.]") then
+						return ""
+					else
+						return "loacl "
+					end
+				end, { 1 }),
+				d(1, function()
+					if is_express_fn() then
+						return sn(1, { t("") })
+					else
+						return sn(1, { i(1, "name") })
+					end
+				end),
+				i(2),
 				i(3),
+				f(is_express_fn),
 			}
 		)
+
+		-- {
+		-- 	condition = is_express_fn,
+		-- 	show_condition = is_express_fn,
+		-- }
 	),
 	s(
 		{ trig = "do" },
