@@ -4,6 +4,8 @@
 #
 alias fk='open -a Finder.app .'
 alias bypy='python3 -m bypy'
+alias paru='systemd-inhibit paru'
+alias yay='systemd-inhibit paru'
 # single character aliases - be sparing!
 alias _=sudo
 if [ -n "$(whence lsd)" ]; then
