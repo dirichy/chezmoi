@@ -25,8 +25,8 @@ hash = "68603fdd1dcaf415227e2c77a9317947"
 
 [[plugin.deps]]
 use = "Ape/open-with-cmd"
-rev = "e3d430f"
-hash = "d29c1ffa99099181faf8c01d1f59aa4c"
+rev = "eba191d"
+hash = "722a60eca1b338c9c24bb508d2d48578"
 
 [[plugin.deps]]
 use = "boydaihungst/gvfs"
@@ -67,6 +67,11 @@ hash = "8714306b5cac6359edbacbf545fbd691"
 use = "yazi-rs/plugins:types"
 rev = "4ffa48f"
 hash = "9105494e98299f392aee95340066da9f"
+
+[[plugin.deps]]
+use = "linxuan-sys/docx-preview"
+rev = "9448288"
+hash = "ccbbca8053585b2e637858dc416e4044"
 
 [[flavor.deps]]
 use = "yazi-rs/flavors:dracula"
