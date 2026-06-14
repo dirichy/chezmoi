@@ -42,15 +42,14 @@ function M.int2mods(mod)
 	if type(mod) ~= "number" then
 		return mod
 	end
-	local flag = nil
 	local ret = {}
 	for index, value in pairs(M._modifier) do
 		if mod & value ~= 0 then
-			flag = true
 			ret[#ret + 1] = index
+			mod = mod - value
 		end
 	end
-	return flag and ret
+	return mod == 0 and ret
 end
 
 local always = function()
@@ -89,7 +88,10 @@ function M.bind(key, mod, fn, conditions, priority, opts)
 			hs.execute(fn.cmd)
 		end
 	end
-	hs.hotkey.bind(M.int2mods(mod), key, nil, to, nil, nil)
+	mod = M.int2mods(mod)
+	if mod then
+		hs.hotkey.bind(mod, key, nil, to, nil, nil)
+	end
 end
 
 function M.createmod(mod, name, overload) end

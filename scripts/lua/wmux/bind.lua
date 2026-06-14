@@ -8,7 +8,7 @@
 ---@field bind fun(key:key,mod:mod,fn:to,conditions:function?,priority:integer?,opts:table?)
 ---@field createmod fun(key:key,name:string,overload:to,conditions:function):integer
 ---@field modifier table<string,integer>
-if arg[1] then
+if arg and arg[1] then
 	return require("wmux.bind." .. arg[1])
 end
 if hl then

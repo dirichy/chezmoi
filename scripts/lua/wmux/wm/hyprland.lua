@@ -1,5 +1,8 @@
 local shell = require("wmux.shell")
 local hypr = {}
+if not hl then
+	error("not in hyprland")
+end
 function hypr.space(space)
 	return hl.dsp.focus({ workspace = space, on_current_monitor = true })
 end
@@ -160,4 +163,10 @@ function hypr.capture_screen(area)
 	end
 end
 hypr.get_active_window = hl.get_active_window
+function hypr.toggle_pin(pin)
+	return function() end
+end
+function hypr.rotate_space()
+	return function() end
+end
 return hypr

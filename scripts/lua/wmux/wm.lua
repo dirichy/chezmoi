@@ -13,8 +13,10 @@
 ---@field resize fun():to
 ---@field get_active_window fun():window
 ---@field capture_screen fun(area:boolean):to
-if hl or arg[1] == "keyd" then
+---@field toggle_pin fun(pin:boolean):to
+---@field rotate_space fun():to
+if hl or arg and arg[1] == "keyd" then
 	return require("wmux.wm.hyprland")
-elseif hs or arg[1] == "karabiner" then
+elseif hs or arg and arg[1] == "karabiner" then
 	return require("wmux.wm.yabai")
 end

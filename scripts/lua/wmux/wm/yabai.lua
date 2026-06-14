@@ -78,4 +78,10 @@ function M.capture_screen(area)
     end tell'
     ]=])
 end
+function M.toggle_pin(pin)
+	return yabai_m("window --toggle sticky")
+end
+function M.rotate_space()
+	return yabai_m("space --rotate 90")
+end
 return M

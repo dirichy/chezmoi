@@ -1,4 +1,4 @@
-if hs or arg[1] == "karabiner" then
+if hs or arg and arg[1] == "karabiner" then
 	return {
 		browser = "open -a zen.app",
 		terminal = "/Applications/kitty.app/Contents/MacOS/kitty --detach -1 -d '~'",
@@ -7,7 +7,7 @@ if hs or arg[1] == "karabiner" then
 		wechat = "open -a WeChat.app",
 		menu = "open -a 'Alfred 5.app'",
 	}
-elseif hl or arg[1] == "keyd" then
+elseif hl or arg and arg[1] == "keyd" then
 	return {
 		terminal = "kitty",
 		browser = "zen || zen-browser",
