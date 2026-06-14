@@ -29,7 +29,7 @@ hl.config({
 			active_border = { colors = { "rgba(33ccffee)", "rgba(00ff99ee)" }, angle = 45 },
 			inactive_border = "rgba(595959aa)",
 		},
-		layout = "scrolling",
+		layout = "dwindle",
 	},
 
 	decoration = {
@@ -276,3 +276,4 @@ hl.on("workspace.active", function(space)
 	hl.exec_cmd("hyprctl hyprpaper wallpaper ,~/wallpaper/wallpaper" .. tostring(id) .. ".JPG")
 end)
 hl.timer(require("luv").run, { type = "repeat", timeout = 10 })
+kmap.bind("u", ALT + SHIFT, SHELL.new(os.getenv("HOME") .. "/.config/hypr/scripts/gopass-bridge.sh"))

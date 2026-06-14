@@ -3,7 +3,7 @@ local hypr = {}
 if not hl then
 	error("not in hyprland")
 end
-function hypr.space(space)
+function hypr.move_to_space(space)
 	return hl.dsp.focus({ workspace = space, on_current_monitor = true })
 end
 local dir_table = {

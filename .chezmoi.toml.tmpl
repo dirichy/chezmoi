@@ -12,5 +12,6 @@ screenResolution = [{{ (  ( promptStringOnce . "screenwidth" "screenwidth" ) ) }
 {{end}}
 monitorScale = {{ ( promptStringOnce . "monitorScale" "monitorScale" ) }}
 fduConnect = {{ eq ( promptStringOnce . "fduConnect" "enable fdu-connect? (y/N)" ) "y"}}
+phoneIP = {{ ( promptStringOnce . "phoneIP" "Your mobile fixed ip(if exist), only used in hypridle to judge if you are home" )|quote }}
 [secret]
 command="{{.chezmoi.sourceDir}}/dot_local/bin/executable_gopass-safe"

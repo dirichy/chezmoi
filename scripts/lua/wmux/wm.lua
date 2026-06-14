@@ -1,7 +1,7 @@
 ---@alias Dir "h"|"j"|"k"|"l"
 ---@alias window hs.window
 ---@class WM
----@field space fun(space:integer):to
+---@field move_to_space fun(space:integer):to
 ---@field focus_window fun(dir:Dir):to
 ---@field focus_space fun(dir:Dir):to
 ---@field focus fun(dir:Dir):to

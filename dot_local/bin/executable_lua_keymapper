@@ -447,6 +447,13 @@ if arg[1] == "karabiner" then
 	karabiner.bind("q", ESC + ALT, { "q", ALT })
 	karabiner.bind("return_or_enter", 0, { "return_or_enter", CTRL }, karabiner.condition.application("com.tencent.qq"))
 	karabiner.bind("return_or_enter", CTRL, "return_or_enter", karabiner.condition.application("com.tencent.qq"))
+	karabiner.bind(
+		"return_or_enter",
+		0,
+		{ "return_or_enter", CTRL },
+		karabiner.condition.application("com.tencent.xinWeChat")
+	)
+	karabiner.bind("return_or_enter", CTRL, "return_or_enter", karabiner.condition.application("com.tencent.xinWeChat"))
 	print(karabiner.tojson())
 end
 return M

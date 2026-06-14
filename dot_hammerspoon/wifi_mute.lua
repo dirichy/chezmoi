@@ -4,7 +4,7 @@
 
 -- --------------------------------------------------
 -- 定义公司的 wifi 名称
-local WORK_SSID = { ["BNU-Mobile"] = true }
+local WORK_SSID = { ["BNU-Mobile"] = true, ["iFudanNG.1x"] = true }
 -- --------------------------------------------------
 local function mute()
 	hs.audiodevice.defaultOutputDevice():setOutputMuted(true)

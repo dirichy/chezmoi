@@ -1,0 +1,9 @@
+#!/bin/env bash
+is_night() {
+    (( 10#$(date +%H) < 8 ))
+}
+if is_night; then
+  exit 0
+fi
+ping -c 3 {{.phoneIP}} || exit 0
+exit 1

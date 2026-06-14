@@ -40,7 +40,7 @@ end
 function M.swap_win(dir)
 	return yabai_m("window --swap " .. direction[dir])
 end
-function M.space(i)
+function M.move_to_space(i)
 	return yabai_m("space --focus fullscreen" .. tostring(i)) | yabai_m("space --focus " .. tostring(i))
 end
 function M.move_win_to_space(i)

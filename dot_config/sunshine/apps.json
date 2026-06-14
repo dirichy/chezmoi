@@ -1,80 +1,49 @@
 {
-  "apps": [
-    {
-      "auto-detach": true,
-      "exclude-global-prep-cmd": false,
-      "exit-timeout": 5,
-      "image-path": "desktop.png",
-      "name": "Desktop",
-      "prep-cmd": [],
-      "wait-all": true
-    },
-    {
-      "auto-detach": true,
-      "cmd": [],
-      "elevated": false,
-      "exclude-global-prep-cmd": false,
-      "exit-timeout": 5,
-      "image-path": "",
-      "name": "ipad/only",
-      "prep-cmd": [
+    "apps": [
         {
-          "do": "hyprlua hypr.sunshine.only(\"ipad\")",
-          "undo": "hyprlua hypr.sunshine.reset()"
-        }
-      ],
-      "wait-all": true
-    },
-    {
-      "auto-detach": true,
-      "cmd": [],
-      "elevated": false,
-      "exclude-global-prep-cmd": false,
-      "exit-timeout": 5,
-      "image-path": "",
-      "name": "ipad/expand",
-      "prep-cmd": [
+            "auto-detach": true,
+            "cmd": "",
+            "elevated": false,
+            "exclude-global-prep-cmd": false,
+            "exit-timeout": 5,
+            "image-path": "/home/dirichy/.config/sunshine/misc/expand.png",
+            "name": "expand",
+            "output": "",
+            "prep-cmd": [
+                {
+                    "do": "sunshine_pre expand",
+                    "undo": "sunshine_pre reset"
+                }
+            ],
+            "wait-all": true
+        },
         {
-          "do": "hyprlua hypr.sunshine.expand(\"ipad\")",
-          "undo": "hyprlua hypr.sunshine.reset()"
-        }
-      ],
-      "wait-all": true
-    },
-    {
-      "auto-detach": true,
-      "cmd": [],
-      "elevated": false,
-      "exclude-global-prep-cmd": false,
-      "exit-timeout": 5,
-      "image-path": "",
-      "name": "mac/only",
-      "prep-cmd": [
+            "auto-detach": true,
+            "cmd": "",
+            "elevated": false,
+            "exclude-global-prep-cmd": false,
+            "exit-timeout": 5,
+            "image-path": "/home/dirichy/.config/sunshine/misc/mirror.png",
+            "name": "mirror",
+            "output": "",
+            "wait-all": true
+        },
         {
-          "do": "hyprlua hypr.sunshine.only(\"macbook\")",
-          "undo": "hyprlua hypr.sunshine.reset()"
+            "auto-detach": true,
+            "exclude-global-prep-cmd": false,
+            "exit-timeout": 5,
+            "image-path": "/home/dirichy/.config/sunshine/misc/only.png",
+            "name": "only",
+            "prep-cmd": [
+                {
+                    "do": "sunshine_pre only",
+                    "undo": "sunshine_pre reset"
+                }
+            ],
+            "wait-all": true
         }
-      ],
-      "wait-all": true
-    },
-    {
-      "auto-detach": true,
-      "cmd": [],
-      "elevated": false,
-      "exclude-global-prep-cmd": false,
-      "exit-timeout": 5,
-      "image-path": "",
-      "name": "mac/expand",
-      "prep-cmd": [
-        {
-          "do": "hyprlua hypr.sunshine.expand(\"macbook\")",
-          "undo": "hyprlua hypr.sunshine.reset()"
-        }
-      ],
-      "wait-all": true
+    ],
+    "env": {
+        "PATH": "$(PATH):$(HOME)/.local/bin"
     }
-  ],
-  "env": {
-    "PATH": "$(PATH):$(HOME)/.local/bin"
-  }
 }
