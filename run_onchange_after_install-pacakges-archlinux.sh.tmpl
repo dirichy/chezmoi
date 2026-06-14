@@ -15,6 +15,9 @@ paru -S --needed mihomo tailscale networkmanager
 sudo systemctl enable --now NetworkManager
 # util_gui
 paru -S --needed kitty mpv zen-browser-bin wofi xorg-xrdb zathura sioyek-git zenity linuxqq-nt-bwrap wechat-universal-bwrap
+# util nvidia
+paru -S --needed nvidia-open
+sudo systemctl enable --now nvidia-suspend.service nvidia-resume.service nvidia-hibernate.service
 # util_cli
 paru -S --needed ffmpeg git gopass gopass-jsonapi fzf zoxide thefuck ripgrep tree-sitter-cli unzip tar wget curl zsh uv tmux luarocks lua luajit imagemagick lsd fd jq
 # language
@@ -29,7 +32,7 @@ sudo luarocks --lua-version=5.1 install luv
 sudo luarocks install luasocket
 sudo luarocks install lua-cjson 
 sudo luarocks install luv
-systemctl --user start hyprpaper waybar hypridle udisken sunshine
+systemctl --user start hyprpaper waybar hypridle udisken
 # latex
 paru -S --needed texlive
 {{- end -}}
