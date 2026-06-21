@@ -5,5 +5,5 @@ is_night() {
 if is_night; then
   exit 0
 fi
-ping -c 3 {{.phoneIP}} || exit 0
+sudo l2ping -c 3 -t 5 {{.phoneBluetoothMac | quote}} || exit 0
 exit 1
