@@ -1,7 +1,8 @@
+{{- if eq .chezmoi.os "linux" -}}
 # Allow Overriding System XKB Settings
 Allow Overriding System XKB Settings=False
 # Always set layout to be only group layout
 AlwaysSetToGroupLayout=True
 # Set client disconnect mode to terminate (Need Restart)
-ClientDisconnectModeTerminate=Auto
-
+ClientDisconnectModeTerminate=Yes
+{{ end }}

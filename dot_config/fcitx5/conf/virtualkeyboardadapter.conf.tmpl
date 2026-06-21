@@ -1,2 +1,4 @@
+{{- if eq .chezmoi.os "linux" -}}
 ActivateCmd="pkill -SIGUSR2 wvkbd"
 DeactivateCmd="pkill -SIGUSR1 wvkbd"
+{{- end }}

@@ -1,0 +1,30 @@
+{{- if eq .chezmoi.os "linux" -}}
+# Preedit Mode
+PreeditMode="Do not show"
+# Shared Input State
+InputState="Follow Global Configuration"
+# Fix embedded preedit cursor at the beginning of the preedit
+PreeditCursorPositionAtBeginning=False
+# Action when switching input method
+SwitchInputMethodBehavior="Commit commit preview"
+# Synchronize
+Synchronize=
+
+[Deploy]
+0=Control+Alt+grave
+{{ end }}
+{{- if eq .chezmoi.os "darwin" -}}
+# 预编辑模式
+PreeditMode="Composing text"
+# 共享输入状态
+InputState="Follow Global Configuration"
+# 将嵌入式预编辑文本的光标固定在开头
+PreeditCursorPositionAtBeginning=False
+# 切换输入法时的行为
+SwitchInputMethodBehavior="Commit commit preview"
+# 同步
+Synchronize=
+
+[Deploy]
+0=Control+Alt+grave
+{{ end }}

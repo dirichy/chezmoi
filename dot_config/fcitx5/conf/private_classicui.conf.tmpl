@@ -1,13 +1,14 @@
+{{- if eq .chezmoi.os "linux" -}}
 # Vertical Candidate List
 Vertical Candidate List=False
 # Use mouse wheel to go to prev or next page
 WheelForPaging=True
 # Font
-Font="Sans 20"
+Font="Sans 12"
 # Menu Font
-MenuFont="Sans 20"
+MenuFont="Sans 12"
 # Tray Font
-TrayFont="Sans Bold 20"
+TrayFont="Sans Bold 12"
 # Tray Label Outline Color
 TrayOutlineColor=#000000
 # Tray Label Text Color
@@ -21,15 +22,15 @@ UseInputMethodLanguageToDisplayText=True
 # Theme
 Theme=default
 # Dark Theme
-DarkTheme=plasma
+DarkTheme=default
 # Follow system light/dark color scheme
 UseDarkTheme=False
 # Follow system accent color if it is supported by theme and desktop
 UseAccentColor=True
 # Use Per Screen DPI on X11
-PerScreenDPI=True
+PerScreenDPI=False
 # Force font DPI on Wayland
-ForceWaylandDPI=60
+ForceWaylandDPI=96
 # Enable fractional scale under Wayland
 EnableFractionalScale=True
-
+{{ end }}
