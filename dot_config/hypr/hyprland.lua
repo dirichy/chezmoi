@@ -109,7 +109,7 @@ hl.on("hyprland.start", function()
 	hl.exec_cmd("fcitx5-remote")
 	hl.exec_cmd("nm-applet")
 	hl.exec_cmd("sleep 1;systemctl --user restart hyprpaper")
-	hl.exec_cmd("sleep 1;systemctl --user restart sunshine")
+	hl.exec_cmd("sleep 1;systemctl --user restart app-dev.lizardbyte.app.Sunshine")
 	hl.exec_cmd("sleep 1;systemctl --user restart udisken")
 	hl.exec_cmd("sleep 1;systemctl --user restart waybar")
 	hl.exec_cmd("xrdb -merge ~/.Xresources")
@@ -129,6 +129,7 @@ local windowrules = {
 			class = "sioyek",
 		},
 		tile = true,
+		focus_on_activate = true,
 	},
 	{
 		name = "fullscreen mpv",
