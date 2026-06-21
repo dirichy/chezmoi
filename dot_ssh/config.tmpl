@@ -6,6 +6,10 @@
 {{- end -}}
 
 
+Host *
+    ControlMaster auto
+    ControlPath ~/.ssh/control-%r@%h:%p
+    ControlPersist 10m
 Host server
   Hostname {{secret "serverIP" "0.0.0.0"}}
   Port 22
