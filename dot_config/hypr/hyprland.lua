@@ -204,8 +204,8 @@ kmap.bind("backspace", winmod, wm.space(11))
 kmap.bind("backspace", winmod + SHIFT, wm.move_win_to_space(11))
 kmap.bind("mouse:272", winmod, hl.dsp.window.drag(), nil, nil, { mouse = true })
 kmap.bind("mouse:273", winmod, hl.dsp.window.resize(), nil, nil, { mouse = true })
-kmap.bind("mouse:272", winmod, hl.dsp.window.fullscreen())
-kmap.bind("mouse:273", winmod, hl.dsp.window.float())
+kmap.bind("mouse:272", winmod, hl.dsp.window.fullscreen(), nil, nil, { mouse = true, click = true })
+kmap.bind("mouse:273", winmod, hl.dsp.window.float(), nil, nil, { mouse = true, click = true })
 
 local app_keymap = {
 	t = SHELL.new(terminal),
@@ -224,10 +224,10 @@ local sys_keymap = {
 	w = SHELL.new("sudo grub-reboot 2 && reboot"),
 	d = function()
 		hl.timer(function()
-			hl.dispatch(hl.dsp.dpms("off"))
+			hl.dispatch(hl.dsp.dpms({ action = "off" }))
 		end, { timeout = 1000, type = "oneshot" })
 	end,
-	c = hl.dsp.dpms("on"),
+	c = hl.dsp.dpms({ action = "on" }),
 }
 for key, cmd in pairs(sys_keymap) do
 	kmap.bind(key, sysmod, cmd, nil, nil, { release = true })
