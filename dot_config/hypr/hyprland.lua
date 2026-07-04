@@ -1,16 +1,18 @@
+local util = require("util")
 print = function(str)
 	hl.notification.create({ text = tostring(str), duration = 5000 })
 end
 local im = require("fcitx")
 local SHELL = require("kmap.shell")
-local monitor = hl.get_active_monitor()
-hl.monitor({
-	output = "",
-	-- mode = "3840x2160@60",
-	mode = "prefered",
-	-- position = "0x0",
-	scale = monitor.height == 2160 and 2.5 or 1.5,
-})
+-- local monitor = require("monitor")
+require("monitor").setup()
+-- hl.monitor({
+-- 	output = "",
+-- 	-- mode = "3840x2160@60",
+-- 	mode = "prefered",
+-- 	-- position = "0x0",
+-- 	scale = 2.5,
+-- })
 hl.config({
 	xwayland = {
 		force_zero_scaling = true,
@@ -107,7 +109,7 @@ hl.on("hyprland.start", function()
 	hl.exec_cmd("fcitx5-remote")
 	hl.exec_cmd("nm-applet")
 	hl.exec_cmd("sleep 1;systemctl --user restart hyprpaper")
-	hl.exec_cmd("sleep 1;systemctl --user restart sunshine")
+	hl.exec_cmd("sleep 1;systemctl --user restart app-dev.lizardbyte.app.Sunshine")
 	hl.exec_cmd("sleep 1;systemctl --user restart udisken")
 	hl.exec_cmd("sleep 1;systemctl --user restart waybar")
 	hl.exec_cmd("xrdb -merge ~/.Xresources")
@@ -127,6 +129,7 @@ local windowrules = {
 			class = "sioyek",
 		},
 		tile = true,
+		focus_on_activate = true,
 	},
 	{
 		name = "fullscreen mpv",
@@ -204,8 +207,8 @@ kmap.bind("backspace", winmod, wm.space(11))
 kmap.bind("backspace", winmod + SHIFT, wm.move_win_to_space(11))
 kmap.bind("mouse:272", winmod, hl.dsp.window.drag(), nil, nil, { mouse = true })
 kmap.bind("mouse:273", winmod, hl.dsp.window.resize(), nil, nil, { mouse = true })
-kmap.bind("mouse:272", winmod, hl.dsp.window.fullscreen())
-kmap.bind("mouse:273", winmod, hl.dsp.window.float())
+kmap.bind("mouse:272", winmod, hl.dsp.window.fullscreen(), nil, nil, { mouse = true, click = true })
+kmap.bind("mouse:273", winmod, hl.dsp.window.float(), nil, nil, { mouse = true, click = true })
 
 local app_keymap = {
 	t = SHELL.new(terminal),
@@ -224,10 +227,10 @@ local sys_keymap = {
 	w = SHELL.new("sudo grub-reboot 2 && reboot"),
 	d = function()
 		hl.timer(function()
-			hl.dispatch(hl.dsp.dpms("off"))
+			hl.dispatch(hl.dsp.dpms({ action = "off" }))
 		end, { timeout = 1000, type = "oneshot" })
 	end,
-	c = hl.dsp.dpms("on"),
+	c = hl.dsp.dpms({ action = "on" }),
 }
 for key, cmd in pairs(sys_keymap) do
 	kmap.bind(key, sysmod, cmd, nil, nil, { release = true })
@@ -271,9 +274,27 @@ hl.on("window.active", function(win)
 		end
 	end)()
 end)
-hl.on("workspace.active", function(space)
-	local id = space.id
-	hl.exec_cmd("hyprctl hyprpaper wallpaper ,~/wallpaper/wallpaper" .. tostring(id) .. ".JPG")
-end)
+hl.on(
+	"workspace.active",
+	util.debounce(function(space)
+		local id = space.id
+		hl.exec_cmd("hyprctl hyprpaper wallpaper ,~/wallpaper/wallpaper" .. tostring(id) .. ".JPG")
+	end, 200, true)
+)
+kmap.bind(
+	"1",
+	SHIFT + CTRL + ALT,
+	SHELL.new(
+		[[grim - | wl-copy && wl-paste > ~/Pictures/Screenshots/Screenshot-$(date +%F_%T).png | hyprctl notify -1 1000 "rgb(ff0000)" "全屏截图"]]
+	)
+)
+kmap.bind(
+	"2",
+	SHIFT + CTRL + ALT,
+	SHELL.new(
+		[[if area=$(slurp); then grim -g "$area" - | tee >(wl-copy) > ~/Pictures/Screenshots/Screenshot-$(date +%F_%T).png && hyprctl notify -1 1000 "rgb(ff0000)" "区域截图"; fi]]
+	)
+)
+hl.sunshine = require("sunshine")
 hl.timer(require("luv").run, { type = "repeat", timeout = 10 })
-kmap.bind("u", ALT + SHIFT, SHELL.new(os.getenv("HOME") .. "/.config/hypr/scripts/gopass-bridge.sh"))
+require("window_focus_guard")

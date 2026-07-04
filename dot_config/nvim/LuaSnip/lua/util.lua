@@ -90,7 +90,7 @@ end<>
 			{
 				f(function(args, parent)
 					local name = args[1][1]
-					if string.match(name, "[:.]") then
+					if string.match(name, "[:.]") or is_express_fn() then
 						return ""
 					else
 						return "loacl "
