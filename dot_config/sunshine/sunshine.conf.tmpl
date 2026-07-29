@@ -1,5 +1,8 @@
 {{- if lookPath "tailscale" -}}
-external_ip = {{ index (output "tailscale" "status" "--json"| fromJson).Self.TailscaleIPs 0 -}}
+{{- $status := output "tailscale" "status" "--json" | fromJson -}}
+{{ with $status.Self.TailscaleIPs }}
+external_ip = {{ index . 0 }}
+{{ end }}
 {{- end }}
 locale = zh
 wan_encryption_mode = 0
