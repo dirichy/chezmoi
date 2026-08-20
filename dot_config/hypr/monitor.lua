@@ -5,8 +5,10 @@ M.config = {
 	-- position = "0x0",
 	scale = nil,
 }
+---@param m HL.Monitor?
 local function valid_monitor(m)
-	return m and m.id ~= -1
+	-- Some monitor will give wrong information after dpms on, meanwhile give an empty description.
+	return m and m.id ~= -1 and #m.description > 0
 end
 function M.get_active_monitor_safe(callback, max_try)
 	max_try = max_try or 30
