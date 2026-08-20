@@ -214,7 +214,7 @@ local app_keymap = {
 	t = SHELL.new(terminal),
 	b = SHELL.new(browser),
 	e = SHELL.new(filemgr),
-	q = SHELL.new("/home/dirichy/.local/bin/qq"),
+	q = SHELL.new(os.getenv("HOME") .. "/.local/bin/qq"),
 	w = SHELL.new("wechat-universal"),
 	space = SHELL.new(menu),
 }
