@@ -42,7 +42,7 @@ unset _rc
 set -o vi
 setopt NO_BEEP
 export SUDO_PROMPT=$'[sudo] password for %p: '
-fzf --zsh | eval
+source <(fzf --zsh)
 [[ -f /opt/homebrew/opt/chruby/share/chruby/chruby.sh ]] && . /opt/homebrew/opt/chruby/share/chruby/chruby.sh
 [[ -f /opt/homebrew/opt/chruby/share/chruby/auto.sh ]] && .  /opt/homebrew/opt/chruby/share/chruby/auto.sh
 # chruby ruby-3.3.5
