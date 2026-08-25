@@ -1,6 +1,6 @@
 local util = require("util")
 print = function(str)
-	hl.notification.create({ text = tostring(str), duration = 5000 })
+	hl.notification.create({ text = tostring(str), timeout = 5000 })
 end
 local im = require("fcitx")
 local SHELL = require("kmap.shell")
@@ -72,7 +72,7 @@ hl.config({
 		disable_hyprland_logo = true, -- If true disables the random hyprland logo / anime girl background :(
 		focus_on_activate = true,
 		-- mouse_move_enables_dpms = true
-		key_press_enables_dpms = true,
+		-- key_press_enables_dpms = true,
 		-- new_window_takes_over_fullscreen = 2
 	},
 })
@@ -210,11 +210,12 @@ kmap.bind("mouse:273", winmod, hl.dsp.window.resize(), nil, nil, { mouse = true 
 kmap.bind("mouse:272", winmod, hl.dsp.window.fullscreen(), nil, nil, { mouse = true, click = true })
 kmap.bind("mouse:273", winmod, hl.dsp.window.float(), nil, nil, { mouse = true, click = true })
 
+local HOME = os.getenv("HOME")
 local app_keymap = {
 	t = SHELL.new(terminal),
 	b = SHELL.new(browser),
 	e = SHELL.new(filemgr),
-	q = SHELL.new(os.getenv("HOME") .. "/.local/bin/qq"),
+	q = SHELL.new(HOME .. "/.local/bin/qq"),
 	w = SHELL.new("wechat-universal"),
 	space = SHELL.new(menu),
 }
