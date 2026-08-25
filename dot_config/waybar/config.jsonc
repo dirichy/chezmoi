@@ -96,6 +96,11 @@
 		modules-left
 	------------------*/
 
+  "pulseaudio/slider": {
+    "min": 0,
+    "max": 100,
+    "orientation": "horizontal",
+  },
   "group/theme_switcher": {
     "orientation": "horizontal",
     "modules": ["custom/theme_switcher", "custom/user"],
@@ -312,7 +317,7 @@
 
   "group/pulseaudio": {
     "orientation": "horizontal",
-    "modules": ["pulseaudio#output", "pulseaudio#input"],
+    "modules": ["pulseaudio#output", "pulseaudio#input", "pulseaudio/slider"],
     "drawer": {
       "transition-left-to-right": false,
     },
@@ -375,19 +380,29 @@
   },
 
   "custom/backlight": {
-    "format": "{icon} {percentage}%",
-    "format-icons": ["", "", "", "", "", "", "", "", ""],
-    "min-length": 7,
-    "max-length": 8,
-    "exec": "~/.local/bin/hyprlua 'hypr.monitor.waybar.json()'",
-    "exec-on-event": true,
-    "interval": 5,
-    "return-type": "json",
-    "on-scroll-up": "~/.local/bin/hyprlua 'hypr.monitor.waybar.raiseBrightness()'>/dev/null",
-    "on-scroll-down": "~/.local/bin/hyprlua 'hypr.monitor.waybar.downBrightness()'>/dev/null",
-    "on-click": "~/.local/bin/hyprlua 'hypr.monitor.waybar.cyclechangespeed()'>/dev/null",
-    "tooltip": true,
+    "format": "☀ {}%",
+    "interval": "once",
+    "signal": 9,
+    "exec": "~/.config/waybar/scripts/ddcutil.sh get",
+    "on-scroll-up": "~/.config/waybar/scripts/ddcutil.sh up",
+    "on-scroll-down": "~/.config/waybar/scripts/ddcutil.sh down",
+    "on-click": "~/.config/waybar/scripts/ddcutil.sh max",
+    "on-click-right": "~/.config/waybar/scripts/ddcutil.sh min",
   },
+  // "custom/backlight": {
+  //   "format": "{icon} {percentage}%",
+  //   "format-icons": ["", "", "", "", "", "", "", "", ""],
+  //   "min-length": 7,
+  //   "max-length": 8,
+  //   "exec": "~/.local/bin/hyprlua 'hypr.monitor.waybar.json()'",
+  //   "exec-on-event": true,
+  //   "interval": 5,
+  //   "return-type": "json",
+  //   "on-scroll-up": "~/.local/bin/hyprlua 'hypr.monitor.waybar.raiseBrightness()'>/dev/null",
+  //   "on-scroll-down": "~/.local/bin/hyprlua 'hypr.monitor.waybar.downBrightness()'>/dev/null",
+  //   "on-click": "~/.local/bin/hyprlua 'hypr.monitor.waybar.cyclechangespeed()'>/dev/null",
+  //   "tooltip": true,
+  // },
 
   /*-------------------
 		left dividers

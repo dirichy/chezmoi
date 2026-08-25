@@ -56,7 +56,7 @@ window#waybar > box {
 #custom-left_inv,
 #custom-right_div,
 #custom-right_inv {
-	font-size: 23.1px;
+	font-size: 25px;
 }
 
 /* buttons */
@@ -84,4 +84,23 @@ tooltip label {
 tooltip decoration {
 	border: none;
 	background-color: transparent;
+}
+#pulseaudio-slider slider {
+    min-height: 0px;
+    min-width: 0px;
+    opacity: 0;
+    background-image: none;
+    border: none;
+    box-shadow: none;
+}
+#pulseaudio-slider trough {
+    min-height: 5px;
+    min-width: 80px;
+    border-radius: 5px;
+    background: black;
+}
+#pulseaudio-slider highlight {
+    min-width: 0px;
+    border-radius: 5px;
+    background: green;
 }
