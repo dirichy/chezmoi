@@ -229,10 +229,15 @@ local sys_keymap = {
 	w = SHELL.new("sudo grub-reboot 2 && reboot"),
 	d = function()
 		hl.timer(function()
+			hl.exec_cmd("ddcutil setvcp 62 80")
 			hl.dispatch(hl.dsp.dpms({ action = "off" }))
 		end, { timeout = 1000, type = "oneshot" })
 	end,
-	c = hl.dsp.dpms({ action = "on" }),
+	c = function()
+		hl.dispatch(hl.dsp.dpms({ action = "on" }))
+		hl.exec_cmd("ddcutil setvcp 62 100")
+	end,
+	-- c = hl.util.dpms_on,
 }
 for key, cmd in pairs(sys_keymap) do
 	kmap.bind(key, sysmod, cmd, nil, nil, { release = true })
