@@ -7,33 +7,17 @@
 	color: @hover-fg;
 }
 
-/* temperature */
+/* system monitor */
 
 #custom-left_div_2,
 #custom-left_div_2 label {
-	color: @temperature;
-}
-#temperature {
-	background-color: @temperature;
-}
-
-/* memory */
-
-#custom-left_div_3,
-#custom-left_div_3 label {
-	background-color: @temperature;
-	color: @memory;
-}
-#memory {
-	background-color: @memory;
-}
-
-/* cpu */
-
-#custom-left_div_4,
-#custom-left_div_4 label {
-	background-color: @memory;
 	color: @cpu;
+}
+#system_monitor,
+#cpu,
+#memory,
+#temperature {
+	background-color: @cpu;
 }
 #cpu {
 	background-color: @cpu;

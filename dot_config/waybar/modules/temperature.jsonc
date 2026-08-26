@@ -14,7 +14,7 @@
 		// "rotate":
 		"min-length": 8,
 		"max-length": 9,
-		// "on-click":
+		"on-click": "kitty --class system_menu --title system_menu -e btm",
 		// "on-click-middle":
 		// "on-click-right":
 		// "on-scroll-up":

@@ -1,3 +1,4 @@
+{{- $hasBattery := gt (len (glob "/sys/class/power_supply/BAT*")) 0 -}}
 /* media info */
 
 #mpris {
@@ -26,7 +27,11 @@
 #custom-backlight {
 	background-color: @backlight;
 }
+#tray {
+	background-color: @tray;
+}
 
+{{- if $hasBattery }}
 /* battery */
 
 #custom-left_div_8,
@@ -58,6 +63,33 @@
 	padding: 0 6px;
 	color: @hover-fg;
 }
+{{- else }}
+
+/* tray & clock */
+
+#custom-left_div_8,
+#custom-left_div_8 label {
+	background-color: @backlight;
+	color: @tray;
+}
+#custom-left_div_9,
+#custom-left_div_9 label {
+	background-color: @tray;
+	color: @backlight;
+}
+#clock {
+	background-color: @backlight;
+}
+#clock.time {
+	background-color: @backlight;
+	padding: 0 6px 0 4px;
+}
+#clock.date {
+	background-color: @backlight;
+	padding: 0 6px;
+	color: @hover-fg;
+}
+{{- end }}
 
 /* power menu */
 

@@ -1,3 +1,4 @@
+{{- $hasBattery := gt (len (glob "/sys/class/power_supply/BAT*")) 0 -}}
 {
   "layer": "top",
   "include": [
@@ -13,14 +14,10 @@
     "custom/right_div_1",
     "hyprland/window"
   ],
-  "modules-center": [
+    "modules-center": [
     "hyprland/windowcount",
     "custom/left_div_2",
-    "temperature",
-    "custom/left_div_3",
-    "memory",
-    "custom/left_div_4",
-    "cpu",
+    "group/system_monitor",
     "custom/left_inv_1",
     "custom/left_div_5",
     "custom/distro",
@@ -39,9 +36,14 @@
     "group/pulseaudio",
     "custom/left_div_7",
     "custom/backlight",
+{{- if not $hasBattery }}
+    "custom/left_div_8",
+{{- end }}
+{{- if $hasBattery }}
     "custom/left_div_8",
     "battery",
     "custom/left_inv_2",
+{{- end }}
     "tray",
     "custom/left_div_9",
     "group/clock"

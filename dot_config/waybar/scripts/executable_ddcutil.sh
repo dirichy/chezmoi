@@ -1,62 +1,171 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-DISPLAY_NUM=1
-STEP=5
-STATE_FILE="/tmp/waybar_brightness.tmp"
+set -u
 
-set_brightness_in_background() {
-	pkill -f "ddcutil.*setvcp 10"
-	(ddcutil --display "$DISPLAY_NUM" setvcp 10 "$1") &
+DISPLAY_NUM=${WAYBAR_DDCUTIL_DISPLAY:-1}
+STEP=${WAYBAR_BRIGHTNESS_STEP:-5}
+STATE_DIR=${XDG_RUNTIME_DIR:-/tmp}
+STATE_FILE="$STATE_DIR/waybar_brightness.tmp"
+BACKEND_FILE="$STATE_DIR/waybar_brightness_backend.tmp"
+SIGNAL=9
+
+notify_waybar() {
+	pkill -RTMIN+"$SIGNAL" waybar 2>/dev/null || true
 }
 
-if [ ! -f "$STATE_FILE" ]; then
-	initial_brightness=$(ddcutil --display "$DISPLAY_NUM" getvcp 10 -t 2>/dev/null | awk '{print $4}')
-	if ! [[ "$initial_brightness" =~ ^[0-9]+$ ]]; then
-		initial_brightness=50
+is_number() {
+	[[ ${1:-} =~ ^[0-9]+$ ]]
+}
+
+clamp() {
+	local value=$1
+
+	((value < 0)) && value=0
+	((value > 100)) && value=100
+	echo "$value"
+}
+
+ddc_get() {
+	ddcutil --display "$DISPLAY_NUM" getvcp 10 -t 2>/dev/null | awk '{print $4}'
+}
+
+ddc_available() {
+	command -v ddcutil >/dev/null || return 1
+	is_number "$(ddc_get)"
+}
+
+brightnessctl_available() {
+	command -v brightnessctl >/dev/null || return 1
+	[[ -d /sys/class/backlight ]] || return 1
+	find /sys/class/backlight -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null | grep -q .
+}
+
+hyprlua_available() {
+	command -v hyprlua >/dev/null || command -v "$HOME/.local/bin/hyprlua" >/dev/null
+}
+
+detect_backend() {
+	if ddc_available; then
+		echo ddc
+	elif brightnessctl_available; then
+		echo brightnessctl
+	elif hyprlua_available; then
+		echo hyprlua
+	else
+		echo none
 	fi
-	echo "$initial_brightness" > "$STATE_FILE"
-fi
+}
 
-current=$(cat "$STATE_FILE")
-if ! [[ "$current" =~ ^[0-9]+$ ]]; then
-	current=50
-	echo "$current" > "$STATE_FILE"
-fi
+backend() {
+	local selected
 
-case "$1" in
-	get)
-		echo "$current"
-		;;
-	up)
-		new_brightness=$((current + STEP > 100 ? 100 : current + STEP))
-		if [ "$current" -ne "$new_brightness" ]; then
-			echo "$new_brightness" > "$STATE_FILE"
-			set_brightness_in_background "$new_brightness"
-		fi
-		pkill -RTMIN+9 waybar
-		;;
-	down)
-		new_brightness=$((current - STEP < 0 ? 0 : current - STEP))
-		if [ "$current" -ne "$new_brightness" ]; then
-			echo "$new_brightness" > "$STATE_FILE"
-			set_brightness_in_background "$new_brightness"
-		fi
-		pkill -RTMIN+9 waybar
-		;;
-	min)
-		new_brightness=0
-		if [ "$current" -ne "$new_brightness" ]; then
-			echo "$new_brightness" > "$STATE_FILE"
-			set_brightness_in_background "$new_brightness"
-		fi
-		pkill -RTMIN+9 waybar
-		;;
-	max)
-		new_brightness=100
-		if [ "$current" -ne "$new_brightness" ]; then
-			echo "$new_brightness" > "$STATE_FILE"
-			set_brightness_in_background "$new_brightness"
-		fi
-		pkill -RTMIN+9 waybar
-		;;
+	if [[ -f $BACKEND_FILE ]]; then
+		selected=$(cat "$BACKEND_FILE")
+		case "$selected" in
+			ddc | brightnessctl | hyprlua | none)
+				echo "$selected"
+				return
+				;;
+		esac
+	fi
+
+	selected=$(detect_backend)
+	echo "$selected" > "$BACKEND_FILE"
+	echo "$selected"
+}
+
+hyprlua_cmd() {
+	if command -v hyprlua >/dev/null; then
+		hyprlua "$@"
+	else
+		"$HOME/.local/bin/hyprlua" "$@"
+	fi
+}
+
+get_state() {
+	local value
+
+	if [[ -f $STATE_FILE ]]; then
+		value=$(cat "$STATE_FILE")
+		is_number "$value" && {
+			clamp "$value"
+			return
+		}
+	fi
+
+	value=$(ddc_get)
+	is_number "$value" || value=50
+	value=$(clamp "$value")
+	echo "$value" > "$STATE_FILE"
+	echo "$value"
+}
+
+get_brightness() {
+	local value
+
+	case "$(backend)" in
+		ddc) get_state ;;
+		brightnessctl) brightnessctl -m | awk -F',' '{gsub("%", "", $4); print $4}' ;;
+		hyprlua)
+			value=$(hyprlua_cmd 'hypr.monitor.waybar.json()' 2>/dev/null |
+				sed -n 's/.*"percentage"[[:space:]]*:[[:space:]]*\([0-9]\+\).*/\1/p')
+			is_number "$value" && echo "$value" || echo "--"
+			;;
+		*) echo "--" ;;
+	esac
+}
+
+set_ddc() {
+	local value=$1
+
+	echo "$value" > "$STATE_FILE"
+	pkill -f "ddcutil.*setvcp 10" 2>/dev/null || true
+	(ddcutil --display "$DISPLAY_NUM" setvcp 10 "$value" >/dev/null 2>&1) &
+}
+
+set_brightness() {
+	local action=$1
+	local current value
+
+	case "$(backend)" in
+		ddc)
+			current=$(get_state)
+			case "$action" in
+				up) value=$((current + STEP)) ;;
+				down) value=$((current - STEP)) ;;
+				min) value=0 ;;
+				max) value=100 ;;
+			esac
+			set_ddc "$(clamp "$value")"
+			;;
+		brightnessctl)
+			case "$action" in
+				up) brightnessctl -n set "$STEP%+" >/dev/null ;;
+				down) brightnessctl -n set "$STEP%-" >/dev/null ;;
+				min) brightnessctl -n set 0% >/dev/null ;;
+				max) brightnessctl -n set 100% >/dev/null ;;
+			esac
+			;;
+		hyprlua)
+			case "$action" in
+				up) hyprlua_cmd "hypr.monitor.setBrightness(\"+$STEP\")" >/dev/null ;;
+				down) hyprlua_cmd "hypr.monitor.setBrightness(\"-$STEP\")" >/dev/null ;;
+				min) hyprlua_cmd 'hypr.monitor.setBrightness("0")' >/dev/null ;;
+				max) hyprlua_cmd 'hypr.monitor.setBrightness("100")' >/dev/null ;;
+			esac
+			;;
+		none)
+			notify-send -t 1000 "Brightness" "No supported brightness backend" 2>/dev/null || true
+			;;
+	esac
+
+	notify_waybar
+}
+
+case "${1:-get}" in
+	get) get_brightness ;;
+	up | down | min | max) set_brightness "$1" ;;
+	backend) backend ;;
+	refresh-backend) rm -f "$BACKEND_FILE"; backend ;;
+	*) echo "usage: $0 [get|up|down|min|max|backend]" >&2; exit 1 ;;
 esac
