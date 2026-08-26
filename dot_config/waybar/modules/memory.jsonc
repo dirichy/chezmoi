@@ -4,7 +4,6 @@
 		"format": "󰘚 {percentage}%",
 		"format-warning": "󰀧 {percentage}%",
 		"format-critical": "󰀧 {percentage}%",
-		// "rotate":
 		"states": {
 			"warning": 75,
 			"critical": 90
@@ -12,12 +11,6 @@
 		"min-length": 7,
 		"max-length": 8,
 		"on-click": "kitty --class system_menu --title system_menu -e btm",
-		// "on-click-middle":
-		// "on-click-right":
-		// "on-scroll-up":
-		// "on-scroll-down":
-		// "smooth-scrolling-threshold":
-		// "tooltip":
 		"tooltip-format": "Memory: {used:0.1f} GiB / {total:0.1f} GiB"
 	}
 }

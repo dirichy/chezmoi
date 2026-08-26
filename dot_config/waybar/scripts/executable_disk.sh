@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Emit Waybar JSON for local disk usage. The bar shows the fullest disk,
+# while the tooltip lists all local block-device mount points.
+
 set -uo pipefail
 
 json_escape() {

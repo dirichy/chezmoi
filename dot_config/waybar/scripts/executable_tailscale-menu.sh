@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Open the best available Tailscale terminal UI, with a CLI fallback.
+
 set -euo pipefail
 
 if command -v tsui >/dev/null 2>&1; then

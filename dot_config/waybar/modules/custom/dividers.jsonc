@@ -11,10 +11,6 @@
 		"format": "",
 		"tooltip": false
 	},
-	"custom/left_div_4": {
-		"format": "",
-		"tooltip": false
-	},
 	"custom/left_div_5": {
 		"format": "",
 		"tooltip": false
@@ -35,10 +31,6 @@
 		"format": "",
 		"tooltip": false
 	},
-	"custom/left_inv_1": {
-		"format": "",
-		"tooltip": false
-	},
 	"custom/left_inv_2": {
 		"format": "",
 		"tooltip": false
@@ -55,16 +47,8 @@
 		"format": "",
 		"tooltip": false
 	},
-	"custom/right_div_4": {
-		"format": "",
-		"tooltip": false
-	},
 	"custom/right_div_5": {
 		"format": "",
-		"tooltip": false
-	},
-	"custom/right_inv_1": {
-		"format": "",
 		"tooltip": false
 	}
 }

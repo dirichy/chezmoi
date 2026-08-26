@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Emit Waybar JSON for Tailscale status without blocking the bar.
+
 set -uo pipefail
 
 icon="󰖂"
@@ -27,6 +29,11 @@ if ! command -v tailscale >/dev/null 2>&1; then
 	exit 0
 fi
 
+if ! command -v jq >/dev/null 2>&1; then
+	print_status "disabled" "Tailscale: jq unavailable"
+	exit 0
+fi
+
 if command -v timeout >/dev/null 2>&1; then
 	status_cmd=(timeout 2s tailscale status --json)
 else
@@ -38,11 +45,11 @@ if ! status=$("${status_cmd[@]}" 2>/dev/null); then
 	exit 0
 fi
 
-state=$(printf '%s' "$status" | sed -n 's/.*"BackendState"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+state=$(jq -r '.BackendState // "Unknown"' <<<"$status")
 state=${state:-Unknown}
 
 if [[ $state == "Running" ]]; then
-	self=$(printf '%s' "$status" | sed -n 's/.*"Self"[[:space:]]*:[[:space:]]*{[^}]*"DNSName"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+	self=$(jq -r '.Self.DNSName // empty' <<<"$status")
 	self=${self%.}
 	if [[ -n $self ]]; then
 		print_status "connected" "Tailscale: $self"

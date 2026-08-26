@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Show duf and keep the terminal open until q, Esc, or Enter.
+
 set -euo pipefail
 
 duf

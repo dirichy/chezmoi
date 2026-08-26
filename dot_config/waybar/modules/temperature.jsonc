@@ -1,9 +1,6 @@
 {
 	"temperature": {
 		"thermal-zone": 1,
-		// "hwmon-path":
-		// "hwmon-path-abs":
-		// "input-filename":
 		"critical-threshold": 90,
 		"interval": 10,
 		"format-critical": "󰀦 {temperatureC}°C",
@@ -11,16 +8,9 @@
 		"format-icons": [
 			"󱃃", "󰔏", "󱃂"
 		],
-		// "rotate":
 		"min-length": 8,
 		"max-length": 9,
 		"on-click": "kitty --class system_menu --title system_menu -e btm",
-		// "on-click-middle":
-		// "on-click-right":
-		// "on-scroll-up":
-		// "on-scroll-down":
-		// "smooth-scrolling-threshold":
-		// "tooltip":
 		"tooltip-format": "Temperature: {temperatureC}°C"
 	}
 }

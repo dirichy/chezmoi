@@ -33,8 +33,7 @@ window#waybar > box {
 #bluetooth:hover,
 #custom-system_update:hover,
 #mpris:hover,
-#pulseaudio:hover,
-#wireplumber:hover {
+#pulseaudio:hover {
 	color: @hover-fg;
 }
 
@@ -43,8 +42,7 @@ window#waybar > box {
 .deactivated,
 .paused,
 #pulseaudio.output.muted,
-#pulseaudio.input.source-muted,
-#wireplumber.muted {
+#pulseaudio.input.source-muted {
 	color: @hover-fg;
 }
 .warning { color: @warning; }
@@ -56,20 +54,16 @@ window#waybar > box {
 #custom-left_div_1,
 #custom-left_div_2,
 #custom-left_div_3,
-#custom-left_div_4,
 #custom-left_div_5,
 #custom-left_div_6,
 #custom-left_div_7,
 #custom-left_div_8,
 #custom-left_div_9,
-#custom-left_inv_1,
 #custom-left_inv_2,
 #custom-right_div_1,
 #custom-right_div_2,
 #custom-right_div_3,
-#custom-right_div_4,
-#custom-right_div_5,
-#custom-right_inv_1 {
+#custom-right_div_5 {
 	font-size: 27px;
 	margin: 0 -1px;
 	min-height: 0;
@@ -79,30 +73,22 @@ window#waybar > box {
 #custom-left_div_1 label,
 #custom-left_div_2 label,
 #custom-left_div_3 label,
-#custom-left_div_4 label,
 #custom-left_div_5 label,
 #custom-left_div_6 label,
 #custom-left_div_7 label,
 #custom-left_div_8 label,
 #custom-left_div_9 label,
-#custom-left_inv_1 label,
 #custom-left_inv_2 label,
 #custom-right_div_1 label,
 #custom-right_div_2 label,
 #custom-right_div_3 label,
-#custom-right_div_4 label,
-#custom-right_div_5 label,
-#custom-right_inv_1 label {
+#custom-right_div_5 label {
 	font-size: 27px;
 	margin: 0;
 	padding: 0;
 }
-#custom-left_inv_1,
 #custom-left_inv_2,
-#custom-right_inv_1,
-#custom-left_inv_1 label,
-#custom-left_inv_2 label,
-#custom-right_inv_1 label {
+#custom-left_inv_2 label {
 	font-size: 35px;
 	margin: -4px -1px;
 }

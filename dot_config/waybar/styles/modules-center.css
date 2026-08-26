@@ -31,10 +31,6 @@
 	background-color: @memory;
 	padding: 0 5px;
 }
-#custom-left_inv_1,
-#custom-left_inv_1 label {
-	color: @memory;
-}
 
 /* distro icon */
 
@@ -43,6 +39,14 @@
 #custom-right_div_2,
 #custom-right_div_2 label {
 	color: @accent;
+}
+#custom-left_div_5,
+#custom-left_div_5 label {
+	background-color: @memory;
+}
+#custom-right_div_2,
+#custom-right_div_2 label {
+	background-color: @time;
 }
 #custom-distro {
 	padding: 0 8px 0 4px;
@@ -59,10 +63,6 @@
 
 /* idle inhibitor */
 
-#custom-right_inv_1,
-#custom-right_inv_1 label {
-	color: @time;
-}
 #idle_inhibitor {
 	background-color: @time;
 }

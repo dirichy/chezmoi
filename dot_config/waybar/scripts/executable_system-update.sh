@@ -10,8 +10,18 @@ GRN='\033[1;32m'
 BLU='\033[1;34m'
 RST='\033[0m'
 
-HELPER=$(command -v paru yay trizen pikaur pakku pacaur aurman aura |
-	head -n 1 | xargs -- basename)
+find-helper() {
+	local helper
+
+	for helper in paru yay trizen pikaur pakku pacaur aurman aura; do
+		if command -v "$helper" >/dev/null 2>&1; then
+			echo "$helper"
+			return
+		fi
+	done
+}
+
+HELPER=$(find-helper)
 
 check-updates() {
 	local repo
