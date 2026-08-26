@@ -15,12 +15,16 @@
 }
 #system_monitor,
 #cpu,
+#custom-gpu,
 #memory,
 #temperature {
 	background-color: @cpu;
 }
 #cpu {
 	background-color: @cpu;
+}
+#custom-gpu {
+	padding: 0 5px;
 }
 #custom-left_div_3,
 #custom-left_div_3 label {

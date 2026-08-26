@@ -28,6 +28,7 @@ window#waybar > box {
 #idle_inhibitor:hover,
 #clock.date:hover,
 #custom-disk:hover,
+#custom-gpu:hover,
 #network:hover,
 #custom-tailscale:hover,
 #bluetooth:hover,
