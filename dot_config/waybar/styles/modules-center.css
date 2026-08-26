@@ -1,7 +1,7 @@
 /* window count */
 
 #windowcount {
-	margin-right: 12px;
+	margin-right: 9px;
 }
 #windowcount label {
 	color: @hover-fg;
@@ -9,7 +9,8 @@
 
 /* temperature */
 
-#custom-left_div.2 {
+#custom-left_div_2,
+#custom-left_div_2 label {
 	color: @temperature;
 }
 #temperature {
@@ -18,7 +19,8 @@
 
 /* memory */
 
-#custom-left_div.3 {
+#custom-left_div_3,
+#custom-left_div_3 label {
 	background-color: @temperature;
 	color: @memory;
 }
@@ -28,72 +30,69 @@
 
 /* cpu */
 
-#custom-left_div.4 {
+#custom-left_div_4,
+#custom-left_div_4 label {
 	background-color: @memory;
 	color: @cpu;
 }
 #cpu {
 	background-color: @cpu;
 }
-#custom-left_inv.1 {
+#custom-left_inv_1,
+#custom-left_inv_1 label {
 	color: @cpu;
 }
 
 /* distro icon */
 
-#custom-left_div.5,
-#custom-right_div.2 {
+#custom-left_div_5,
+#custom-left_div_5 label,
+#custom-right_div_2,
+#custom-right_div_2 label {
 	color: @accent;
 }
 #custom-distro {
-	padding: 0 10px 0 5px;
+	padding: 0 8px 0 4px;
 	font-size: 23px;
 	background-color: @accent;
 	color: @main-bg;
 }
+#custom-distro label,
+#custom-distro:hover,
+#custom-distro:hover label {
+	background-color: @accent;
+	color: @main-bg;
+}
 
-/* idle inhibitor & time */
+/* idle inhibitor */
 
-#custom-right_inv.1 {
+#custom-right_inv_1,
+#custom-right_inv_1 label {
 	color: @time;
 }
 #idle_inhibitor {
 	background-color: @time;
 }
-#clock.time {
-	padding-right: 6px;
-	background-color: @time;
-}
-#custom-right_div.3 {
-	background-color: @date;
+#custom-right_div_3,
+#custom-right_div_3 label {
 	color: @time;
-}
-
-/* date */
-
-#clock.date {
-	padding-left: 6px;
-	background-color: @date;
-}
-#custom-right_div.4 {
-	background-color: @tray;
-	color: @date;
 }
 
 /* quick settings */
 
 #network {
 	background-color: @tray;
-	padding: 0 6px 0 4px;
+	padding: 0 5px 0 3px;
 }
 #bluetooth {
 	background-color: @tray;
-	padding: 0 5px;
+	padding: 0 4px;
 }
 #custom-system_update {
 	background-color: @tray;
-	padding: 0 8px 0 2px;
+	padding: 0 6px 0 2px;
 }
-#custom-right_div.5 {
+#custom-right_div_5,
+#custom-right_div_5 label {
 	color: @tray;
 }

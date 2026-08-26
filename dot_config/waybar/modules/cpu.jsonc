@@ -5,7 +5,7 @@
 		"format-warning": "󰀨 {usage}%",
 		"format-critical": "󰀨 {usage}%",
 		"min-length": 7,
-		"max-length": 7,
+		"max-length": 8,
 		// "rotate":
 		"states": {
 			"warning": 75,

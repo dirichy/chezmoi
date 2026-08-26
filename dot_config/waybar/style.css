@@ -1,7 +1,7 @@
+@import "theme.css";
 @import "styles/modules-left.css";
 @import "styles/modules-center.css";
 @import "styles/modules-right.css";
-@import "theme.css";
 
 * {
 	font-family: "0xProto Nerd Font";
@@ -19,13 +19,12 @@ window#waybar {
 /* main background */
 
 window#waybar > box {
-	margin: 4px;
+	margin: 3px;
 	background-color: @main-bg;
 }
 
 /* hoverables */
 
-#custom-theme_switcher:hover,
 #idle_inhibitor:hover,
 #clock.date:hover,
 #network:hover,
@@ -52,18 +51,65 @@ window#waybar > box {
 
 /* dividers */
 
-#custom-left_div,
-#custom-left_inv,
-#custom-right_div,
-#custom-right_inv {
-	font-size: 25px;
+#custom-left_div_1,
+#custom-left_div_2,
+#custom-left_div_3,
+#custom-left_div_4,
+#custom-left_div_5,
+#custom-left_div_6,
+#custom-left_div_7,
+#custom-left_div_8,
+#custom-left_div_9,
+#custom-left_inv_1,
+#custom-left_inv_2,
+#custom-right_div_1,
+#custom-right_div_2,
+#custom-right_div_3,
+#custom-right_div_4,
+#custom-right_div_5,
+#custom-right_inv_1 {
+	font-size: 27px;
+	margin: 0 -1px;
+	min-height: 0;
+	padding: 0;
+	background-color: transparent;
+}
+#custom-left_div_1 label,
+#custom-left_div_2 label,
+#custom-left_div_3 label,
+#custom-left_div_4 label,
+#custom-left_div_5 label,
+#custom-left_div_6 label,
+#custom-left_div_7 label,
+#custom-left_div_8 label,
+#custom-left_div_9 label,
+#custom-left_inv_1 label,
+#custom-left_inv_2 label,
+#custom-right_div_1 label,
+#custom-right_div_2 label,
+#custom-right_div_3 label,
+#custom-right_div_4 label,
+#custom-right_div_5 label,
+#custom-right_inv_1 label {
+	font-size: 27px;
+	margin: 0;
+	padding: 0;
+}
+#custom-left_inv_1,
+#custom-left_inv_2,
+#custom-right_inv_1,
+#custom-left_inv_1 label,
+#custom-left_inv_2 label,
+#custom-right_inv_1 label {
+	font-size: 35px;
+	margin: -4px -1px;
 }
 
 /* buttons */
 
 button {
-	border-radius: 16px;
-	padding: 0 10px;
+	border-radius: 12px;
+	padding: 0 8px;
 }
 button:hover {
 	background-color: @hover-bg;
@@ -74,7 +120,7 @@ button:hover {
 
 tooltip {
 	border: 2px solid @main-br;
-	border-radius: 10px;
+	border-radius: 8px;
 	background-color: @main-bg;
 }
 tooltip label {
@@ -86,21 +132,21 @@ tooltip decoration {
 	background-color: transparent;
 }
 #pulseaudio-slider slider {
-    min-height: 0px;
-    min-width: 0px;
-    opacity: 0;
-    background-image: none;
-    border: none;
-    box-shadow: none;
+	min-height: 0px;
+	min-width: 0px;
+	opacity: 0;
+	background-image: none;
+	border: none;
+	box-shadow: none;
 }
 #pulseaudio-slider trough {
-    min-height: 5px;
-    min-width: 80px;
-    border-radius: 5px;
-    background: black;
+	min-height: 5px;
+	min-width: 80px;
+	border-radius: 5px;
+	background: black;
 }
 #pulseaudio-slider highlight {
-    min-width: 0px;
-    border-radius: 5px;
-    background: green;
+	min-width: 0px;
+	border-radius: 5px;
+	background: green;
 }

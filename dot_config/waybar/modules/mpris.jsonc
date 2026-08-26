@@ -22,6 +22,6 @@
 		// "dynamic-separator":
 		// "dynamic-importance-order":
 		// "min-length":
-		"max-length": 1000
+		"max-length": 60
 	}
 }

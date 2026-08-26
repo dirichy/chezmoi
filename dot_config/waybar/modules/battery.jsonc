@@ -16,7 +16,7 @@
 		],
 		"format-charging": "󰉁 {capacity}%",
 		"min-length": 7,
-		"max-length": 7,
+		"max-length": 8,
 		// "rotate":
 		// "on-click":
 		// "on-click-middle":
@@ -25,8 +25,8 @@
 		// "on-scroll-down":
 		// "smooth-scrolling-threshold":
 		// "tooltip":
-		"tooltip-format": "Discharging: {time}",
-		"tooltip-format-charging": "Charging: {time}",
+		"tooltip-format": "Battery: {capacity}%\nRemaining: {time}",
+		"tooltip-format-charging": "Battery: {capacity}%\nFull in: {time}",
 		// "weighted-average":
 		// "bat-compatibility":
 		"events": {

@@ -1,74 +1,69 @@
 {
-	/*-------------------
-		left dividers
-	-------------------*/
-
-	"custom/left_div#1": {
+	"custom/left_div_1": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/left_div#2": {
+	"custom/left_div_2": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/left_div#3": {
+	"custom/left_div_3": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/left_div#4": {
+	"custom/left_div_4": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/left_div#5": {
+	"custom/left_div_5": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/left_div#6": {
+	"custom/left_div_6": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/left_div#7": {
+	"custom/left_div_7": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/left_div#8": {
+	"custom/left_div_8": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/left_inv#1": {
+	"custom/left_div_9": {
+		"format": "",
+		"tooltip": false
+	},
+	"custom/left_inv_1": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/left_inv#2": {
+	"custom/left_inv_2": {
 		"format": "",
 		"tooltip": false
 	},
-
-	/*--------------------
-		right dividers
-	--------------------*/
-
-	"custom/right_div#1": {
+	"custom/right_div_1": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/right_div#2": {
+	"custom/right_div_2": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/right_div#3": {
+	"custom/right_div_3": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/right_div#4": {
+	"custom/right_div_4": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/right_div#5": {
+	"custom/right_div_5": {
 		"format": "",
 		"tooltip": false
 	},
-	"custom/right_inv#1": {
+	"custom/right_inv_1": {
 		"format": "",
 		"tooltip": false
 	}

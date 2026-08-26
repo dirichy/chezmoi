@@ -1,4 +1,15 @@
 {
+	"group/clock": {
+		"orientation": "horizontal",
+		"modules": [
+			"clock#time",
+			"clock#date"
+		],
+		"drawer": {
+			"transition-left-to-right": false
+		}
+	},
+
 	"clock#time": {
 		// "interval":
 		"format": "{:%H:%M}",
@@ -6,16 +17,26 @@
 		// "timezones":
 		// "locale":
 		"min-length": 5,
-		"max-length": 5,
+		"max-length": 6,
 		// "rotate": 0,
-		// "on-click":
+		"on-click": "kitty --class system_menu --title system_menu -e calcurse",
 		// "on-click-middle":
 		// "on-click-right":
 		// "on-scroll-up":
 		// "on-scroll-down":
 		// "smooth-scrolling-threshold":
 		// "tooltip":
-		"tooltip-format": "Standard Time: {:%I:%M %p}"
+		"tooltip-format": "{calendar}",
+		"calendar": {
+			"mode": "month",
+			"mode-mon-col": 6,
+			"format": {
+				"months": "<span alpha='100%'><b>{}</b></span>",
+				"days": "<span alpha='90%'>{}</span>",
+				"weekdays": "<span alpha='80%'><i>{}</i></span>",
+				"today": "<span alpha='100%'><b><u>{}</u></b></span>"
+			}
+		}
 	},
 
 	/*--------------
@@ -29,9 +50,9 @@
 		// "timezones":
 		// "locale":
 		"min-length": 8,
-		"max-length": 8,
+		"max-length": 9,
 		// "rotate":
-		// "on-click":
+		"on-click": "kitty --class system_menu --title system_menu -e calcurse",
 		// "on-click-middle":
 		// "on-click-right":
 		// "on-scroll-up":
@@ -51,13 +72,6 @@
 				"weekdays": "<span alpha='80%'><i>{}</i></span>",
 				"today": "<span alpha='100%'><b><u>{}</u></b></span>"
 			}
-		},
-		"actions": {
-			"on-click": "mode"
-			// "on-click-middle":
-			// "on-click-right":
-			// "on-scroll-up":
-			// "on-scroll-down":
 		}
 	}
 }

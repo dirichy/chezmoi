@@ -7,8 +7,10 @@
 
 /* workspaces */
 
-#custom-left_div.1,
-#custom-right_div.1 {
+#custom-left_div_1,
+#custom-left_div_1 label,
+#custom-right_div_1,
+#custom-right_div_1 label {
 	color: @workspaces;
 }
 #workspaces {
@@ -23,7 +25,7 @@
 /* window title */
 
 #window {
-	margin-left: 12px;
+	margin-left: 9px;
 }
 #window label {
 	font-weight: normal;
