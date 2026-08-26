@@ -22,9 +22,18 @@
 #cpu {
 	background-color: @cpu;
 }
+#custom-left_div_3,
+#custom-left_div_3 label {
+	background-color: @cpu;
+	color: @memory;
+}
+#custom-disk {
+	background-color: @memory;
+	padding: 0 5px;
+}
 #custom-left_inv_1,
 #custom-left_inv_1 label {
-	color: @cpu;
+	color: @memory;
 }
 
 /* distro icon */
@@ -67,6 +76,17 @@
 #network {
 	background-color: @tray;
 	padding: 0 5px 0 3px;
+}
+#custom-tailscale {
+	background-color: @tray;
+	padding: 0 4px;
+}
+#custom-tailscale.connected {
+	color: @teal;
+}
+#custom-tailscale.disconnected,
+#custom-tailscale.disabled {
+	color: @hover-fg;
 }
 #bluetooth {
 	background-color: @tray;
