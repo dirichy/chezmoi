@@ -22,6 +22,6 @@
 			"critical": 90
 		},
 		"on-click": "kitty --class system_menu --title system_menu -e btm",
-		"tooltip": false
+		"tooltip-format": "CPU: {usage}%\nLoad: {load}"
 	}
 }
