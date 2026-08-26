@@ -1,11 +1,11 @@
 {
 	"custom/tailscale": {
-		"exec": "~/.config/waybar/scripts/tailscale.sh",
+		"exec": "~/.config/waybar/scripts/tailscale.sh status",
 		"return-type": "json",
 		"interval": 30,
 		"format": "{}",
 		"min-length": 2,
 		"max-length": 3,
-		"on-click": "kitty --class system_menu --title system_menu -e ~/.config/waybar/scripts/tailscale-menu.sh"
+		"on-click": "kitty --class system_menu --title system_menu -e ~/.config/waybar/scripts/tailscale.sh menu"
 	}
 }

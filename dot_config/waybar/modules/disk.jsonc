@@ -1,12 +1,12 @@
 {
 	"custom/disk": {
-		"exec": "~/.config/waybar/scripts/disk.sh",
+		"exec": "~/.config/waybar/scripts/disk.sh status",
 		"return-type": "json",
 		"interval": 60,
 		"format": "{}",
 		"min-length": 6,
 		"max-length": 8,
-		"on-click": "kitty --class system_menu --title system_menu -e ~/.config/waybar/scripts/disk-usage.sh",
+		"on-click": "kitty --class system_menu --title system_menu -e ~/.config/waybar/scripts/disk.sh usage",
 		"on-click-right": "kitty --class system_menu --title system_menu -e bashmount",
 		"tooltip": true
 	}
