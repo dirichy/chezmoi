@@ -64,7 +64,7 @@ secret 通过 `gopass-safe` 读取：
 
 ```toml
 [secret]
-command = "{{.chezmoi.sourceDir}}/dot_local/bin/executable_gopass-safe"
+command = "{{ joinPath .chezmoi.sourceDir "tools" "gopass-safe" }}"
 ```
 
 查找规则是 `chezmoi/<key>`，找不到时使用模板里的默认值。当前使用到的 secret 包括：
@@ -310,7 +310,6 @@ SSH 配置在 `dot_ssh/config.tmpl`：
 
 `dot_local/bin` 提供本地命令：
 
-- `gopass-safe`: chezmoi secret fallback wrapper
 - `hyprlua`: 向本地 hyprlua IPC 发送 Lua 表达式
 - `hyprmonitor`: 读取当前 Hyprland monitor 字段
 - `lua_keymapper`: 生成 Karabiner/keyd/WM 相关 keymap

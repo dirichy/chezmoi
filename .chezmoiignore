@@ -1,5 +1,5 @@
 README.md
-.local/bin/gopass-safe
+tools
 .config/fcitx5/conf/cached_layouts
 {{if eq (env "HYPRLAND_INSTANCE_SIGNATURE") ""}}
 .config/hypr/monitor.conf
