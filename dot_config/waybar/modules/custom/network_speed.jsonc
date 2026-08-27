@@ -1,0 +1,9 @@
+{
+	"custom/network_speed": {
+		"exec": "~/.config/waybar/scripts/network-speed.sh",
+		"return-type": "json",
+		"interval": 2,
+		"format": "{}",
+		"tooltip": true
+	}
+}

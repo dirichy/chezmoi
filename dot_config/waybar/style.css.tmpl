@@ -89,6 +89,7 @@ tooltip label {
 #pulseaudio-slider,
 #group-pulseaudio,
 #network,
+#custom-network_speed,
 #custom-tailscale,
 #bluetooth,
 #custom-system_update,
@@ -194,6 +195,28 @@ tooltip label {
 #network,
 #network label {
 	color: #b4befe;
+}
+
+#network {
+	border-radius: {{ template "px" (dict "percent" 32 "height" $height) }} 0 0 {{ template "px" (dict "percent" 32 "height" $height) }};
+	margin-right: 0;
+	padding-right: {{ template "px" (dict "percent" 10 "height" $height) }};
+}
+
+#custom-network_speed,
+#custom-network_speed label {
+	color: #b4befe;
+}
+
+#custom-network_speed {
+	border-radius: 0 {{ template "px" (dict "percent" 32 "height" $height) }} {{ template "px" (dict "percent" 32 "height" $height) }} 0;
+	margin-left: 0;
+	padding-left: {{ template "px" (dict "percent" 10 "height" $height) }};
+}
+
+#custom-network_speed label {
+	font-size: {{ template "px" (dict "percent" 46 "height" $height) }};
+	font-family: "0xProto Nerd Font Mono", "Symbols Nerd Font Mono";
 }
 
 #custom-tailscale,
