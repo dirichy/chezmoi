@@ -37,7 +37,6 @@ Library
 .Xresources
 .cache/rsync_to_root
 .config/sunshine
-.local/bin/hyprlua
 .local/bin/qq
 .local/bin/sioyek
 .local/bin/sunshine_pre

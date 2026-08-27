@@ -40,17 +40,11 @@ brightnessctl_available() {
 	find /sys/class/backlight -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null | grep -q .
 }
 
-hyprlua_available() {
-	command -v hyprlua >/dev/null || command -v "$HOME/.local/bin/hyprlua" >/dev/null
-}
-
 detect_backend() {
 	if ddc_available; then
 		echo ddc
 	elif brightnessctl_available; then
 		echo brightnessctl
-	elif hyprlua_available; then
-		echo hyprlua
 	else
 		echo none
 	fi
@@ -62,7 +56,7 @@ backend() {
 	if [[ -f $BACKEND_FILE ]]; then
 		selected=$(cat "$BACKEND_FILE")
 		case "$selected" in
-			ddc | brightnessctl | hyprlua | none)
+			ddc | brightnessctl | none)
 				echo "$selected"
 				return
 				;;
@@ -72,14 +66,6 @@ backend() {
 	selected=$(detect_backend)
 	echo "$selected" > "$BACKEND_FILE"
 	echo "$selected"
-}
-
-hyprlua_cmd() {
-	if command -v hyprlua >/dev/null; then
-		hyprlua "$@"
-	else
-		"$HOME/.local/bin/hyprlua" "$@"
-	fi
 }
 
 get_state() {
@@ -106,11 +92,6 @@ get_brightness() {
 	case "$(backend)" in
 		ddc) get_state ;;
 		brightnessctl) brightnessctl -m | awk -F',' '{gsub("%", "", $4); print $4}' ;;
-		hyprlua)
-			value=$(hyprlua_cmd 'hypr.monitor.waybar.json()' 2>/dev/null |
-				sed -n 's/.*"percentage"[[:space:]]*:[[:space:]]*\([0-9]\+\).*/\1/p')
-			is_number "$value" && echo "$value" || echo "--"
-			;;
 		*) echo "--" ;;
 	esac
 }
@@ -144,14 +125,6 @@ set_brightness() {
 				down) brightnessctl -n set "$STEP%-" >/dev/null ;;
 				min) brightnessctl -n set 0% >/dev/null ;;
 				max) brightnessctl -n set 100% >/dev/null ;;
-			esac
-			;;
-		hyprlua)
-			case "$action" in
-				up) hyprlua_cmd "hypr.monitor.setBrightness(\"+$STEP\")" >/dev/null ;;
-				down) hyprlua_cmd "hypr.monitor.setBrightness(\"-$STEP\")" >/dev/null ;;
-				min) hyprlua_cmd 'hypr.monitor.setBrightness("0")' >/dev/null ;;
-				max) hyprlua_cmd 'hypr.monitor.setBrightness("100")' >/dev/null ;;
 			esac
 			;;
 		none)
