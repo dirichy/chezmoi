@@ -1,7 +1,10 @@
+local HOME = os.getenv("HOME") or "~"
+
 if hs or arg and arg[1] == "karabiner" then
 	return {
 		browser = "open -a zen.app",
 		terminal = "/Applications/kitty.app/Contents/MacOS/kitty --detach -1 -d '~'",
+		filemgr = "/Applications/kitty.app/Contents/MacOS/kitty --detach -1 -d '~' yazi",
 		qq = "open -a QQ.app",
 		pdfviewer = "open -a sioyek.app",
 		wechat = "open -a WeChat.app",
@@ -11,9 +14,11 @@ elseif hl or arg and arg[1] == "keyd" then
 	return {
 		terminal = "kitty",
 		browser = "zen || zen-browser",
-		qq = "/home/dirichy/.local/bin/qq",
+		filemgr = "kitty yazi",
+		qq = HOME .. "/.local/bin/qq",
 		wechat = "wechat-universal",
 		menu = "wofi --show drun -i",
-		pdfviewer = "/home/dirichy/.local/bin/sioyek",
+		pdfviewer = HOME .. "/.local/bin/sioyek",
 	}
 end
+return {}

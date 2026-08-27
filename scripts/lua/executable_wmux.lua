@@ -1,4 +1,10 @@
 #!/usr/bin/env lua
+local source = debug.getinfo(1, "S").source
+local script = source:sub(1, 1) == "@" and source:sub(2) or nil
+local script_dir = script and script:match("^(.*)/[^/]*$")
+if script_dir then
+	package.path = script_dir .. "/?.lua;" .. package.path
+end
 package.path = os.getenv("HOME") .. "/scripts/lua/?.lua;" .. package.path
 local wm = require("wmux.wm")
 local kmap = require("wmux.bind")
@@ -33,11 +39,11 @@ for i = 1, 9 do
 end
 -- kmap.bind("backspace", winmod, wm.move_to_space(11))
 -- kmap.bind("backspace", winmod + SHIFT, wm.move_win_to_space(11))
-
 local app_keymap = {
 	t = SHELL.new(apps.terminal),
 	b = SHELL.new(apps.browser),
-	-- e = SHELL.new(filemgr),
+	e = SHELL.new(apps.filemgr),
+	p = SHELL.new(apps.pdfviewer),
 	q = SHELL.new(apps.qq),
 	w = SHELL.new(apps.wechat),
 	space = SHELL.new(apps.menu),
@@ -59,9 +65,13 @@ local sys_keymap = {
 for key, cmd in pairs(sys_keymap) do
 	kmap.bind(key, sysmod, cmd, nil, nil, { release = true })
 end
-if kmap.createmod then
+local fallbackmod = SHIFT + CTRL + ALT
+if kmap.feature and kmap.feature.physicalmod then
 	kmap.createmod("caps_lock", "control", "escape")
-	local ESC = kmap.createmod("escape", "esc")
+end
+if kmap.feature and kmap.feature.createmod then
+	local esc_overload = arg and arg[1] == "keyd" and "`" or nil
+	local ESC = kmap.createmod("escape", "esc", esc_overload, nil, fallbackmod)
 	kmap.bind("1", ESC, wm.capture_screen())
 	kmap.bind("2", ESC, wm.capture_screen(true))
 end

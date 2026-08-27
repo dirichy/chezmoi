@@ -15,8 +15,10 @@
 ---@field capture_screen fun(area:boolean):to
 ---@field toggle_pin fun(pin:boolean):to
 ---@field rotate_space fun():to
-if hl or arg and arg[1] == "keyd" then
+if hl then
 	return require("wmux.wm.hyprland")
+elseif arg and arg[1] == "keyd" then
+	return require("wmux.wm.keyd")
 elseif hs or arg and arg[1] == "karabiner" then
 	return require("wmux.wm.yabai")
 end

@@ -1,6 +1,11 @@
 ---@type keybinder
 local karabiner = {}
 local SHELL = require("wmux.shell")
+local log = require("wmux.log")
+local INVALID = {}
+local function warn(message)
+	log.warn("karabiner", message)
+end
 ---@class Karabiner.json.to
 ---@field shell_command string?
 ---@field key_code string?
@@ -10,6 +15,7 @@ local SHELL = require("wmux.shell")
 ---@alias Karabiner.to.key_with_mod {[1]:string,[2]:table|integer}
 ---@alias Karabiner.to.shell SHELL
 ---@alias Karabiner.to Karabiner.to.key_code|Karabiner.to.key_with_mod|Karabiner.to.shell
+---@alias condition table|string|string[]
 karabiner._modifier = {
 	shift = 1,
 	control = 2,
@@ -24,12 +30,20 @@ karabiner.modifier = {
 	SUPER = 8,
 	FN = 16,
 }
+karabiner.feature = {
+	createmod = true,
+	physicalmod = true,
+	virtualmod = true,
+}
 karabiner.vitualMod = {}
 karabiner._next_vitual_mod_value = 32
 
 function karabiner.mod2int(mods)
 	if not mods then
 		return 0
+	end
+	if type(mods) == "table" and mods.mod then
+		return mods.mod
 	end
 	if type(mods) == "number" then
 		return mods
@@ -41,8 +55,8 @@ function karabiner.mod2int(mods)
 	for index, value in ipairs(mods) do
 		local mod = karabiner._modifier[value]
 		if not mod then
-			error("unknown modifier: " .. value)
-			break
+			warn("ignoring unknown modifier: " .. value)
+			return nil
 		end
 		ret = ret + mod
 	end
@@ -52,7 +66,7 @@ end
 local JSON = require("cjson")
 karabiner.condition = {
 	always = function()
-		return JSON.empty_array
+		return nil
 	end,
 	not_moonlight = function()
 		return karabiner.condition.application_unless("^com\\.moonlight-stream\\.Moonlight$")
@@ -132,30 +146,60 @@ function karabiner.convert_to(to)
 		end
 	elseif getmetatable(to) == SHELL then
 		return to:karabiner()
+	elseif type(to) == "function" then
+		warn("ignoring runtime Lua action")
+		return nil
 	else
-		to[2] = karabiner.int2mods(to[2])
+		local modifiers = karabiner.int2mods(to[2])
 		if to[1] == "fn" then
 			return {
 				apple_vendor_top_case_key_code = "keyboard_fn",
-				modifiers = to[2],
+				modifiers = modifiers,
 			}
 		else
-			return { key_code = to[1], modifiers = to[2] }
+			return { key_code = to[1], modifiers = modifiers }
 		end
 	end
 end
----@param key string|integer
----@param mod string[]|integer
----@param fn Karabiner.to
----@param priority integer?
----@param conditions table?
-karabiner.bind = function(key, mod, fn, conditions, priority)
-	local to = karabiner.convert_to(fn)
-	mod = karabiner.mod2int(mod)
-	priority = priority or 100
+
+local function normalize_conditions(conditions)
 	if not conditions then
-		priority = 1
-		conditions = karabiner.condition.not_moonlight()
+		return nil
+	end
+	if type(conditions) == "string" then
+		return karabiner.condition.application(conditions)
+	end
+	if type(conditions) == "function" then
+		warn("ignoring binding with runtime Lua condition")
+		return INVALID
+	end
+	if type(conditions) == "table" and type(conditions[1]) == "string" then
+		return karabiner.condition.application(conditions)
+	end
+	return conditions
+end
+
+local function has_fn(mod)
+	if not mod then
+		return false
+	end
+	return mod & karabiner.modifier.FN ~= 0
+end
+
+local function copy_conditions(conditions)
+	local ret = {}
+	if type(conditions) ~= "table" then
+		return ret
+	end
+	for i, condition in ipairs(conditions) do
+		ret[i] = condition
+	end
+	return ret
+end
+
+local function insert_binding(key, mod, to, conditions, priority)
+	if not mod or not to or conditions == INVALID then
+		return
 	end
 	if not karabiner.bindlist[mod][key] then
 		karabiner.bindlist[mod][key] = {}
@@ -170,16 +214,63 @@ karabiner.bind = function(key, mod, fn, conditions, priority)
 	table.insert(karabiner.bindlist[mod][key], i, { to = to, conditions = conditions, priority = priority })
 end
 
+---@param key string|integer
+---@param mod string[]|integer
+---@param fn Karabiner.to
+---@param conditions condition?
+---@param priority integer?
+---@param opts table? Accepted for API compatibility; Karabiner has no bind flags here.
+karabiner.bind = function(key, mod, fn, conditions, priority, opts)
+	local to = karabiner.convert_to(fn)
+	mod = karabiner.mod2int(mod)
+	if not mod or not to then
+		return
+	end
+	local explicit_conditions = conditions ~= nil
+	priority = priority or (explicit_conditions and 100 or 1)
+	if explicit_conditions then
+		conditions = normalize_conditions(conditions)
+	elseif not has_fn(mod) then
+		conditions = karabiner.condition.not_moonlight()
+	end
+	insert_binding(key, mod, to, conditions, priority)
+	if not explicit_conditions and not has_fn(mod) then
+		insert_binding(key, mod + karabiner.modifier.FN, to, nil, priority)
+	end
+end
+
 --- Create a vitual modifier with name `name` and key `key`.
 ---@param key string
 ---@param name string
 ---@param overload string|table|SHELL|nil if has any value, this modifier will be lazy, i.e., when press with other key, it will be mod; when pressed alone, it will trig `overload`
-function karabiner.createmod(key, name, overload, conditions)
-	if not conditions then
+---@param conditions condition?
+function karabiner.createmod(key, name, overload, conditions, fallback)
+	local explicit_conditions = conditions ~= nil
+	if explicit_conditions then
+		conditions = normalize_conditions(conditions)
+	else
 		conditions = karabiner.condition.not_moonlight()
 	end
+	local function insert_manipulator(manipulator)
+		table.insert(karabiner.rule.manipulators, manipulator)
+		if not explicit_conditions then
+			local fn_manipulator = {}
+			for k, v in pairs(manipulator) do
+				fn_manipulator[k] = v
+			end
+			fn_manipulator.from = {
+				key_code = key,
+				modifiers = { mandatory = { "fn" } },
+			}
+			fn_manipulator.conditions = nil
+			table.insert(karabiner.rule.manipulators, fn_manipulator)
+		end
+	end
 	if karabiner._modifier[name] then
-		table.insert(karabiner.rule.manipulators, {
+		if conditions == INVALID then
+			return karabiner._modifier[name]
+		end
+		insert_manipulator({
 			from = {
 				key_code = key,
 			},
@@ -194,7 +285,10 @@ function karabiner.createmod(key, name, overload, conditions)
 		})
 		return karabiner._modifier[name]
 	elseif karabiner.vitualMod[name] then
-		table.insert(karabiner.rule.manipulators, {
+		if conditions == INVALID then
+			return { mod = karabiner.vitualMod[name], fallback = fallback, virtual = true }
+		end
+		insert_manipulator({
 			from = {
 				key_code = key,
 			},
@@ -211,11 +305,15 @@ function karabiner.createmod(key, name, overload, conditions)
 				},
 			},
 			to_if_alone = karabiner.convert_to(overload),
+			conditions = conditions,
 			type = "basic",
 		})
-		return karabiner.vitualMod[name]
+		return { mod = karabiner.vitualMod[name], fallback = fallback, virtual = true }
 	else
-		table.insert(karabiner.rule.manipulators, {
+		if conditions == INVALID then
+			return { fallback = fallback, virtual = true }
+		end
+		insert_manipulator({
 			from = {
 				key_code = key,
 			},
@@ -232,6 +330,7 @@ function karabiner.createmod(key, name, overload, conditions)
 				},
 			},
 			to_if_alone = karabiner.convert_to(overload),
+			conditions = conditions,
 			type = "basic",
 		})
 		karabiner.vitualMod[name] = karabiner._next_vitual_mod_value
@@ -239,7 +338,7 @@ function karabiner.createmod(key, name, overload, conditions)
 		for i = karabiner.vitualMod[name], karabiner._next_vitual_mod_value - 1 do
 			karabiner.bindlist[i] = {}
 		end
-		return karabiner.vitualMod[name]
+		return { mod = karabiner.vitualMod[name], fallback = fallback, virtual = true }
 	end
 end
 
@@ -250,10 +349,11 @@ function karabiner.print()
 		for key, key_t in pairs(mod_t) do
 			for _, to in ipairs(key_t) do
 				local vitualmods = karabiner.int2vitualmods(mod)
+				local conditions = to.conditions
 				if vitualmods then
-					to.conditions = to.conditions or JSON.empty_array
+					conditions = copy_conditions(to.conditions)
 					for _, vitualmod in ipairs(vitualmods) do
-						table.insert(to.conditions, {
+						table.insert(conditions, {
 							name = "vitual_mod_" .. vitualmod,
 							type = "variable_if",
 							value = 1,
@@ -278,7 +378,7 @@ function karabiner.print()
 					to = to.to,
 					to_if_alone = to.to_if_alone,
 					to_after_key_up = to.to_after_key_up,
-					conditions = to.conditions,
+					conditions = conditions,
 					type = "basic",
 				})
 			end
