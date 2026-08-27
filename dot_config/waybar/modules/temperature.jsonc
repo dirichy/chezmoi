@@ -1,13 +1,11 @@
 {
 	"temperature": {
 		"thermal-zone": 1,
+		"warning-threshold": 75,
 		"critical-threshold": 90,
 		"interval": 10,
-		"states": {
-			"warning": 75,
-			"critical": 90
-		},
-		"format-critical": "󰀦 {temperatureC}°C",
+		"format-warning": "{icon} {temperatureC}°C",
+		"format-critical": "{icon} {temperatureC}°C",
 		"format": "{icon} {temperatureC}°C",
 		"format-icons": [
 			"󱃃", "󰔏", "󱃂"

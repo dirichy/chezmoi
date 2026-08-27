@@ -52,7 +52,8 @@ usage() {
 }
 
 status() {
-	local line name util temp mem_used mem_total power limit class tooltip
+	local line name util temp mem_used mem_total power limit class tooltip mem_percent
+	local -a query_cmd
 
 	if ! command -v nvidia-smi >/dev/null 2>&1; then
 		print_status "" "disabled" ""
@@ -80,30 +81,31 @@ status() {
 
 	util=${util:-0}
 	temp=${temp:-0}
+	mem_used=${mem_used:-0}
+	mem_total=${mem_total:-0}
+	mem_percent=0
 	class=""
 
-	if [[ $temp =~ ^[0-9]+$ && $util =~ ^[0-9]+$ ]]; then
-		if (( temp >= 90 || util >= 90 )); then
-			class="critical"
-		elif (( temp >= 80 || util >= 75 )); then
-			class="warning"
-		fi
-	elif [[ $temp =~ ^[0-9]+$ ]]; then
-		if (( temp >= 90 )); then
-			class="critical"
-		elif (( temp >= 80 )); then
-			class="warning"
-		fi
-	elif [[ $util =~ ^[0-9]+$ ]]; then
-		if (( util >= 90 )); then
-			class="critical"
-		elif (( util >= 75 )); then
-			class="warning"
-		fi
+	if [[ $mem_used =~ ^[0-9]+$ && $mem_total =~ ^[0-9]+$ ]] && (( mem_total > 0 )); then
+		mem_percent=$(( mem_used * 100 / mem_total ))
 	fi
 
-	tooltip=$(printf '%s\nUsage: %s%%\nMemory: %s MiB / %s MiB\nTemperature: %s°C\nPower: %s W / %s W' \
-		"${name:-GPU}" "${util:-?}" "${mem_used:-?}" "${mem_total:-?}" "${temp:-?}" "${power:-?}" "${limit:-?}")
+	if [[ $temp =~ ^[0-9]+$ ]] && (( temp >= 90 )); then
+		class="critical"
+	elif [[ $util =~ ^[0-9]+$ ]] && (( util >= 90 )); then
+		class="critical"
+	elif (( mem_percent >= 95 )); then
+		class="critical"
+	elif [[ $temp =~ ^[0-9]+$ ]] && (( temp >= 80 )); then
+		class="warning"
+	elif [[ $util =~ ^[0-9]+$ ]] && (( util >= 75 )); then
+		class="warning"
+	elif (( mem_percent >= 80 )); then
+		class="warning"
+	fi
+
+	tooltip=$(printf '%s\nUsage: %s%%\nMemory: %s MiB / %s MiB (%s%%)\nTemperature: %s°C\nPower: %s W / %s W' \
+		"${name:-GPU}" "${util:-?}" "${mem_used:-?}" "${mem_total:-?}" "$mem_percent" "${temp:-?}" "${power:-?}" "${limit:-?}")
 
 	print_status "$icon ${util:-?}%" "$class" "$tooltip"
 }

@@ -13,12 +13,12 @@
 	"cpu": {
 		"interval": 10,
 		"format": "󰍛 {usage}%",
-		"format-warning": "󰀨 {usage}%",
-		"format-critical": "󰀨 {usage}%",
+		"format-warning": "󰍛 {usage}%",
+		"format-critical": "󰍛 {usage}%",
 		"min-length": 7,
 		"max-length": 8,
 		"states": {
-			"warning": 75,
+			"warning": 70,
 			"critical": 90
 		},
 		"on-click": "kitty --class system_menu --title system_menu -e btm",
