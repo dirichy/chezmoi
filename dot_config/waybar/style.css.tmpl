@@ -1,4 +1,4 @@
-{{- $heightPercent := 3.5 -}}
+{{- $heightPercent := 3.25 -}}
 {{- $monitors := output "bash" "-lc" "out=$(hyprctl monitors -j 2>/dev/null); [[ $out == \\[* ]] && printf %s \"$out\" || printf []" | fromJson -}}
 {{- $monitor := dict "height" 1000 "scale" 1 -}}
 {{- if gt (len $monitors) 0 -}}
@@ -24,7 +24,7 @@
 
 * {
 	border: none;
-	font-family: "0xProto Nerd Font", "Symbols Nerd Font";
+	font-family: "Maple Mono", "Symbols Nerd Font Mono", monospace;
 	font-size: {{ template "px" (dict "percent" 70 "height" $height) }};
 	font-weight: 800;
 	min-height: 0;
@@ -72,24 +72,19 @@ tooltip label {
 }
 
 #workspaces button.active {
-	background: rgba(137, 180, 250, 0.9);
-	border: 1px solid rgba(180, 190, 254, 0.5);
+	background: rgba(203, 166, 247, 0.9);
+	border: 1px solid rgba(203, 166, 247, 0.55);
 	border-radius: {{ template "px" (dict "percent" 32 "height" $height) }};
 	color: #11111b;
 	min-width: {{ template "px" (dict "percent" 140 "height" $height) }};
 }
 
 #clock,
-#clock.time,
-#clock.date,
-#group-clock,
 #pulseaudio,
 #pulseaudio.output,
 #pulseaudio.input,
 #pulseaudio-slider,
-#group-pulseaudio,
 #network,
-#custom-network_speed,
 #custom-tailscale,
 #bluetooth,
 #custom-system_update,
@@ -110,7 +105,15 @@ tooltip label {
 	border-radius: {{ template "px" (dict "percent" 32 "height" $height) }};
 	color: #cdd6f4;
 	margin: 0 {{ template "px" (dict "percent" 8 "height" $height) }};
-	padding: 0 {{ template "px" (dict "percent" 20 "height" $height) }};
+	padding: 0 {{ template "px" (dict "percent" 14 "height" $height) }};
+}
+
+#group-system_monitor,
+#group-pulseaudio {
+	background: transparent;
+	border-radius: 0;
+	margin: 0;
+	padding: 0;
 }
 
 #window {
@@ -197,26 +200,17 @@ tooltip label {
 	color: #b4befe;
 }
 
-#network {
+#network.left {
 	border-radius: {{ template "px" (dict "percent" 32 "height" $height) }} 0 0 {{ template "px" (dict "percent" 32 "height" $height) }};
 	margin-right: 0;
 	padding-right: {{ template "px" (dict "percent" 10 "height" $height) }};
 }
 
-#custom-network_speed,
-#custom-network_speed label {
-	color: #b4befe;
-}
-
-#custom-network_speed {
+#network.right {
 	border-radius: 0 {{ template "px" (dict "percent" 32 "height" $height) }} {{ template "px" (dict "percent" 32 "height" $height) }} 0;
 	margin-left: 0;
-	padding-left: {{ template "px" (dict "percent" 10 "height" $height) }};
-}
-
-#custom-network_speed label {
-	font-size: {{ template "px" (dict "percent" 46 "height" $height) }};
-	font-family: "0xProto Nerd Font Mono", "Symbols Nerd Font Mono";
+	min-width: {{ template "px" (dict "percent" 130 "height" $height) }};
+	padding-left: {{ template "px" (dict "percent" 6 "height" $height) }};
 }
 
 #custom-tailscale,
@@ -266,6 +260,11 @@ tooltip label {
 	color: #f9e2af;
 }
 
+#custom-backlight {
+	min-width: {{ template "px" (dict "percent" 145 "height" $height) }};
+	padding: 0 {{ template "px" (dict "percent" 24 "height" $height) }};
+}
+
 #battery,
 #battery label {
 	color: #a6e3a1;
@@ -277,14 +276,28 @@ tooltip label {
 }
 
 #clock,
-#clock.time,
-#clock.date,
-#group-clock,
-#clock label,
-#clock.time label,
-#clock.date label,
-#group-clock label {
+#clock label {
 	color: #cdd6f4;
+}
+
+#clock {
+	min-width: {{ template "px" (dict "percent" 150 "height" $height) }};
+}
+
+#network.right,
+#network.right label,
+#clock,
+#clock label {
+	font-family: "Maple Mono", "Symbols Nerd Font Mono", monospace;
+	font-size: {{ template "px" (dict "percent" 40 "height" $height) }};
+}
+
+#network.right label {
+	min-width: {{ template "px" (dict "percent" 120 "height" $height) }};
+}
+
+#clock label {
+	min-width: {{ template "px" (dict "percent" 135 "height" $height) }};
 }
 
 #workspaces .active label {

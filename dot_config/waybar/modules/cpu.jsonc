@@ -15,8 +15,8 @@
 		"format": "󰍛 {usage}%",
 		"format-warning": "󰍛 {usage}%",
 		"format-critical": "󰍛 {usage}%",
-		"min-length": 7,
-		"max-length": 8,
+		"min-length": 5,
+		"max-length": 6,
 		"states": {
 			"warning": 70,
 			"critical": 90

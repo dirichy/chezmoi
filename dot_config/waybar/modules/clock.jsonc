@@ -1,19 +1,7 @@
 {
-	"group/clock": {
-		"orientation": "horizontal",
-		"modules": [
-			"clock#time",
-			"clock#date"
-		],
-		"drawer": {
-			"transition-left-to-right": false
-		}
-	},
-
-	"clock#time": {
-		"format": "{:%H:%M}",
-		"min-length": 5,
-		"max-length": 6,
+	"clock": {
+		"format": " {0:%m-%d}\n {0:%H:%M}",
+		"min-length": 7,
 		"on-click": "kitty --class system_menu --title system_menu -e calcurse",
 		"tooltip-format": "{calendar}",
 		"calendar": {
@@ -26,13 +14,5 @@
 				"today": "<span alpha='100%'><b><u>{}</u></b></span>"
 			}
 		}
-	},
-
-	"clock#date": {
-		"format": "󰸗 {:%m-%d}",
-		"min-length": 8,
-		"max-length": 9,
-		"on-click": "kitty --class system_menu --title system_menu -e calcurse",
-		"tooltip": false
 	}
 }

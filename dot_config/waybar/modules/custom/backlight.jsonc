@@ -1,6 +1,6 @@
 {
 	"custom/backlight": {
-		"format": "☀ {}%",
+		"format": "󰃠 {}%",
 		"interval": "once",
 		"signal": 9,
 		"exec": "~/.config/waybar/scripts/ddcutil.sh get",

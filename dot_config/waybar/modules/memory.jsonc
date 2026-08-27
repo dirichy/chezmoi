@@ -8,8 +8,8 @@
 			"warning": 80,
 			"critical": 92
 		},
-		"min-length": 7,
-		"max-length": 8,
+		"min-length": 5,
+		"max-length": 6,
 		"on-click": "kitty --class system_menu --title system_menu -e btm",
 		"tooltip-format": "Memory: {used:0.1f} GiB / {total:0.1f} GiB"
 	}

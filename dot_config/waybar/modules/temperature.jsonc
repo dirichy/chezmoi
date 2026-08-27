@@ -4,14 +4,14 @@
 		"warning-threshold": 75,
 		"critical-threshold": 90,
 		"interval": 10,
-		"format-warning": "{icon} {temperatureC}°C",
-		"format-critical": "{icon} {temperatureC}°C",
-		"format": "{icon} {temperatureC}°C",
+		"format-warning": "{icon} {temperatureC}℃",
+		"format-critical": "{icon} {temperatureC}℃",
+		"format": "{icon} {temperatureC}℃",
 		"format-icons": [
 			"󱃃", "󰔏", "󱃂"
 		],
-		"min-length": 8,
-		"max-length": 9,
+		"min-length": 5,
+		"max-length": 6,
 		"on-click": "kitty --class system_menu --title system_menu -e btm",
 		"tooltip-format": "Temperature: {temperatureC}°C"
 	}

@@ -1,16 +1,31 @@
 {
-	"network": {
-		"interval": 3,
-		"format": "󰤨",
+	"group/network": {
+		"orientation": "horizontal",
+		"modules": [
+			"network#left",
+			"network#right"
+		]
+	},
+	"network#left": {
+		"interval": 1,
+		"format-wifi": "󰤨",
 		"format-ethernet": "󰈀",
-		"format-wifi": "{icon}",
-		"format-disconnected": "󰤯",
+		"format-disconnected": "󰤭",
 		"format-disabled": "󰤮",
-		"format-icons": [
-			"󰤟", "󰤢", "󰤥", "󰤨"
-		],
-		"min-length": 2,
-		"max-length": 3,
+		"on-click": "kitty --class system_menu --title system_menu -e ~/.config/waybar/scripts/network.sh",
+		"on-click-right": "kitty --class system_menu --title system_menu -e nmtui",
+		"tooltip-format": "Network\nDown: {bandwidthDownBytes}\nUp: {bandwidthUpBytes}\nGateway: {gwaddr}",
+		"tooltip-format-ethernet": "Interface: {ifname}\nDown: {bandwidthDownBytes}\nUp: {bandwidthUpBytes}",
+		"tooltip-format-wifi": "{essid}\nIP: {ipaddr}/{cidr}\nSignal: {signalStrength}%\nFrequency: {frequency} GHz\nDown: {bandwidthDownBytes}\nUp: {bandwidthUpBytes}",
+		"tooltip-format-disconnected": "Wi-Fi Disconnected",
+		"tooltip-format-disabled": "Wi-Fi Disabled"
+	},
+	"network#right": {
+		"interval": 1,
+		"format-wifi": "↓ {bandwidthDownBytes:>iu}\n↑ {bandwidthUpBytes:>iu}",
+		"format-ethernet": "↓ {bandwidthDownBytes:>iu}\n↑ {bandwidthUpBytes:>iu}",
+		"format-disconnected": "",
+		"format-disabled": "",
 		"on-click": "kitty --class system_menu --title system_menu -e ~/.config/waybar/scripts/network.sh",
 		"on-click-right": "kitty --class system_menu --title system_menu -e nmtui",
 		"tooltip-format": "Network\nDown: {bandwidthDownBytes}\nUp: {bandwidthUpBytes}\nGateway: {gwaddr}",

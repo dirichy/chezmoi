@@ -1,4 +1,4 @@
-{{- $heightPercent := 3.0 -}}
+{{- $heightPercent := 3.25 -}}
 {{- $monitors := output "bash" "-lc" "out=$(hyprctl monitors -j 2>/dev/null); [[ $out == \\[* ]] && printf %s \"$out\" || printf []" | fromJson -}}
 {{- $monitor := dict "height" 1000 "scale" 1 -}}
 {{- if gt (len $monitors) 0 -}}
@@ -11,6 +11,12 @@
 {{- end -}}
 {{- $logicalHeight := divf $monitor.height (default 1 $monitor.scale) -}}
 {{- $height := max 1 (int (printf "%.0f" (divf (mulf $logicalHeight $heightPercent) 100))) -}}
+{{- $iconSize := max 1 (int (printf "%.0f" (divf (mulf $height 55) 100))) -}}
+{{- $spacing := max 1 (int (printf "%.0f" (divf (mulf $height 20) 100))) -}}
 {
-  "height": {{ $height }}
+	"tray": {
+		"icon-size": {{ $iconSize }},
+		"spacing": {{ $spacing }},
+		"cursor": true
+	}
 }
