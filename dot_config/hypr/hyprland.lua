@@ -176,6 +176,14 @@ local windowrules = {
 for _, rule in ipairs(windowrules) do
 	hl.window_rule(rule)
 end
+hl.layer_rule({
+	name = "blur waybar",
+	match = {
+		namespace = "waybar",
+	},
+	blur = true,
+	ignore_alpha = 0.2,
+})
 
 ---@type keybinder
 local wmux = require("wmux")

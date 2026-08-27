@@ -2,54 +2,38 @@
 {
   "layer": "top",
   "include": [
+    "~/.config/waybar/generated.jsonc",
     "~/.config/waybar/modules/*.jsonc",
     "~/.config/waybar/modules/custom/*.jsonc",
     "~/.config/waybar/modules/hyprland/*.jsonc"
   ],
 
   "modules-left": [
-    "custom/left_div_1",
     "hyprland/workspaces",
-    "custom/right_div_1",
     "hyprland/window"
   ],
   "modules-center": [
     "hyprland/windowcount",
-    "custom/left_div_2",
     "group/system_monitor",
-    "custom/left_div_3",
     "custom/disk",
-    "custom/left_div_5",
     "custom/distro",
-    "custom/right_div_2",
     "idle_inhibitor",
-    "custom/right_div_3",
     "network",
     "custom/tailscale",
     "bluetooth",
-    "custom/system_update",
-    "custom/right_div_5"
+    "custom/system_update"
   ],
   "modules-right": [
     "mpris",
-    "custom/left_div_6",
     "group/pulseaudio",
-    "custom/left_div_7",
     "custom/backlight",
-{{- if not $hasBattery }}
-    "custom/left_div_8",
-{{- end }}
 {{- if $hasBattery }}
-    "custom/left_div_8",
     "battery",
-    "custom/left_inv_2",
 {{- end }}
     "tray",
-    "custom/left_div_9",
     "group/clock"
   ],
 
-  "height": 0,
   "width": 0,
   "margin": 0,
   "spacing": 0,
