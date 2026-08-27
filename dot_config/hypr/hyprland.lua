@@ -224,8 +224,7 @@ local im_state = {
 	QQ = true,
 }
 local current_class = ""
-hl.on("window.active", function(win)
-	local class = win.class or ""
+local function update_im_context(class)
 	if current_class == class then
 		return
 	end
@@ -239,6 +238,24 @@ hl.on("window.active", function(win)
 			im.disable()
 		end
 	end)()
+end
+hl.on("window.active", function(win)
+	update_im_context(win.class or "")
+end)
+local function is_notification_layer(namespace)
+	return type(namespace) == "string" and namespace:lower():match("notif") ~= nil
+end
+hl.on("layer.opened", function(layer)
+	local namespace = layer and (layer.namespace or layer.namespace_name) or ""
+	if namespace ~= "" and not is_notification_layer(namespace) then
+		update_im_context(namespace)
+	end
+end)
+hl.on("layer.closed", function()
+	local win = hl.get_active_window()
+	if win then
+		update_im_context(win.class or "")
+	end
 end)
 hl.on(
 	"workspace.active",
