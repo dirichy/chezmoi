@@ -130,99 +130,62 @@ return {
 			})
 		end,
 	},
-	-- { "echasnovski/mini.indentscope", version = false, config = true },
-	-- {
-	-- 	"lukas-reineke/indent-blankline.nvim",
-	-- 	-- dependencies = {
-	-- 	-- 	"TheGLander/indent-rainbowline.nvim",
-	-- 	-- },
-	-- 	event = "VeryLazy",
-	-- 	main = "ibl",
-	-- 	opts = {
-	-- 		indent = {
-	-- 			char = "│",
-	-- 			tab_char = "│",
-	-- 		},
-	-- 		scope = { show_start = false, show_end = false },
-	-- 		exclude = {
-	-- 			filetypes = {
-	-- 				"help",
-	-- 				"alpha",
-	-- 				"dashboard",
-	-- 				"neo-tree",
-	-- 				"Trouble",
-	-- 				"trouble",
-	-- 				"lazy",
-	-- 				"mason",
-	-- 				"notify",
-	-- 				"toggleterm",
-	-- 				"lazyterm",
-	-- 			},
-	-- 		},
-	-- 	},
-	-- 	config = function(_, opts)
-	-- 		require("ibl").setup(require("indent-rainbowline").make_opts(opts, {
-	-- 			color_transparency = 0.3,
-	-- 			colors = { 0xff0000, 0x00ff00, 0x8b00ff, 0xffff00, 0x0000ff, 0xffa500, 0x007fff },
-	-- 		}))
-	-- 	end,
-	-- },
 	{
-		"lewis6991/gitsigns.nvim",
-		event = "VeryLazy",
-		config = true,
+		"nvim-tree/nvim-web-devicons", -- not strictly required, but recommended
+		lazy = true,
+		config = function()
+			require("nvim-web-devicons").setup({
+				override_by_extension = {
+					["neo-tree"] = {
+						icon = "󱏒",
+						color = "#bd19e6",
+						name = "Neo-tree",
+					},
+					["log"] = {
+						icon = "",
+						color = "#81e043",
+						name = "log",
+					},
+					["sty"] = {
+						icon = "",
+						color = "#006400",
+						name = "sty",
+					},
+					["m"] = {
+						icon = "ℳ",
+						color = "#ff8000",
+						name = "Matlab",
+					},
+					["fig"] = {
+						icon = "",
+						color = "#ff8000",
+						name = "MatlabFig",
+					},
+					["aux"] = {
+						icon = "",
+						color = "#006400",
+						name = "aux",
+					},
+					["norg"] = {
+						icon = "",
+						color = "#b34fee",
+						name = "norg",
+					},
+					["lazy"] = {
+						icon = "󰒲",
+						color = "#0d69f2",
+						name = "Lazy",
+					},
+					["tex"] = {
+						icon = "",
+						color = "#2c8217",
+						name = "TeX",
+					},
+				},
+			})
+			require("nvim-web-devicons").set_icon_by_filetype({ ["neo-tree"] = "neo-tree", lazy = "lazy" })
+		end,
 	},
-	-- {
-	-- 	"rcarriga/nvim-notify",
-	-- 	lazy = true,
-	-- 	-- keys = {
-	-- 	--   "<leader>un",
-	-- 	--   function()
-	-- 	--     require("notify").dismiss({ silent = true, pending = true })
-	-- 	--   end,
-	-- 	--   desc = "Dismiss All Notifications",
-	-- 	-- },
-	-- 	opts = {
-	-- 		background_colour = "NotifyBackground",
-	-- 		max_height = function()
-	-- 			return math.floor(vim.o.lines * 0.75)
-	-- 		end,
-	-- 		max_width = function()
-	-- 			return math.floor(vim.o.columns * 0.75)
-	-- 		end,
-	-- 		on_open = function(win)
-	-- 			vim.api.nvim_win_set_config(win, { zindex = 100 })
-	-- 		end,
-	-- 		fps = 30,
-	-- 		icons = {
-	-- 			DEBUG = "",
-	-- 			ERROR = "",
-	-- 			INFO = "",
-	-- 			TRACE = "✎",
-	-- 			WARN = "",
-	-- 		},
-	-- 		level = 2,
-	-- 		minimum_width = 50,
-	-- 		render = "compact",
-	-- 		stages = "static",
-	-- 		time_formats = {
-	-- 			notification = "%T",
-	-- 			notification_history = "%FT%T",
-	-- 		},
-	-- 		timeout = 3000,
-	-- 		top_down = true,
-	-- 	},
-	-- 	init = function()
-	-- 		-- when noice is not enabled, install notify on VeryLazy
-	-- 		vim.api.nvim_create_autocmd("User", {
-	-- 			pattern = "VeryLazy",
-	-- 			callback = function()
-	-- 				vim.notify = require("notify")
-	-- 			end,
-	-- 			desc = "Use nvim-Notify as default",
-	-- 		})
-	-- 	end,
-	-- },
 	{
 		"folke/noice.nvim",
 		event = "VeryLazy",

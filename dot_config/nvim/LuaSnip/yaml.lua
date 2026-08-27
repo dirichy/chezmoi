@@ -13,10 +13,11 @@ local fmta = require("luasnip.extras.fmt").fmta
 local rep = require("luasnip.extras").rep
 local line_begin = require("luasnip.extras.expand_conditions").line_begin
 return {
-  s({ trig = "sd"  },
-    fmta("swipe_down: <>, hint: <>", {
-      i(1),
-      rep(1)
-    })
-   ),
+	s(
+		{ trig = "sd" },
+		fmta("swipe_down: <>, hint: <>", {
+			i(1),
+			rep(1),
+		})
+	),
 }

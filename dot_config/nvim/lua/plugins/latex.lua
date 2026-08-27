@@ -143,17 +143,4 @@ return {
 		"DanielMSussman/motleyLatex.nvim",
 		config = true,
 	},
-	-- {
-	-- 	"lervag/vimtex",
-	-- 	lazy = false,
-	-- },
-	-- {
-	--   "bamonroe/rnoweb-nvim",
-	--   lazy=false,
-	--   enabled=false,
-	--   dependencies={
-	--     "nvim-lua/plenary.nvim"
-	--   },
-	--   config=true,
-	-- }
 }

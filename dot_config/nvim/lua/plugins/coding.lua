@@ -108,14 +108,14 @@ return {
 					zsh = { "beautysh" },
 					html = { "prettierd" },
 					yaml = { "prettierd" },
-					liquid = function(bufer)
-						local formter_by_name = {
+					liquid = function(buffer)
+						local formatter_by_name = {
 							html = { "prettierd" },
 							json = { "clang-format" },
 						}
-						local real_filetype = vim.api.nvim_buf_get_name(bufer)
+						local real_filetype = vim.api.nvim_buf_get_name(buffer)
 						real_filetype = real_filetype:match("[^.]*$")
-						return formter_by_name[real_filetype] or {}
+						return formatter_by_name[real_filetype] or {}
 					end,
 				},
 			})
@@ -126,108 +126,6 @@ return {
 				end,
 			})
 		end,
-	},
-	{
-		"kylechui/nvim-surround",
-		version = "*", -- Use for stability; omit to use `main` branch for the latest features
-		event = "VeryLazy",
-		config = function()
-			local config = require("nvim-surround.config")
-			require("nvim-surround").setup({
-				surrounds = {
-					["b"] = {
-						add = function()
-							return { "\\{", "\\}" }
-						end,
-						find = "\\%b{}",
-						delete = "^(\\{)().-(\\})()$",
-					},
-					["B"] = {
-						add = function()
-							return { "\\left\\{", "\\right\\}" }
-						end,
-						find = "\\left\\%b{}",
-						delete = "^(\\left\\{)().-(\\right\\})()$",
-					},
-					["`"] = {
-						add = { "`", "'" },
-						find = "%b`'",
-						delete = "^(`)().*(')()$",
-					},
-					["e"] = {
-						add = function()
-							local result = config.get_input("Enter the environment name: ")
-							if result then
-								return { { "\\begin{" .. result .. "}" }, { "\\end{" .. result .. "}" } }
-							end
-						end,
-						find = function()
-							return config.get_selection({ motion = "ae" })
-						end,
-						delete = "^(\\begin%b{})().*(\\end%b{})()$",
-					},
-					["m"] = {
-						add = function()
-							local result = config.get_input(
-								"Enter math environment type, (j=\\(\\) t=\\[\\] e=equation default=j): "
-							)
-							local mathtype = {
-								j = { "\\(", "\\)" },
-								t = { "\\[", "\\]" },
-								e = { { "\\begin{equation}", "" }, { "\\end{equation}", "" } },
-							}
-							if result and mathtype[result] then
-								return mathtype[result]
-							else
-								return mathtype.j
-							end
-						end,
-						find = function()
-							return config.get_selection({
-								motion = "am",
-							})
-						end,
-						delete = function()
-							return config.get_selections({ char = "m", pattern = "^(\\%(%s*\n*)().*(\\%)%s*\n*)()$" })
-								or config.get_selections({ char = "m", pattern = "^(\\%[%s*\n*)().*(\\%]%s*\n*)()$" })
-								or config.get_selections({
-									char = "m",
-									pattern = "^(\\begin%b{}%s*\n*)().*(\\end%b{}%s*\n*)()$",
-								})
-								or config.get_selections({ char = "m", pattern = "^(%$%$%s*\n*)().*(%$%$%s*\n*)()" })
-								or config.get_selections({ char = "m", pattern = "^(%$%s*\n*)().*(%$%s*\n*)()" })
-						end,
-					},
-				},
-			})
-		end,
-	},
-	{
-		"folke/zen-mode.nvim",
-		cmd = "ZenMode",
-		keys = {
-			{
-				"<leader>uz",
-				function()
-					-- --HACK:Neotree will break ZenMode
-					if package.loaded["neo-tree"] then
-						vim.cmd.Neotree("close")
-					end
-					vim.cmd.ZenMode()
-				end,
-				desc = "Toggle ZenMode",
-			},
-		},
-		opts = {
-			plugins = {
-				tmux = { enabled = true },
-				kitty = {
-					enabled = true,
-					font = "+4",
-				},
-			},
-		},
-		config = true,
 	},
 	{
 		"folke/trouble.nvim",

@@ -1,7 +1,7 @@
 local option = vim.opt
 local buffer = vim.b
 local global = vim.g
--- Globol Settings --
+-- Global Settings --
 global.maplocalleader = ","
 global.tex_flavor = "latex"
 option.sessionoptions = "buffers,curdir,folds,help,tabpages,winsize,terminal"
@@ -41,7 +41,7 @@ option.splitright = true
 option.scrolloff = 5
 option.sidescrolloff = 10
 -- Buffer Settings --
-buffer.fileenconding = "utf-8"
+buffer.fileencoding = "utf-8"
 
 -- Global Settings --
 global.mapleader = " "

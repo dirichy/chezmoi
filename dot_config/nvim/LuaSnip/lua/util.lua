@@ -93,7 +93,7 @@ end<>
 					if string.match(name, "[:.]") or is_express_fn() then
 						return ""
 					else
-						return "loacl "
+						return "local "
 					end
 				end, { 1 }),
 				d(1, function()

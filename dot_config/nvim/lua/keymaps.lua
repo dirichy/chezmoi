@@ -44,9 +44,9 @@ map({ "n" }, "<leader>qq", function()
 	vim.cmd([[qa]])
 end, { desc = "Quit" })
 --Toggles
-map("n", "<leader>uc", util.opt_toggle_fun("conceallevel", 2, 0, "conceal"), { desc = "Toggle Cocneal" })
+map("n", "<leader>uc", util.opt_toggle_fun("conceallevel", 2, 0, "conceal"), { desc = "Toggle Conceal" })
 map("n", "<leader>up", util.opt_toggle_fun("paste", true, false, "paste"), { desc = "Toggle Paste" })
-map("n", "<leader>uw", util.opt_toggle_fun("warp", true, false, "wrap"), { desc = "Toggle Wrap" })
+map("n", "<leader>uw", util.opt_toggle_fun("wrap", true, false, "wrap"), { desc = "Toggle Wrap" })
 
 --Inspect
 map("n", "<leader>si", vim.show_pos, { desc = "Show Inspect" })
