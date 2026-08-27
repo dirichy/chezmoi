@@ -82,10 +82,22 @@ status() {
 	temp=${temp:-0}
 	class=""
 
-	if [[ $temp =~ ^[0-9]+$ ]]; then
+	if [[ $temp =~ ^[0-9]+$ && $util =~ ^[0-9]+$ ]]; then
+		if (( temp >= 90 || util >= 90 )); then
+			class="critical"
+		elif (( temp >= 80 || util >= 75 )); then
+			class="warning"
+		fi
+	elif [[ $temp =~ ^[0-9]+$ ]]; then
 		if (( temp >= 90 )); then
 			class="critical"
 		elif (( temp >= 80 )); then
+			class="warning"
+		fi
+	elif [[ $util =~ ^[0-9]+$ ]]; then
+		if (( util >= 90 )); then
+			class="critical"
+		elif (( util >= 75 )); then
 			class="warning"
 		fi
 	fi
