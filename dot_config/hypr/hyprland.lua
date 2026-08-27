@@ -181,6 +181,9 @@ end
 local wmux = require("wmux")
 local kmap = wmux.keybinder
 local wm = wmux.wm
+hl.wmux_focus = function(direction)
+	return wm.focus(direction)()
+end
 local SHIFT = kmap.modifier.SHIFT
 local CTRL = kmap.modifier.CTRL
 local ALT = kmap.modifier.ALT
@@ -214,6 +217,7 @@ for key, cmd in pairs(sys_keymap) do
 	kmap.bind(key, sysmod, cmd, nil, nil, { release = true })
 end
 local shortcuts = require("shortcuts")
+shortcuts.bind_navigation(kmap, wm)
 for _, key in ipairs({ "a", "c", "v", "x" }) do
 	shortcuts.bind_primary(kmap, key, ALT)
 end
