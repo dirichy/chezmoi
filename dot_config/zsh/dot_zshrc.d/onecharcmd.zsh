@@ -193,11 +193,11 @@ function b() {
         echo "Usage: b [number]"
         return 1
     fi
-    local path=""
+    local target=""
     for (( i = 0; i < levels; i++ )); do
-        path+="../"
+        target+="../"
     done
-    builtin cd -- "$path"
+    builtin cd -- "$target"
     return $?
 }
 function g() {
