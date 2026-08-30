@@ -97,6 +97,7 @@ skip_mount() {
 	case $1 in
 		/boot|/boot/*|/efi|/efi/*|/winboot|/winboot/*) return 0 ;;
 		/run|/run/*|/tmp|/tmp/*|/dev|/dev/*|/proc|/proc/*|/sys|/sys/*) return 0 ;;
+    /home/dirichy/.steamLibrary2) return 0 ;;
 	esac
 
 	return 1
