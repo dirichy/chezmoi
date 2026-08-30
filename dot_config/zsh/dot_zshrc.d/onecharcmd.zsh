@@ -29,10 +29,10 @@ function s(){
         -o "ServerAliveInterval=10" \
         -o "ServerAliveCountMax=3" \
         -t "$@" \
-        "$SHELL -lc \"tmux new -A -s ssh\" || $SHELL -l"
+        "tmux new -A -s ssh"
 }
 function t() {
-    if [[ -z $(which tmux) ]]; then
+    if (( ! $+commands[tmux] )); then
         echo "Did not install tmux"
         return 1
     fi
@@ -43,7 +43,7 @@ function t() {
         if [ -z $__session_name ]; then
             __session_name="default"
         fi
-        tmux new -s $__session_name
+        tmux new-session -s "$__session_name"
         return $?
     fi
     __tmux_ls=$(tmux ls | awk -F ':' '{print $1}' | nl)
@@ -57,8 +57,8 @@ function t() {
             if [ -z $__session_name ]; then
                 __session_name="default"
             fi
-            tmux new -s $__session_name -d
-            tmux switch -t $__session_name
+            tmux new-session -s "$__session_name" -d
+            tmux switch-client -t "$__session_name"
             return $?
         fi
         return 0
@@ -70,14 +70,14 @@ function t() {
         __number=1
     fi
     if [[ -z $TMUX ]]; then
-        tmux attach -t $(echo "$__tmux_ls" | grep "^\s*$__number\s" | awk -F '	' '{print $2}')
+        tmux attach-session -t "$(echo "$__tmux_ls" | grep "^\s*$__number\s" | awk -F '	' '{print $2}')"
     else
-        tmux switch -t $(echo "$__tmux_ls" | grep "^\s*$__number\s" | awk -F '	' '{print $2}')
+        tmux switch-client -t "$(echo "$__tmux_ls" | grep "^\s*$__number\s" | awk -F '	' '{print $2}')"
     fi
     return $?
 }
 function v() {
-    if [[ -z $(which nvim) ]]; then
+    if (( ! $+commands[nvim] )); then
         echo "Neovim not installed!"
         return 1
     fi
@@ -87,56 +87,56 @@ function v() {
             return 0
         fi
         if test -f "$1"; then
-            nvim $1
+            nvim -- "$1"
             return 0
         fi
         if test -d "$1"; then
-            if [[ ! -z $(which zoxide) ]]; then
-                zoxide add $1
-                \builtin cd $1
+            if (( $+commands[zoxide] )); then
+                zoxide add -- "$1"
+                builtin cd -- "$1"
             fi
             nvim .
             return 0
         fi
-        if [[ ! -z $(which zoxide) ]]; then
-            for knownpath in $(zoxide query -l); do
-                if test -f $knownpath/$1; then
-                    if [[ $(file $knownpath/$1) =~ "text" ]]; then
-                        zoxide add $knownpath
-                        nvim $knownpath/$1
+        if (( $+commands[zoxide] )); then
+            for knownpath in ${(f)"$(zoxide query -l)"}; do
+                if test -f "$knownpath/$1"; then
+                    if [[ $(file -- "$knownpath/$1") =~ "text" ]]; then
+                        zoxide add -- "$knownpath"
+                        nvim -- "$knownpath/$1"
                         return 0
                     fi
                 fi
             done
         fi
-        if test -f $HOME/$1; then
-            if [[ $(file $HOME/$1) =~ "text" ]]; then
-                nvim $HOME/$1
+        if test -f "$HOME/$1"; then
+            if [[ $(file -- "$HOME/$1") =~ "text" ]]; then
+                nvim -- "$HOME/$1"
                 return 0
             fi
         fi
     fi
-    if [[ ! -z $(which zoxide) ]]; then
-        filepath=$(zoxide query $*)
+    if (( $+commands[zoxide] )); then
+        filepath=$(zoxide query -- "$@")
         if [[ $? == 0 ]]; then
-            zoxide add $filepath
-            \builtin cd $filepath
+            zoxide add -- "$filepath"
+            builtin cd -- "$filepath"
             nvim .
             return 0
         fi
     fi
-    if [[ ! -z $(which fzf) ]]; then
-        filename=$(fzf -f $*)
+    if (( $+commands[fzf] )); then
+        filename=$(fzf --filter="$*")
         if [[ -n $filename ]]; then
-            filename=$(fzf -q $*)
+            filename=$(fzf --query="$*")
             if [[ -n $filename ]]; then
                 if test -f $filename; then
-                    zoxide add $(dirname $filename)
+                    zoxide add -- "$(dirname -- "$filename")"
                 fi
                 if test -d $filename; then
-                    zoxide add $filename
+                    zoxide add -- "$filename"
                 fi
-                nvim $filename
+                nvim -- "$filename"
                 return 0
             fi
         fi
@@ -144,20 +144,20 @@ function v() {
     return 1
 }
 function u() {
-    if [ -f $1 ]; then
+    if [ -f "$1" ]; then
         case $1 in
-            *.tar.bz2) tar xjf $1 ;;
-            *.tar.gz) tar xzf $1 ;;
-            *.tar.xz) tar xf $1 ;;
-            *.bz2) bunzip2 $1 ;;
-            *.rar) rar x $1 ;;
-            *.gz) gunzip $1 ;;
-            *.tar) tar xf $1 ;;
-            *.tbz2) tar xjf $1 ;;
-            *.tgz) tar xzf $1 ;;
-            *.zip) unzip $1 ;;
-            *.Z) uncompress $1 ;;
-            *.7z) 7z x $1 ;;
+            *.tar.bz2) tar xjf -- "$1" ;;
+            *.tar.gz) tar xzf -- "$1" ;;
+            *.tar.xz) tar xf -- "$1" ;;
+            *.bz2) bunzip2 -- "$1" ;;
+            *.rar) rar x -- "$1" ;;
+            *.gz) gunzip -- "$1" ;;
+            *.tar) tar xf -- "$1" ;;
+            *.tbz2) tar xjf -- "$1" ;;
+            *.tgz) tar xzf -- "$1" ;;
+            *.zip) unzip -- "$1" ;;
+            *.Z) uncompress -- "$1" ;;
+            *.7z) 7z x -- "$1" ;;
             *) echo "'$1' cannot be extracted via extract()" ;;
         esac
     else
@@ -165,33 +165,43 @@ function u() {
     fi
 }
 function o() {
-    if [ -f $1 ]; then
+    if [ -f "$1" ]; then
         case $1 in
-            *.pdf) zathura $1 ;;
-            *.tex) nvim $1 ;;
-            *.txt) nvim $1 ;;
-            *) open $1 ;;
+            *.pdf) zathura -- "$1" ;;
+            *.tex) nvim -- "$1" ;;
+            *.txt) nvim -- "$1" ;;
+            *)
+                if (( $+commands[open] )); then
+                    command open "$1"
+                elif (( $+commands[xdg-open] )); then
+                    command xdg-open "$1"
+                else
+                    echo "No file opener is installed"
+                    return 1
+                fi
+                ;;
         esac
-    elif [ -d $1 ]; then
-        yazi $1
+    elif [ -d "$1" ]; then
+        yazi -- "$1"
     else
         echo "unknown file or dictionary"
     fi
 }
 function b() {
-    __path_to_cd=""
-    if [ -z $1 ]; then
-        __path_to_cd="../"
-    else
-        for i in $(seq 1 $1); do
-            __path_to_cd="$__path_to_cd../"
-        done
+    local levels=${1:-1}
+    if [[ $levels != <-> ]]; then
+        echo "Usage: b [number]"
+        return 1
     fi
-    \builtin cd "$__path_to_cd"
+    local path=""
+    for (( i = 0; i < levels; i++ )); do
+        path+="../"
+    done
+    builtin cd -- "$path"
     return $?
 }
 function g() {
-    if [ -z $(which lazygit) ]; then
+    if (( ! $+commands[lazygit] )); then
         echo "lazygit not installed!"
         return 1
     fi
@@ -205,8 +215,8 @@ function g() {
             return $?
         fi
     fi
-    if [ ! -z $(which zoxide) ]; then
-        __path_to_git=$(zoxide query $*)
+    if (( $+commands[zoxide] )); then
+        __path_to_git=$(zoxide query -- "$@")
         if [ $? -eq 0 ]; then
             lazygit -p "$__path_to_git"
             return $?

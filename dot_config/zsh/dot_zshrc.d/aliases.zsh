@@ -45,31 +45,16 @@ alias please=sudo
 alias zshrc='${EDITOR:-nvim} "${ZDOTDIR:-$HOME}"/.zshrc'
 alias zbench='for i in {1..10}; do /usr/bin/time zsh -lic exit; done'
 alias zdot='cd ${ZDOTDIR:-~}'
-function cd() {
-    if [[ -z $(command -v z) ]]; then
-        \builtin cd $*
-        return $?
-    fi
-    z $*
-    return $?
-}
 function wol(){
     local -A cmd
     cmd=(
         byl "ssh dell wakeonlan 34:5a:60:a6:66:44"
         wyy "ssh yoga wakeonlan 34:5a:60:a6:66:47"
     )
-    local c=$cmd[$1]
-    if [[ -z c ]]; then
-        local -A mac=()
-        local m=$mac[$1]
-        if [[ -z m ]]; then
-            wakeonlan $1
-        else
-            wakeonlan $m
-        fi
+    if [[ -n ${cmd[$1]} ]]; then
+        command zsh -c "${cmd[$1]}"
     else
-        zsh -c $c
+        command wakeonlan "$1"
     fi
 }
 # for macos

@@ -1,5 +1,4 @@
 return function()
-	hs.execute("/opt/homebrew/bin/brew services start redis")
 	local app_with_useless_window = {
 		"mac mouse fix",
 		"karabiner",
