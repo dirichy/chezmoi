@@ -254,12 +254,21 @@ end
 hl.on("window.active", function(win)
 	update_im_context(win.class or "")
 end)
-local function is_notification_layer(namespace)
-	return type(namespace) == "string" and namespace:lower():match("notif") ~= nil
+local function valid_layer(namespace)
+	if type(namespace) ~= "string" then
+		return true
+	end
+	namespace = namespace:lower()
+	if namespace == "hyprpaper" then
+		return false
+	end
+	if namespace:match("notif") then
+		return false
+	end
 end
 hl.on("layer.opened", function(layer)
 	local namespace = layer and (layer.namespace or layer.namespace_name) or ""
-	if namespace ~= "" and not is_notification_layer(namespace) then
+	if namespace ~= "" and valid_layer(namespace) then
 		update_im_context(namespace)
 	end
 end)
