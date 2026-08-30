@@ -24,12 +24,19 @@
 # 	fi
 # 	return 0
 # }
-function s(){
+function s() {
     autossh -M 0 \
         -o "ServerAliveInterval=10" \
         -o "ServerAliveCountMax=3" \
         -t "$@" \
-        "tmux new -A -s ssh"
+    "sh -lc '
+            if command -v tmux >/dev/null 2>&1; then
+                exec tmux new-session -A -s ssh
+            else
+                printf \"\033[1;33mWARNING: tmux is not installed. This session will be lost if SSH disconnects.\033[0m\n\" >&2
+                exec \"\$SHELL\" -l
+            fi
+        '"
 }
 function t() {
     if (( ! $+commands[tmux] )); then
