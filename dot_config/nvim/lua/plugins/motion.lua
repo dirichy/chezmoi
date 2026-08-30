@@ -1,46 +1,5 @@
 return {
 	{
-		"nvimtools/hydra.nvim",
-		keys = { "z" },
-		config = function()
-			local Hydra = require("hydra")
-			Hydra.setup({
-				debug = false,
-				exit = false,
-				foreign_keys = nil,
-				color = "red",
-				timeout = false,
-				invoke_on_body = false,
-				hint = {
-					show_name = true,
-					position = { "bottom" },
-					offset = 0,
-					float_opts = {},
-				},
-				on_enter = nil,
-				on_exit = nil,
-				on_key = nil,
-			})
-			Hydra({
-				name = "Move Screen",
-				mode = "n",
-				body = "z",
-				hint = "z(l|h|L|H)",
-				config = {},
-				heads = {
-					{ "l", "zl", { desc = "" } },
-					{ "h", "zh", { desc = "" } },
-					{ "L", "zL", { desc = "󰜴" } },
-					{ "H", "zH", { desc = "󰜱" } },
-					{ "j", "<c-e>", { desc = "" } },
-					{ "k", "<c-y>", { desc = "" } },
-					{ "J", "<c-d>", { desc = "󰜮" } },
-					{ "K", "<c-u>", { desc = "󰜷" } },
-				},
-			})
-		end,
-	},
-	{
 		"folke/flash.nvim",
 		lazy = true,
 		-- event = "VeryLazy",
