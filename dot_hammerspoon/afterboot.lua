@@ -14,16 +14,13 @@ return function()
 				for _, window in ipairs(app:allWindows()) do
 					window:close()
 				end
-			else
 			end
 		end
 		for _, appname in ipairs(useless_app) do
 			local app = hs.application.find(appname)
 			if app then
 				app:kill()
-			else
 			end
 		end
-		hs.rime.reload()
 	end)
 end
