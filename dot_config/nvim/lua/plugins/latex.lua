@@ -99,7 +99,7 @@ return {
 				colors()
 			end, { noremap = true, silent = true, desc = "find snip" })
 			local keyflow = require("keyflow")
-			keyflow.mode({
+			keyflow.mode.new({
 				name = "Math Environment Change",
 				mode = "n",
 				body = "m",

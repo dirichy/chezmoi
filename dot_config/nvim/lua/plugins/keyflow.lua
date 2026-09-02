@@ -4,11 +4,11 @@ return {
 	lazy = false,
 	config = function()
 		local keyflow = require("keyflow")
-		keyflow.mode({
+		keyflow.mode.new({
 			name = "Move Screen",
-			mode = "n",
-			body = "z",
-			heads = {
+			vimmode = "n",
+			trigger = "z",
+			maps = {
 				l = "zl",
 				h = "zh",
 				L = "zL",
@@ -18,6 +18,19 @@ return {
 				J = "<C-d>",
 				K = "<C-u>",
 			},
+			hint = true,
+		})
+		keyflow.mode.new({
+			name = "Marco mode",
+			vimmode = "n",
+			trigger = "<leader>@",
+			on_key = function(mode, key)
+				if string.byte("a") <= string.byte(key) and string.byte(key) <= string.byte("z") then
+					return "@" .. key
+				end
+			end,
+			hint = { "Press any alphabet to process corresponding macro" },
+			lazy = false,
 		})
 	end,
 }
