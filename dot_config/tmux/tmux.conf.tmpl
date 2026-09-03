@@ -21,8 +21,9 @@ setw -g aggressive-resize on
 unbind C-b
 set -g prefix None
 set -g status off
-bind -n C-f set status on \; switchc -Tprefix \; run -b "~/.config/tmux/debounce.sh tmux set -t'#{session_id}' status off"
-bind C-f send-keys C-f
+{{ $hideStatus := "\\; set status off" }}
+bind -n C-f set status on \; switchc -Tprefix
+bind C-f send-keys C-f {{ $hideStatus }}
 
 # Set parent terminal title to reflect current window in tmux session 
 set -g set-titles on
@@ -68,74 +69,62 @@ unbind Down
 unbind Right
 unbind Left
 
-bind i display-popup -w 90% -h 90% -E btm -b
-bind ? list-keys -T prefix
-# vim-style pane navigation
-bind -r h select-pane -L
-bind -r j select-pane -D
-bind -r k select-pane -U
-bind -r l select-pane -R
+{{- $prefixBinds := list
+  (dict "key" "i" "cmd" "display-popup -w 90% -h 90% -E btm -b")
+  (dict "key" "?" "cmd" "list-keys -T prefix")
+  (dict "key" "C-e" "cmd" "new-window -n 'tmux.conf' \"sh -c '\\${EDITOR:-nvim} ~/.config/tmux && tmux source ~/.tmux.conf && tmux display \\\"Config reloaded\\\"'\"")
+  (dict "key" "C-r" "cmd" "source-file ~/.config/tmux/tmux.conf \\; display \"Config reloaded\"")
+  (dict "key" "t" "cmd" "new-window -c \"#{pane_current_path}\"")
+  (dict "key" "\\\\" "cmd" "split-window -h -c \"#{pane_current_path}\"")
+  (dict "key" "_" "cmd" "split-window -v -c \"#{pane_current_path}\"")
+  (dict "key" "s" "cmd" "run-shell \"~/.config/tmux/session_switcher.sh\"")
+  (dict "key" "f" "cmd" "resize-pane -Z")
+  (dict "key" "d" "cmd" "detach")
+-}}
 
+{{- $repeatBinds := list
+  (dict "key" "h" "cmd" "select-pane -L")
+  (dict "key" "j" "cmd" "select-pane -D")
+  (dict "key" "k" "cmd" "select-pane -U")
+  (dict "key" "l" "cmd" "select-pane -R")
+  (dict "key" "b" "cmd" "previous-window")
+  (dict "key" "C-b" "cmd" "move-window -t -")
+  (dict "key" "C-n" "cmd" "move-window -t +")
+  (dict "key" "N" "cmd" "previous-window")
+  (dict "key" "n" "cmd" "next-window")
+  (dict "key" "[" "cmd" "previous-window")
+  (dict "key" "]" "cmd" "next-window")
+  (dict "key" "tab" "cmd" "last-window")
+  (dict "key" "S" "cmd" "swap-pane -s '!'")
+  (dict "key" "Up" "cmd" "resize-pane -U")
+  (dict "key" "Down" "cmd" "resize-pane -D")
+  (dict "key" "Left" "cmd" "resize-pane -L")
+  (dict "key" "Right" "cmd" "resize-pane -R")
+-}}
 
-# Edit configuration and reload
-bind C-e new-window -n 'tmux.conf' "sh -c '\${EDITOR:-nvim} ~/.config/tmux && tmux source ~/.tmux.conf && tmux display \"Config reloaded\"'"
+{{- range $prefixBinds }}
+bind {{ .key }} {{ .cmd }} {{ $hideStatus }}
+{{- end }}
 
-# Reload tmux configuration 
-bind C-r source-file ~/.config/tmux/tmux.conf \; display "Config reloaded"
+{{- range $repeatBinds }}
+bind -r {{ .key }} {{ .cmd }} {{ $hideStatus }}
+{{- end }}
 
-# new window and retain cwd
-bind t new-window -c "#{pane_current_path}"
+{{- range $i := untilStep 1 10 1 }}
+bind {{ $i }} select-window -t {{ $i }} {{ $hideStatus }}
+{{- end }}
+bind 0 select-window -t 10 {{ $hideStatus }}
 
-# Prompt to rename window right after it's created
-# setw -g allow-rename off
-# set-hook -g after-new-window 'command-prompt -I "#{window_name}" "rename-window '%%'"'
-
-# Rename session and window
-bind r command-prompt -I "#{window_name}" "rename-window '%%'"
-bind R command-prompt -I "#{session_name}" "rename-session '%%'"
-
-# Split panes
-bind \\ split-window -h -c "#{pane_current_path}"
 unbind |
 # bind | split-window -v -c "#{pane_current_path}"
-bind _ split-window -v -c "#{pane_current_path}"
-
-# Select pane and windows
-bind -r b previous-window
-bind -r C-b move-window -t -
-bind -r C-n move-window -t +
-bind -r N previous-window
-bind -r n next-window
-bind -r [ previous-window
-bind -r ] next-window
-bind s run-shell "~/.config/tmux/session_switcher.sh"
 # bind -r [ select-pane -t :.-
 # bind -r ] select-pane -t :.+
-bind -r tab last-window   # cycle thru MRU tabs
-bind 1 select-window -t 1
-bind 2 select-window -t 2
-bind 3 select-window -t 3
-bind 4 select-window -t 4
-bind 5 select-window -t 5
-bind 6 select-window -t 6
-bind 7 select-window -t 7
-bind 8 select-window -t 8
-bind 9 select-window -t 9
-bind 0 select-window -t 10
 
-bind -r S swap-pane -s '!'
-bind m command-prompt -1 -p "move to window:" "run-shell 'tmux join-pane -t #{session_name}:%1 || tmux break-pane' "
-
-# Zoom pane
-bind f resize-pane -Z
-bind -r Up                      resize-pane -U
-bind -r Down                    resize-pane -D
-bind -r Left                    resize-pane -L
-bind -r Right                   resize-pane -R
-
-# Link window """"
-#TODO:test this
-bind L command-prompt -p "Link window from (session:window): " "link-window -s %% -a"
+# Prompt commands use -b so the status bar hides after confirm or cancel.
+bind r command-prompt -b -I "#{window_name}" "rename-window '%%'" {{ $hideStatus }}
+bind R command-prompt -b -I "#{session_name}" "rename-session '%%'" {{ $hideStatus }}
+bind m command-prompt -b -1 -p "move to window:" "run-shell 'tmux join-pane -t #{session_name}:%1 || tmux break-pane'" {{ $hideStatus }}
+bind L command-prompt -b -p "Link window from (session:window): " "link-window -s %% -a" {{ $hideStatus }}
 
 # Swap panes back and forth with 1st pane
 # When in main-(horizontal|vertical) layouts, the biggest/widest panel is always @1
@@ -144,23 +133,22 @@ bind L command-prompt -p "Link window from (session:window): " "link-window -s %
 #      'select-pane -t:.1 ; swap-pane -d -t 1 -s "!"'
 
 # Kill pane/window/session shortcuts
-bind q confirm-before -p "kill this pane? (y/n)" "kill-pane"
-bind Q confirm-before -p "kill this window? (y/n)" "kill-window"
-bind C-Q confirm-before -p "kill other windows? (y/n)" "kill-window -a"
-bind C-q confirm-before -p "kill-session #S? (y/n)" kill-session
+bind q confirm-before -b -p "kill this pane? (y/n)" "kill-pane" {{ $hideStatus }}
+bind Q confirm-before -b -p "kill this window? (y/n)" "kill-window" {{ $hideStatus }}
+bind C-Q confirm-before -b -p "kill other windows? (y/n)" "kill-window -a" {{ $hideStatus }}
+bind C-q confirm-before -b -p "kill-session #S? (y/n)" "kill-session" {{ $hideStatus }}
 
 # Merge session with another one (e.g. move all windows)
 # If you use adhoc 1-window sessions, and you want to preserve session upon exit
 # but don't want to create a lot of small unnamed 1-window sessions around
 # move all windows from current session to main named one (dev, work, etc)
-bind C-m command-prompt -p "Session to merge with: " \
-   "run-shell 'yes | head -n #{session_windows} | xargs -I {} -n 1 tmux movew -t %%'"
+bind C-m command-prompt -b -p "Session to merge with: " \
+   "run-shell 'yes | head -n #{session_windows} | xargs -I {} -n 1 tmux movew -t %%'" {{ $hideStatus }}
 
 # Detach from session
-bind d detach
 bind D if -F '#{session_many_attached}' \
-    'confirm-before -p "Detach other clients? (y/n)" "detach -a"' \
-    'display "Session has only 1 client attached"'
+    'confirm-before -b -p "Detach other clients? (y/n)" "detach -a" \; set status off' \
+    'display "Session has only 1 client attached" \; set status off'
 # Hide status bar on demand """"
 # toggle status bar
 bind C-s if -F '#{s/off//:status}' 'set status off' 'set status on'
@@ -173,8 +161,8 @@ bind C-s if -F '#{s/off//:status}' 'set status off' 'set status on'
 # TODO: I think a floating window may be better
 # bind m setw monitor-activity \; display-message 'Monitor window activity [#{?monitor-activity,ON,OFF}]'
 bind M if -F '#{monitor-silence}' \
-    'setw monitor-silence 0 ; display-message "Monitor window silence [OFF]"' \
-    'command-prompt -p "Monitor silence: interval (s)" "setw monitor-silence %%"'
+    'setw monitor-silence 0 ; display-message "Monitor window silence [OFF]" \; set status off' \
+    'command-prompt -b -p "Monitor silence: interval (s)" "setw monitor-silence %%" \; set status off'
 
 # Activity bell and whistles
 set -g visual-activity both

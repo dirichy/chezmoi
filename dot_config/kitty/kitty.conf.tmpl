@@ -1,0 +1,246 @@
+# vim:fileencoding=utf-8:foldmethod=marker
+
+# ==============================
+# === Fonts                  ===
+# ==============================
+
+# font_family      monospace
+# bold_font        auto
+# italic_font      auto
+# bold_italic_font auto
+# Run `kitten choose-fonts` when selecting a specific font family.
+
+font_size 15.0
+
+# Useful if a coding font's ligatures get in the way while editing.
+# disable_ligatures never
+# font_features
+
+# Useful when box drawing, undercurls, or glyph alignment looks off in nvim/tmux.
+# modify_font
+# box_drawing_scale 0.001, 1, 1.5, 2
+# undercurl_style thin-sparse
+# text_composition_strategy platform
+# text_fg_override_threshold 0
+
+# ==============================
+# === Cursor                 ===
+# ==============================
+
+# cursor_shape block
+# cursor_shape_unfocused hollow
+# cursor_blink_interval -1
+# cursor_stop_blinking_after 15.0
+
+# Cursor trail can help with large jumps in nvim, but is visual noise by default.
+# cursor_trail 0
+# cursor_trail_decay 0.1 0.4
+# cursor_trail_start_threshold 2
+# cursor_trail_color none
+
+# ==============================
+# === Scrollback / Mouse     ===
+# ==============================
+
+# scrollback_pager_history_size 0
+
+# Scrollbar is disabled from the effective config for now, but these are the
+# knobs worth keeping if you later want a visible scroll position.
+# scrollbar scrolled
+# scrollbar_width 0.5
+# scrollbar_handle_opacity 0.5
+# scrollbar_track_opacity 0
+
+# wheel_scroll_multiplier 5.0
+# touch_scroll_multiplier 1.0
+# mouse_hide_wait 3.0
+# focus_follows_mouse no
+
+# Selection details that interact with shell/nvim/tmux habits.
+# select_by_word_characters @-./_~?&=%+#
+
+# ==============================
+# === Links / Hints          ===
+# ==============================
+
+# url_style curly
+# open_url_with default
+# url_prefixes file ftp ftps gemini git gopher http https irc ircs kitty mailto news sftp ssh
+# allow_hyperlinks yes
+
+# ==============================
+# === Local appearance       ===
+# ==============================
+
+# Tab/status line colors, matching the main tmux theme.
+active_tab_foreground #1d202f
+active_tab_background #7aa2f7
+inactive_tab_foreground #a9b1d6
+inactive_tab_background #1f2335
+tab_bar_background #1f2335
+
+# Keep the terminal dense, but give panes a little breathing room.
+window_padding_width 6
+placement_strategy center
+inactive_text_alpha 0.85
+background_opacity 0.92
+dynamic_background_opacity yes
+
+# Optional background/theme knobs that pair with transparency.
+# background_image none
+# background_image_layout tiled
+# background_tint 0.0
+
+# Tab bar is normally hidden; press Ctrl+f to show it while choosing a leader
+# command.
+tab_bar_min_tabs 999
+tab_bar_edge bottom
+tab_bar_style powerline
+tab_powerline_style slanted
+tab_bar_align left
+tab_activity_symbol "!"
+tab_title_template " {bell_symbol}{activity_symbol}{index} | {title} "
+active_tab_title_template " {bell_symbol}{activity_symbol}{index} | {title} "
+
+# ==============================
+# === Tmux-style behavior    ===
+# ==============================
+
+# Match the useful tmux defaults from ~/.config/tmux/tmux.conf.
+scrollback_lines 20000
+copy_on_select yes
+strip_trailing_spaces smart
+shell_integration enabled
+confirm_os_window_close -1
+
+# Use the splits layout so explicit hsplit/vsplit mappings behave like tmux panes.
+enabled_layouts splits,stack
+
+# Tmux-like copy mode: use Neovim as the scrollback pager.
+scrollback_pager nvim --cmd 'set clipboard=unnamedplus' --cmd 'set eventignore=FileType' +'nnoremap q ZQ' +'call nvim_open_term(0, {})' +'set nomodified nolist' +'$' -
+
+# Shell integration enables prompt jumps, command-output browsing, and cwd-aware
+# new windows. `no-cursor` is worth trying if prompt cursor shape changes annoy.
+# notify_on_cmd_finish never
+
+# Required for leader mappings that temporarily show/hide the tab bar.
+allow_remote_control yes
+
+# Safer alternatives if remote control ever needs to be exposed beyond local TTY.
+# listen_on unix:@kitty
+# remote_control_password
+
+# C-f is the tmux prefix in ~/.config/tmux/tmux.conf. In kitty, use it as a
+# multi-key leader: press Ctrl+f, release, then press the second key.
+# Toggle this whole leader layer with Ctrl+Alt+Shift+F. In disabled mode, keys
+# pass through to programs such as tmux until Ctrl+Alt+Shift+F is pressed again.
+{{ $hideTabBar := "remote_control load-config --override tab_bar_min_tabs=999" -}}
+{{ $leaderBinds := list
+  (dict "key" "ctrl+g" "cmd" "pop_keyboard_mode")
+  (dict "key" "ctrl+f" "cmd" "send_key ctrl+f")
+  (dict "key" "?" "cmd" "command_palette")
+-}}
+{{ $tabBinds := list
+  (dict "key" "t" "cmd" "new_tab_with_cwd")
+  (dict "key" "r" "cmd" "set_tab_title")
+  (dict "key" "n" "cmd" "next_tab")
+  (dict "key" "N" "cmd" "previous_tab")
+  (dict "key" "b" "cmd" "previous_tab")
+  (dict "key" "[" "cmd" "previous_tab")
+  (dict "key" "]" "cmd" "next_tab")
+  (dict "key" "tab" "cmd" "previous_tab")
+  (dict "key" "ctrl+b" "cmd" "move_tab_backward")
+  (dict "key" "ctrl+n" "cmd" "move_tab_forward")
+-}}
+{{ $paneBinds := list
+  (dict "key" "h" "cmd" "neighboring_window left")
+  (dict "key" "j" "cmd" "neighboring_window bottom")
+  (dict "key" "k" "cmd" "neighboring_window top")
+  (dict "key" "l" "cmd" "neighboring_window right")
+  (dict "key" "backslash" "cmd" "new_window_with_cwd !vsplit")
+  (dict "key" "_" "cmd" "new_window_with_cwd !hsplit")
+  (dict "key" "f" "cmd" "toggle_layout stack")
+  (dict "key" "S" "cmd" "swap_with_window")
+  (dict "key" "m" "cmd" "detach_window new-tab")
+  (dict "key" "q" "cmd" "close_window_with_confirmation ignore-shell")
+  (dict "key" "Q" "cmd" "close_tab")
+  (dict "key" "ctrl+q" "cmd" "close_other_windows_in_tab")
+-}}
+{{ $resizeBinds := list
+  (dict "key" "up" "cmd" "resize_window taller 1")
+  (dict "key" "down" "cmd" "resize_window shorter 1")
+  (dict "key" "left" "cmd" "resize_window narrower 1")
+  (dict "key" "right" "cmd" "resize_window wider 1")
+-}}
+{{ $toolBinds := list
+  (dict "key" "i" "cmd" "launch --type=overlay --cwd=current btm -b")
+  (dict "key" "ctrl+e" "cmd" "launch --type=tab --tab-title=kitty.conf --cwd=/home/dirichy/.config/kitty nvim /home/dirichy/.config/kitty/kitty.conf")
+  (dict "key" "ctrl+r" "cmd" "load_config_file")
+-}}
+{{ $hintBinds := list
+  (dict "key" "escape" "cmd" "show_scrollback")
+  (dict "key" "y" "cmd" "kitten hints --type line --program @")
+  (dict "key" "Y" "cmd" "kitten hints --type line --program @ --multiple")
+  (dict "key" "w" "cmd" "kitten hints --type word --program @")
+  (dict "key" "p" "cmd" "kitten hints --type path --program @")
+  (dict "key" "u" "cmd" "kitten hints --type url --program @")
+  (dict "key" "g" "cmd" "kitten hints --type hash --program @")
+  (dict "key" "/" "cmd" "kitten hints --type regex --regex \"(?m)^\\\\s*(.+?)\\\\s*$\" --program @")
+-}}
+map --new-mode kitty_leader_disabled --on-unknown=passthrough ctrl+alt+shift+f
+map --mode kitty_leader_disabled ctrl+alt+shift+f pop_keyboard_mode
+map --new-mode kitty_leader --on-action=end --on-unknown=end f13 noop
+map ctrl+f combine : remote_control load-config --override tab_bar_min_tabs=1 : push_keyboard_mode kitty_leader
+{{- range $leaderBinds }}
+map --mode kitty_leader {{ .key }} combine : {{ .cmd }} : {{ $hideTabBar }}
+{{- end }}
+
+# Tabs: tmux windows map to kitty tabs.
+{{- range $tabBinds }}
+map --mode kitty_leader {{ .key }} combine : {{ .cmd }} : {{ $hideTabBar }}
+{{- end }}
+{{- range $i := untilStep 1 10 1 }}
+map --mode kitty_leader {{ $i }} combine : goto_tab {{ $i }} : {{ $hideTabBar }}
+{{- end }}
+map --mode kitty_leader 0 combine : goto_tab 10 : {{ $hideTabBar }}
+
+# Panes: tmux panes map to kitty windows inside a tab.
+{{- range $paneBinds }}
+map --mode kitty_leader {{ .key }} combine : {{ .cmd }} : {{ $hideTabBar }}
+{{- end }}
+
+# Resize panes, matching the tmux arrow-key prefix bindings.
+{{- range $resizeBinds }}
+map --mode kitty_leader {{ .key }} combine : {{ .cmd }} : {{ $hideTabBar }}
+{{- end }}
+
+# Popup-like tools.
+{{- range $toolBinds }}
+map --mode kitty_leader {{ .key }} combine : {{ .cmd }} : {{ $hideTabBar }}
+{{- end }}
+
+# Keyboard selection/copy helpers, complementing the nvim scrollback pager.
+{{- range $hintBinds }}
+map --mode kitty_leader {{ .key }} combine : {{ .cmd }} : {{ $hideTabBar }}
+{{- end }}
+
+# ==============================
+# === Advanced / OS          ===
+# ==============================
+
+# shell .
+# editor .
+# term xterm-kitty
+# terminfo_type path
+# clipboard_control write-clipboard write-primary read-clipboard-ask read-primary-ask
+# clipboard_max_size 512
+
+# Useful because this repo targets both Linux/Hyprland and macOS.
+# linux_display_server auto
+# wayland_enable_ime yes
+# wayland_titlebar_color system
+# macos_titlebar_color system
+# macos_option_as_alt no
+# macos_quit_when_last_window_closed no
+# macos_show_window_title_in all
+# macos_colorspace srgb
