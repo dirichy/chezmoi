@@ -4,8 +4,39 @@
 #
 alias fk='open -a Finder.app .'
 alias bypy='python3 -m bypy'
-alias paru='systemd-inhibit --what=sleep --why=systemUpdate paru'
-alias yay='systemd-inhibit --what=sleep --why=systemUpdate paru'
+paru() {
+    local arg
+    local do_keyring=0
+
+    for arg in "$@"; do
+        case "$arg" in
+            -S|-Su|-Syu|-Syuu|-Syyu|-Syyuu)
+                do_keyring=1
+                break
+                ;;
+            -S*)
+                # 排除纯查询类
+                case "$arg" in
+                    -Ss|-Si|-Sg|-Sl|-Sp)
+                        ;;
+                    *)
+                        do_keyring=1
+                        break
+                        ;;
+                esac
+                ;;
+        esac
+    done
+
+    if (( do_keyring )); then
+        sudo pacman -Sy --needed --noconfirm archlinux-keyring || return
+    fi
+
+    command paru --sudoloop "$@"
+}
+yay(){
+    paru "$@"
+}
 # single character aliases - be sparing!
 alias _=sudo
 if [ -n "$(whence lsd)" ]; then
