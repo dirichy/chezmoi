@@ -30,10 +30,7 @@ M.terminal_apps = {
 
 local function terminal_nvim()
 	return function(win)
-		return win
-			and win.class == "kitty"
-			and type(win.title) == "string"
-			and win.title:match("^.* %- Nvim$") ~= nil
+		return win and win.class == "kitty" and type(win.title) == "string" and win.title:match("^.* %- Nvim$") ~= nil
 	end
 end
 
@@ -51,14 +48,14 @@ function M.bind_terminal_primary(kmap, key, trigger_mod, target_key)
 end
 
 function M.bind_navigation(kmap, wm)
-	local in_nvim = terminal_nvim()
-	for _, key in ipairs({ "h", "j", "k", "l" }) do
-		local direction = key
-		local send = { key, kmap.modifier.CTRL }
-		kmap.bind(key, kmap.modifier.SUPER, send, in_nvim)
-		kmap.bind(key, kmap.modifier.CTRL, send, in_nvim)
-		kmap.bind(key, kmap.modifier.CTRL, wm.focus(direction), nil, 1)
-	end
+	-- local in_nvim = terminal_nvim()
+	-- for _, key in ipairs({ "h", "j", "k", "l" }) do
+	-- 	local direction = key
+	-- 	local send = { key, kmap.modifier.CTRL }
+	-- 	kmap.bind(key, kmap.modifier.SUPER, send, in_nvim)
+	-- 	kmap.bind(key, kmap.modifier.CTRL, send, in_nvim)
+	-- 	kmap.bind(key, kmap.modifier.CTRL, wm.focus(direction), nil, 1)
+	-- end
 
 	local mouse_bindings = {
 		{ "mouse:276", "zen-browser", { "o", kmap.modifier.CTRL } },
@@ -67,9 +64,14 @@ function M.bind_navigation(kmap, wm)
 		{ "mouse:275", "mpv", { "right" } },
 		{ "mouse:276", "sioyek", { "u", kmap.modifier.CTRL } },
 		{ "mouse:275", "sioyek", { "d", kmap.modifier.CTRL } },
-		{ "mouse:276", "steam_app_0", { "t" }, function(win)
-			return win and win.title == "SecretFlasherManaka"
-		end },
+		{
+			"mouse:276",
+			"steam_app_0",
+			{ "t" },
+			function(win)
+				return win and win.title == "SecretFlasherManaka"
+			end,
+		},
 	}
 	for _, binding in ipairs(mouse_bindings) do
 		local condition = binding[4] or kmap.condition.application(binding[2])

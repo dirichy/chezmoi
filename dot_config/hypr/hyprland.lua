@@ -189,9 +189,6 @@ hl.layer_rule({
 local wmux = require("wmux")
 local kmap = wmux.keybinder
 local wm = wmux.wm
-hl.wmux_focus = function(direction)
-	return wm.focus(direction)()
-end
 local SHIFT = kmap.modifier.SHIFT
 local CTRL = kmap.modifier.CTRL
 local ALT = kmap.modifier.ALT
@@ -211,7 +208,7 @@ local sys_keymap = {
 	w = SHELL.new("sudo grub-reboot 2 && reboot"),
 	d = function()
 		hl.timer(function()
-			hl.exec_cmd("ddcutil setvcp 62 80")
+			hl.exec_cmd("ddcutil setvcp 62 75")
 			hl.dispatch(hl.dsp.dpms({ action = "off" }))
 		end, { timeout = 1000, type = "oneshot" })
 	end,
@@ -303,7 +300,7 @@ if hl.plugin.hyprwinwrap ~= nil then
 		pos_x = 0,
 		pos_y = 0,
 		size_x = 100,
-		size_y = 97,
+		size_y = 100,
 	})
 	-- Second bg window sitting in the centre on top of the first,
 	-- useful for showing a visualizer only on a portion of the screen.
@@ -316,7 +313,7 @@ if hl.plugin.hyprwinwrap ~= nil then
 		size_x = 50,
 		size_y = 50,
 	})
+	hl.bind("SUPER + B", function()
+		hl.plugin.hyprwinwrap.focus("window-bg")
+	end)
 end
-hl.bind("SUPER + B", function()
-	hl.plugin.hyprwinwrap.focus("window-bg")
-end)
