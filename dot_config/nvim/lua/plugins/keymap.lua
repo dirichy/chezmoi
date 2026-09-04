@@ -25,7 +25,7 @@ return {
 				name = "Marco mode",
 				vimmode = "n",
 				trigger = "<leader>@",
-				on_key = function(mode, key)
+				on_key = function(_, key)
 					if string.byte("a") <= string.byte(key) and string.byte(key) <= string.byte("z") then
 						return "@" .. key
 					end
@@ -72,7 +72,7 @@ return {
 				{ "<leader>ol", "<cmd>Lazy<cr>", desc = "Open Lazy" },
 				-- { "<leader>om", "<cmd>Mason<cr>", desc = "Open Mason(for LSP install)", icon = "" },
 			})
-			wk.add(require("mapper").which_key_spec)
+			-- wk.add(require("mapper").which_key_spec)
 		end,
 	},
 }
