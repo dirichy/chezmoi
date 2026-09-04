@@ -130,13 +130,13 @@ private_Library/LaunchAgents       macOS launchd services
 Linux 桌面以 Hyprland 为主，入口是：
 
 - `~/.config/hypr/hyprland.lua`
-- `~/.config/hypr/hyprlua/`
-- `~/.config/systemd/user/hyprlua.service`
+- `~/.config/hypr/shortcuts.lua`
+- `~/scripts/lua/wmux.lua`
 
 主要功能：
 
 - Lua 驱动的 Hyprland 配置和 keymap
-- `hyprlua` IPC 服务，提供类似 Hammerspoon 的窗口/显示器控制
+- 原生 Hyprland Lua 配置，配合 wmux 统一跨平台键位
 - Hyprpaper/Waybar/Hypridle/Sunshine/udisken 随 Hyprland 启动或重启
 - NVIDIA/Wayland/Electron/Fcitx 相关环境变量
 - 针对 QQ、微信、Sioyek、mpv、pavucontrol 等窗口规则
@@ -144,7 +144,6 @@ Linux 桌面以 Hyprland 为主，入口是：
 
 相关服务：
 
-- `hyprlua.service`: Hyprland Lua IPC 服务
 - `mihomo_config_server.service`: 在 `~/.config/mihomo` 起 HTTP server
 - `fdu-connect.service`: 复旦 VPN
 - `ssh-tunnel@.service`: 反向 SSH tunnel
@@ -168,7 +167,7 @@ Waybar 配置在 `dot_config/waybar`。
 - Disk 常驻显示最满分区，tooltip 显示全部本地块设备挂载点
 - Disk 单击打开 `duf`，右键打开 `bashmount`
 - Tailscale 状态模块，点击优先打开 `tsui`/`tailtui`，否则 fallback 到 `tailscale status`
-- Backlight 支持 `ddcutil`、`brightnessctl`、`hyprlua` 自动 fallback
+- Backlight 支持 `ddcutil`、`brightnessctl` 自动 fallback
 - Clock 折叠显示日期，点击打开 `calcurse`
 - Arch logo 打开 power menu
 
@@ -310,7 +309,6 @@ SSH 配置在 `dot_ssh/config.tmpl`：
 
 `dot_local/bin` 提供本地命令：
 
-- `hyprlua`: 向本地 hyprlua IPC 发送 Lua 表达式
 - `hyprmonitor`: 读取当前 Hyprland monitor 字段
 - `lua_keymapper`: 生成 Karabiner/keyd/WM 相关 keymap
 - `qq`, `tencentqq`: Linux QQ/Hyprland wrapper
@@ -330,7 +328,6 @@ Linux reload：
 
 ```bash
 systemctl --user restart waybar
-systemctl --user restart hyprlua
 hyprctl reload
 fcitx5-remote -r
 ```

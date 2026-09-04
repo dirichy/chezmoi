@@ -1,4 +1,4 @@
-README.md
+*.md
 tools
 .config/fcitx5/conf/cached_layouts
 {{if eq (env "HYPRLAND_INSTANCE_SIGNATURE") ""}}

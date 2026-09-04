@@ -24,17 +24,13 @@ ueberzug_offset = [ 0, 0, 0, 0 ]
 
 [plugin]
 prepend_preloaders = [
-  { mime = "{audio,video,image}/*", run = "mediainfo" },
-  { url = "/run/user/1000/gvfs/**/*", run = "noop" },
-  { url = "/run/media/USER_NAME/**/*", run = "noop" },
+  { mime = "{audio,video,image}/*", run = "fs-guard" },
 ]
 prepend_previewers = [
-  { mime = "{audio,video,image}/*", run = "mediainfo" },
+  { mime = "{audio,video,image}/*", run = "fs-guard" },
   { mime = "application/subrip", run = "mediainfo" },
   { mime = "application/postscript", run = "mediainfo" },
   { url = "*/", run = "folder" },
-  { url = "/run/user/1000/gvfs/**/*", run = "noop" },
-  { url = "/run/media/USER_NAME/**/*", run = "noop" },
   { url = "*.csv", run = "duckdb" },
   { url = "*.tsv", run = "duckdb" },
   { url = "*.json", run = "duckdb" },

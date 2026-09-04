@@ -1,8 +1,5 @@
 return {
 	"L3MON4D3/LuaSnip",
-	dependencies = {
-		{ "dirichy/mapper.nvim" },
-	},
 	event = "InsertEnter",
 	build = "make install_jsregexp",
 	opts = function()
@@ -229,23 +226,6 @@ return {
 	config = function(_, opts)
 		local luasnip = require("luasnip")
 		luasnip.setup(opts)
-		local key_mapper = require("mapper")
-
-		key_mapper.map_keymap("i", "<S-Tab>", function()
-			luasnip.jump(-1)
-		end, {
-			priority = 200,
-			condition = function()
-				return luasnip.jumpable(-1)
-			end,
-			desc = "jump back",
-		})
-		key_mapper.map_keymap(
-			"i",
-			"<CR>",
-			luasnip.expand,
-			{ desc = "expand luasnip", condition = luasnip.expandable, priority = 200 }
-		)
 		require("luasnip.loaders.from_lua").lazy_load({ paths = { "~/.config/nvim/LuaSnip" } })
 		vim.api.nvim_create_autocmd("User", {
 			pattern = "LuasnipPreExpand",
