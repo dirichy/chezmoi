@@ -11,8 +11,8 @@ hwdec=auto
 {{ end }}
 #渲染使用的api，可选auto/d3d11/opengl/vulkan
 # gpu-api=auto
-#尝试使用硬解的格式(默认h264,vc1,hevc,vp8,vp9,av1；all是特殊值指全部格式)
-hwdec-codecs=all
+#尝试使用硬解的格式；不要用 all，否则 MJPEG/JPEG 图片也可能走硬解并出现底部色带
+hwdec-codecs=h264,vc1,hevc,vp8,vp9,av1
 #gpu-api=d3d11时（win默认api）多GPU平台指定使用的GPU，GPU名称参考设备管理器。此选项根据首字符串识别，如果不是同一家的GPU则无需输入完整名称。若使用Vulkan则为vulkan-device=
 #d3d11-adapter=AMD
 #d3d11-adapter=Intel
@@ -59,6 +59,8 @@ ontop=yes
 #keepaspect-window=no
 #播完后保持打开（yes|no|always）
 #keep-open=no
+#静态图片默认一直显示，图片浏览模式由 scripts/image_mode.lua 接管
+image-display-duration=inf
 #将窗口缩放窗口模式下至大、至小占屏幕的百分比
 #autofit-larger=90%x90%
 #autofit-smaller=30%x30%
@@ -154,4 +156,11 @@ profile-restore=copy
 #script-opts-add=osc-visibility=always
 #profile-restore=copy
 
-
+#图片浏览时避免走视频硬解路径，部分 MJPEG/JPEG 4:4:4 图片在 GPU/硬解路径下
+#可能出现底部色带或 padding 行被显示的问题
+[image-viewer]
+profile-cond=path ~= nil and path:lower():match('%.(avif|bmp|gif|heic|heif|j2k|jp2|jpe?g|jxl|pbm|pgm|png|ppm|qoi|svg|tga|tiff?|webp)$') ~= nil
+hwdec=no
+interpolation=no
+video-sync=audio
+profile-restore=copy
