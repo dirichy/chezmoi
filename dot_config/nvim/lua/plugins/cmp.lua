@@ -33,8 +33,8 @@ return {
 			["<tab>"] = {
 				function()
 					if require("luasnip").expandable() then
-						local tex = require("nvimtex.conditions.luasnip")
-						if tex.in_math() then
+						local ok, tex = pcall(require, "nvimtex.conditions.luasnip")
+						if ok and tex.in_math() then
 							vim.schedule(function()
 								require("luasnip").expand()
 							end)

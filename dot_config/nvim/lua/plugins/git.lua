@@ -1,393 +1,130 @@
 return {
 	{
-		"tanvirtin/vgit.nvim",
-		dependencies = { "nvim-lua/plenary.nvim", "nvim-tree/nvim-web-devicons" },
-		-- Lazy loading on 'VimEnter' event is necessary.
-		event = "VimEnter",
-		keys = {
-			{
-				"[h",
-				function()
-					require("vgit").hunk_up()
-				end,
-				desc = "Git: Previous hunk",
-				mode = { "n" },
-			},
-			{
-				"]h",
-				function()
-					require("vgit").hunk_down()
-				end,
-				desc = "Git: Next hunk",
-				mode = { "n" },
-			},
-
-			-- Stage / Reset / Preview hunk
-			{
-				"<leader>gs",
-				function()
-					require("vgit").buffer_hunk_stage()
-				end,
-				desc = "Git: Stage current hunk",
-				mode = { "n" },
-			},
-			{
-				"<leader>gr",
-				function()
-					require("vgit").buffer_hunk_reset()
-				end,
-				desc = "Git: Reset current hunk",
-				mode = { "n" },
-			},
-			{
-				"<leader>gp",
-				function()
-					require("vgit").buffer_hunk_preview()
-				end,
-				desc = "Git: Preview current hunk",
-				mode = { "n" },
-			},
-
-			-- Git info
-			{
-				"<leader>gb",
-				function()
-					require("vgit").buffer_blame_preview()
-				end,
-				desc = "Git: Blame preview",
-				mode = { "n" },
-			},
-			{
-				"<leader>gf",
-				function()
-					require("vgit").buffer_diff_preview()
-				end,
-				desc = "Git: Buffer diff preview",
-				mode = { "n" },
-			},
-			{
-				"<leader>gh",
-				function()
-					require("vgit").buffer_history_preview()
-				end,
-				desc = "Git: File history",
-				mode = { "n" },
-			},
-
-			-- Reset / Project
-			{
-				"<leader>gu",
-				function()
-					require("vgit").buffer_reset()
-				end,
-				desc = "Git: Reset buffer",
-				mode = { "n" },
-			},
-			{
-				"<leader>gd",
-				function()
-					require("vgit").project_diff_preview()
-				end,
-				desc = "Git: Project diff",
-				mode = { "n" },
-			},
-
-			-- Toggle
-			{
-				"<leader>gx",
-				function()
-					require("vgit").toggle_diff_preference()
-				end,
-				desc = "Git: Toggle diff preference",
-				mode = { "n" },
-			},
-		},
-		config = function()
-			require("vgit").setup({
-				settings = {
-					-- You can either allow corresponding mapping for existing hl, or re-define them yourself entirely.
-					hls = {
-						GitCount = "Keyword",
-						GitSymbol = "CursorLineNr",
-						GitTitle = "Directory",
-						GitSelected = "QuickfixLine",
-						GitBackground = "Normal",
-						GitAppBar = "StatusLine",
-						GitHeader = "NormalFloat",
-						GitFooter = "NormalFloat",
-						GitBorder = "LineNr",
-						GitLineNr = "LineNr",
-						GitComment = "Comment",
-						GitSignsAdd = {
-							gui = nil,
-							fg = "#d7ffaf",
-							bg = nil,
-							sp = nil,
-							override = false,
-						},
-						GitSignsChange = {
-							gui = nil,
-							fg = "#7AA6DA",
-							bg = nil,
-							sp = nil,
-							override = false,
-						},
-						GitSignsDelete = {
-							gui = nil,
-							fg = "#e95678",
-							bg = nil,
-							sp = nil,
-							override = false,
-						},
-						GitSignsAddLn = "DiffAdd",
-						GitSignsDeleteLn = "DiffDelete",
-						GitWordAdd = {
-							gui = nil,
-							fg = nil,
-							bg = "#5d7a22",
-							sp = nil,
-							override = false,
-						},
-						GitWordDelete = {
-							gui = nil,
-							fg = nil,
-							bg = "#960f3d",
-							sp = nil,
-							override = false,
-						},
-						GitConflictCurrentMark = "DiffAdd",
-						GitConflictAncestorMark = "Visual",
-						GitConflictIncomingMark = "DiffChange",
-						GitConflictCurrent = "DiffAdd",
-						GitConflictAncestor = "Visual",
-						GitConflictMiddle = "Visual",
-						GitConflictIncoming = "DiffChange",
-					},
-					live_blame = {
-						enabled = true,
-						format = function(blame, git_config)
-							local config_author = git_config["user.name"]
-							local author = blame.author
-							if config_author == author then
-								author = "You"
-							end
-							local time = os.difftime(os.time(), blame.author_time) / (60 * 60 * 24 * 30 * 12)
-							local time_divisions = {
-								{ 1, "years" },
-								{ 12, "months" },
-								{ 30, "days" },
-								{ 24, "hours" },
-								{ 60, "minutes" },
-								{ 60, "seconds" },
-							}
-							local counter = 1
-							local time_division = time_divisions[counter]
-							local time_boundary = time_division[1]
-							local time_postfix = time_division[2]
-							while time < 1 and counter ~= #time_divisions do
-								time_division = time_divisions[counter]
-								time_boundary = time_division[1]
-								time_postfix = time_division[2]
-								time = time * time_boundary
-								counter = counter + 1
-							end
-							local commit_message = blame.commit_message
-							if not blame.committed then
-								author = "You"
-								commit_message = "Uncommitted changes"
-								return string.format(" %s • %s", author, commit_message)
-							end
-							local max_commit_message_length = 255
-							if #commit_message > max_commit_message_length then
-								commit_message = commit_message:sub(1, max_commit_message_length) .. "..."
-							end
-							return string.format(
-								" %s, %s • %s",
-								author,
-								string.format(
-									"%s %s ago",
-									time >= 0 and math.floor(time + 0.5) or math.ceil(time - 0.5),
-									time_postfix
-								),
-								commit_message
-							)
-						end,
-					},
-					live_gutter = {
-						enabled = true,
-						edge_navigation = true, -- This allows users to navigate within a hunk
-					},
-					scene = {
-						diff_preference = "unified", -- unified or split
-						keymaps = {
-							quit = "q",
-						},
-					},
-					diff_preview = {
-						keymaps = {
-							reset = "r",
-							buffer_stage = "S",
-							buffer_unstage = "U",
-							buffer_hunk_stage = "s",
-							buffer_hunk_unstage = "u",
-							toggle_view = "t",
-						},
-					},
-					project_diff_preview = {
-						keymaps = {
-							commit = "C",
-							buffer_stage = "s",
-							buffer_unstage = "u",
-							buffer_hunk_stage = "gs",
-							buffer_hunk_unstage = "gu",
-							buffer_reset = "r",
-							stage_all = "S",
-							unstage_all = "U",
-							reset_all = "R",
-						},
-					},
-					project_stash_preview = {
-						keymaps = {
-							add = "A",
-							apply = "a",
-							pop = "p",
-							drop = "d",
-							clear = "C",
-						},
-					},
-					project_logs_preview = {
-						keymaps = {
-							previous = "-",
-							next = "=",
-						},
-					},
-					project_commit_preview = {
-						keymaps = {
-							save = "S",
-						},
-					},
-					signs = {
-						priority = 10,
-						definitions = {
-							-- The sign definitions you provide will automatically be instantiated for you.
-							GitConflictCurrentMark = {
-								linehl = "GitConflictCurrentMark",
-								texthl = nil,
-								numhl = nil,
-								icon = nil,
-								text = "",
-							},
-							GitConflictAncestorMark = {
-								linehl = "GitConflictAncestorMark",
-								texthl = nil,
-								numhl = nil,
-								icon = nil,
-								text = "",
-							},
-							GitConflictIncomingMark = {
-								linehl = "GitConflictIncomingMark",
-								texthl = nil,
-								numhl = nil,
-								icon = nil,
-								text = "",
-							},
-							GitConflictCurrent = {
-								linehl = "GitConflictCurrent",
-								texthl = nil,
-								numhl = nil,
-								icon = nil,
-								text = "",
-							},
-							GitConflictAncestor = {
-								linehl = "GitConflictAncestor",
-								texthl = nil,
-								numhl = nil,
-								icon = nil,
-								text = "",
-							},
-							GitConflictMiddle = {
-								linehl = "GitConflictMiddle",
-								texthl = nil,
-								numhl = nil,
-								icon = nil,
-								text = "",
-							},
-							GitConflictIncoming = {
-								linehl = "GitConflictIncoming",
-								texthl = nil,
-								numhl = nil,
-								icon = nil,
-								text = "",
-							},
-							GitSignsAddLn = {
-								linehl = "GitSignsAddLn",
-								texthl = nil,
-								numhl = nil,
-								icon = nil,
-								text = "",
-							},
-							GitSignsDeleteLn = {
-								linehl = "GitSignsDeleteLn",
-								texthl = nil,
-								numhl = nil,
-								icon = nil,
-								text = "",
-							},
-							GitSignsAdd = {
-								texthl = "GitSignsAdd",
-								numhl = nil,
-								icon = nil,
-								linehl = nil,
-								text = "┃",
-							},
-							GitSignsDelete = {
-								texthl = "GitSignsDelete",
-								numhl = nil,
-								icon = nil,
-								linehl = nil,
-								text = "┃",
-							},
-							GitSignsChange = {
-								texthl = "GitSignsChange",
-								numhl = nil,
-								icon = nil,
-								linehl = nil,
-								text = "┃",
-							},
-						},
-						usage = {
-							-- Please ensure these signs are defined.
-							screen = {
-								add = "GitSignsAddLn",
-								remove = "GitSignsDeleteLn",
-								conflict_current_mark = "GitConflictCurrentMark",
-								conflict_current = "GitConflictCurrent",
-								conflict_middle = "GitConflictMiddle",
-								conflict_incoming_mark = "GitConflictIncomingMark",
-								conflict_incoming = "GitConflictIncoming",
-								conflict_ancestor_mark = "GitConflictAncestorMark",
-								conflict_ancestor = "GitConflictAncestor",
-							},
-							main = {
-								add = "GitSignsAdd",
-								remove = "GitSignsDelete",
-								change = "GitSignsChange",
-							},
-						},
-					},
-					symbols = {
-						void = "⣿",
-						open = "",
-						close = "",
-					},
-				},
-			})
-		end,
-	},
-	{
 		"lewis6991/gitsigns.nvim",
-		event = "VeryLazy",
-		config = true,
+		event = { "BufReadPre", "BufNewFile" },
+
+		opts = {
+			-- 左侧 sign column 的符号
+			signs = {
+				add = { text = "┃" },
+				change = { text = "┃" },
+				delete = { text = "▁" },
+				topdelete = { text = "▔" },
+				changedelete = { text = "~" },
+				untracked = { text = "┆" },
+			},
+
+			-- 已经 stage 的修改使用独立 signs。
+			-- 对学习 Git 很有帮助：你可以直观看出哪些改动已经进入 index。
+			signs_staged_enable = true,
+
+			-- 不默认显示 blame，避免界面太乱
+			current_line_blame = false,
+
+			on_attach = function(bufnr)
+				local gs = require("gitsigns")
+
+				local function map(mode, lhs, rhs, desc)
+					vim.keymap.set(mode, lhs, rhs, {
+						buffer = bufnr,
+						silent = true,
+						desc = desc,
+					})
+				end
+
+				----------------------------------------------------------------
+				-- 1. 在修改之间移动
+				----------------------------------------------------------------
+
+				map("n", "]h", function()
+					if vim.wo.diff then
+						vim.cmd.normal({ "]c", bang = true })
+					else
+						gs.nav_hunk("next")
+					end
+				end, "Git: next hunk")
+
+				map("n", "[h", function()
+					if vim.wo.diff then
+						vim.cmd.normal({ "[c", bang = true })
+					else
+						gs.nav_hunk("prev")
+					end
+				end, "Git: previous hunk")
+
+				----------------------------------------------------------------
+				-- 2. 看当前修改
+				----------------------------------------------------------------
+
+				map("n", "<leader>hp", gs.preview_hunk, "Git: preview hunk")
+
+				map("n", "<leader>hi", gs.preview_hunk_inline, "Git: preview hunk inline")
+
+				----------------------------------------------------------------
+				-- 3. Stage
+				----------------------------------------------------------------
+
+				-- stage 当前整个 hunk
+				map("n", "<leader>hs", gs.stage_hunk, "Git: stage hunk")
+
+				-- visual mode：只 stage 选中的几行
+				map("v", "<leader>hs", function()
+					gs.stage_hunk({
+						vim.fn.line("."),
+						vim.fn.line("v"),
+					})
+				end, "Git: stage selected lines")
+
+				-- stage 当前整个文件
+				map("n", "<leader>hS", gs.stage_buffer, "Git: stage buffer")
+
+				----------------------------------------------------------------
+				-- 4. Reset
+				--
+				-- 注意：
+				-- reset_hunk 会丢掉 working tree 中的修改！
+				----------------------------------------------------------------
+
+				map("n", "<leader>hr", gs.reset_hunk, "Git: RESET hunk")
+
+				map("v", "<leader>hr", function()
+					gs.reset_hunk({
+						vim.fn.line("."),
+						vim.fn.line("v"),
+					})
+				end, "Git: RESET selected lines")
+
+				----------------------------------------------------------------
+				-- 5. Diff
+				----------------------------------------------------------------
+
+				-- 当前 working tree 和 index 比较
+				-- = “哪些东西还没有 stage？”
+				map("n", "<leader>hd", gs.diffthis, "Git: diff unstaged changes")
+
+				-- 当前文件和 HEAD 比较
+				-- = “从上一次 commit 到现在总共改了什么？”
+				map("n", "<leader>hD", function()
+					gs.diffthis("@")
+				end, "Git: diff against HEAD")
+
+				----------------------------------------------------------------
+				-- 6. Blame
+				----------------------------------------------------------------
+
+				map("n", "<leader>hb", function()
+					gs.blame_line({ full = true })
+				end, "Git: blame line")
+
+				map("n", "<leader>hB", gs.toggle_current_line_blame, "Git: toggle line blame")
+
+				----------------------------------------------------------------
+				-- 7. 把当前 hunk 当作 text object
+				----------------------------------------------------------------
+
+				map({ "o", "x" }, "ih", ":<C-U>Gitsigns select_hunk<CR>", "Git: select hunk")
+			end,
+		},
 	},
 	{
 		"pwntester/octo.nvim",
