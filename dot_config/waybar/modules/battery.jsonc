@@ -1,10 +1,5 @@
 {
 	"battery": {
-		// "bat":
-		// "adapter":
-		// "design-capacity":
-		// "full-at":
-		// "interval":
 		"states": {
 			"warning": 20,
 			"critical": 10
@@ -16,19 +11,9 @@
 		],
 		"format-charging": "󰉁 {capacity}%",
 		"min-length": 7,
-		"max-length": 7,
-		// "rotate":
-		// "on-click":
-		// "on-click-middle":
-		// "on-click-right":
-		// "on-scroll-up":
-		// "on-scroll-down":
-		// "smooth-scrolling-threshold":
-		// "tooltip":
-		"tooltip-format": "Discharging: {time}",
-		"tooltip-format-charging": "Charging: {time}",
-		// "weighted-average":
-		// "bat-compatibility":
+		"max-length": 8,
+		"tooltip-format": "Battery: {capacity}%\nRemaining: {time}",
+		"tooltip-format-charging": "Battery: {capacity}%\nFull in: {time}",
 		"events": {
 			"on-discharging-warning": "notify-send -t 1000 'Low Battery' '{capacity}% battery remaining'",
 			"on-discharging-critical": "notify-send -t 1000 'Low Battery' '{capacity}% battery remaining' -u critical",

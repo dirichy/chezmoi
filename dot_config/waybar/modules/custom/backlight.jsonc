@@ -1,0 +1,13 @@
+{
+	"custom/backlight": {
+		"format": "󰃠 {}%",
+		"interval": "once",
+		"signal": 9,
+		"exec": "~/.config/waybar/scripts/ddcutil.sh get",
+		"on-scroll-up": "~/.config/waybar/scripts/ddcutil.sh up",
+		"on-scroll-down": "~/.config/waybar/scripts/ddcutil.sh down",
+		"on-click": "~/.config/waybar/scripts/ddcutil.sh max",
+		"on-click-right": "~/.config/waybar/scripts/ddcutil.sh min",
+		"tooltip-format": "External display brightness"
+	}
+}

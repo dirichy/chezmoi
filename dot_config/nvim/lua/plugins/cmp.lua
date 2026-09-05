@@ -17,7 +17,7 @@ return {
 		-- 'default' for mappings similar to built-in completion
 		-- 'super-tab' for mappings similar to vscode (tab to accept, arrow keys to navigate)
 		-- 'enter' for mappings similar to 'super-tab' but with 'enter' to accept
-		-- See the full "keymap" documentation for information on dependenciesfining your own keymap.
+		-- See the full "keymap" documentation for information on defining your own keymap.
 		keymap = {
 			preset = "enter",
 			["<enter>"] = {
@@ -33,8 +33,8 @@ return {
 			["<tab>"] = {
 				function()
 					if require("luasnip").expandable() then
-						local tex = require("nvimtex.conditions.luasnip")
-						if tex.in_math() then
+						local ok, tex = pcall(require, "nvimtex.conditions.luasnip")
+						if ok and tex.in_math() then
 							vim.schedule(function()
 								require("luasnip").expand()
 							end)

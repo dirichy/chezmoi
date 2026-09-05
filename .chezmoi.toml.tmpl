@@ -14,4 +14,4 @@ monitorScale = {{ ( promptStringOnce . "monitorScale" "monitorScale" ) }}
 fduConnect = {{ eq ( promptStringOnce . "fduConnect" "enable fdu-connect? (y/N)" ) "y"}}
 phoneBluetoothMac = {{ ( promptStringOnce . "phoneBluetoothMac" "Your mobile BluetoothMac, only used in hypridle to judge if you are home" )|quote }}
 [secret]
-command="{{.chezmoi.sourceDir}}/dot_local/bin/executable_gopass-safe"
+command="{{ joinPath .chezmoi.sourceDir "tools" "gopass-safe" }}"

@@ -10,20 +10,6 @@ return {
 		},
 		keys = {
 			{
-				"m<C-a>",
-				function()
-					require("nvimtex.surround").upgrade_math()
-				end,
-				desc = "upgrade math environment",
-			},
-			{
-				"m<C-x>",
-				function()
-					require("nvimtex.surround").downgrade_math()
-				end,
-				desc = "downgrade math environment",
-			},
-			{
 				"<leader>tr",
 				function()
 					require("nvimtex.conceal").forceRefresh()
@@ -112,48 +98,30 @@ return {
 			vim.keymap.set("n", "<leader>tf", function()
 				colors()
 			end, { noremap = true, silent = true, desc = "find snip" })
+			local keyflow = require("keyflow")
+			keyflow.mode.new({
+				name = "Math Environment Change",
+				mode = "n",
+				body = "m",
+				heads = {
+					["<C-a>"] = {
+						action = function()
+							require("nvimtex.surround").upgrade_math()
+						end,
+						desc = "Upgrade Math",
+					},
+					["<C-x>"] = {
+						action = function()
+							require("nvimtex.surround").downgrade_math()
+						end,
+						desc = "Downgrade Math",
+					},
+				},
+			})
 		end,
-	},
-	{
-		enabled = false,
-		vim.fn.isdirectory(vim.env.HOME .. "/latex_concealer.nvim/") == 0 and "dirichy/latex_concealer.nvim",
-		dir = vim.fn.isdirectory(vim.env.HOME .. "/latex_concealer.nvim/") == 1
-			and vim.env.HOME .. "/latex_concealer.nvim",
-		ft = { "tex", "latex" },
-		keys = {
-			{
-				"<leader>tc",
-				function()
-					require("latex_concealer").toggle()
-				end,
-				desc = "Toggle LaTeX concealer",
-			},
-			{
-				"<leader>ul",
-				function()
-					require("latex_concealer").toggle()
-				end,
-				desc = "Toggle LaTeX concealer",
-			},
-		},
-		opts = {},
-		config = true,
 	},
 	{
 		"DanielMSussman/motleyLatex.nvim",
 		config = true,
 	},
-	-- {
-	-- 	"lervag/vimtex",
-	-- 	lazy = false,
-	-- },
-	-- {
-	--   "bamonroe/rnoweb-nvim",
-	--   lazy=false,
-	--   enabled=false,
-	--   dependencies={
-	--     "nvim-lua/plenary.nvim"
-	--   },
-	--   config=true,
-	-- }
 }

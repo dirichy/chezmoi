@@ -1,6 +1,12 @@
 local SHELL = require("wmux.shell")
+local log = require("wmux.log")
 ---@type keybinder
 local M = {}
+local INVALID = {}
+
+local function warn(message)
+	log.warn("hammerspoon", message)
+end
 
 function M.mod2int(mods)
 	if not mods then
@@ -16,8 +22,8 @@ function M.mod2int(mods)
 	for index, value in ipairs(mods) do
 		local mod = M._modifier[value]
 		if not mod then
-			error("unknown modifier: " .. value)
-			break
+			warn("ignoring unknown modifier: " .. value)
+			return nil
 		end
 		ret = ret + mod
 	end
@@ -66,33 +72,113 @@ M.condition = {
 		if type(applications) == "string" then
 			applications = { applications }
 		end
-		return { {
-			bundle_identifiers = applications,
-			type = "frontmost_application_if",
-		} }
+		return function()
+			local app = hs.application.frontmostApplication()
+			local bundle_id = app and app:bundleID() or ""
+			for _, pattern in ipairs(applications) do
+				if bundle_id:match(pattern) then
+					return true
+				end
+			end
+			return false
+		end
 	end,
 	application_unless = function(applications)
 		if type(applications) == "string" then
 			applications = { applications }
 		end
-		return { {
-			bundle_identifiers = applications,
-			type = "frontmost_application_unless",
-		} }
+		local application = M.condition.application(applications)
+		return function()
+			return not application()
+		end
 	end,
 }
-function M.bind(key, mod, fn, conditions, priority, opts)
-	local to = fn
-	if getmetatable(fn) == SHELL then
-		to = function()
-			hs.execute(fn.cmd)
+
+M.bindlist = {}
+local function normalize_action(fn)
+	local action = fn
+	if getmetatable(action) == SHELL then
+		local cmd = action.cmd
+		action = function()
+			hs.execute(cmd)
+		end
+	elseif type(action) == "string" then
+		local action_key = action
+		action = function()
+			hs.eventtap.keyStroke({}, action_key)
+		end
+	elseif type(action) == "table" then
+		local action_key = action[1]
+		local action_mod = M.int2mods(action[2]) or {}
+		action = function()
+			hs.eventtap.keyStroke(action_mod, action_key)
+		end
+	elseif type(action) ~= "function" then
+		warn("ignoring unsupported action")
+		return nil
+	end
+	return action
+end
+
+local function normalize_condition(conditions)
+	if not conditions then
+		return always
+	end
+	if conditions then
+		if type(conditions) ~= "function" then
+			if type(conditions) == "string" or type(conditions) == "table" and type(conditions[1]) == "string" then
+				conditions = M.condition.application(conditions)
+			else
+				warn("ignoring binding with unsupported condition")
+				return INVALID
+			end
 		end
 	end
+	return conditions
+end
+
+local function bind_key(key, mod)
 	mod = M.int2mods(mod)
 	if mod then
-		hs.hotkey.bind(mod, key, nil, to, nil, nil)
+		local bind_key = table.concat(mod, "+") .. "\0" .. key
+		if not M.bindlist[bind_key] then
+			M.bindlist[bind_key] = {}
+			hs.hotkey.bind(mod, key, nil, function()
+				for _, binding in ipairs(M.bindlist[bind_key]) do
+					if binding.condition() then
+						return binding.action()
+					end
+				end
+			end, nil, nil)
+		end
+		return M.bindlist[bind_key]
 	end
 end
 
-function M.createmod(mod, name, overload) end
+function M.bind(key, mod, fn, conditions, priority, opts)
+	local bindlist = bind_key(key, mod)
+	if not bindlist then
+		return
+	end
+	local action = normalize_action(fn)
+	local condition = normalize_condition(conditions)
+	if not action or condition == INVALID then
+		return
+	end
+	priority = priority or (conditions and 100 or 1)
+	local binding = {
+		action = action,
+		condition = condition,
+		priority = priority,
+	}
+	local i = 1
+	while bindlist[i] do
+		if bindlist[i].priority <= priority then
+			break
+		end
+		i = i + 1
+	end
+	table.insert(bindlist, i, binding)
+end
+
 return M

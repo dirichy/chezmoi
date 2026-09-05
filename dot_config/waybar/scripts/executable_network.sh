@@ -7,7 +7,7 @@
 # License: MIT
 
 # shellcheck disable=SC1091
-source "$HOME/.config/waybar/scripts/theme-switcher.sh" fzf
+source "$HOME/.config/waybar/scripts/fzf-theme.sh"
 
 RED='\033[1;31m'
 RST='\033[0m'

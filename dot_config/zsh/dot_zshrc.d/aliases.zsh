@@ -4,8 +4,39 @@
 #
 alias fk='open -a Finder.app .'
 alias bypy='python3 -m bypy'
-alias paru='systemd-inhibit --what=sleep --why=systemUpdate paru'
-alias yay='systemd-inhibit --what=sleep --why=systemUpdate paru'
+paru() {
+    local arg
+    local do_keyring=0
+
+    for arg in "$@"; do
+        case "$arg" in
+            -S|-Su|-Syu|-Syuu|-Syyu|-Syyuu)
+                do_keyring=1
+                break
+                ;;
+            -S*)
+                # 排除纯查询类
+                case "$arg" in
+                    -Ss|-Si|-Sg|-Sl|-Sp)
+                        ;;
+                    *)
+                        do_keyring=1
+                        break
+                        ;;
+                esac
+                ;;
+        esac
+    done
+
+    if (( do_keyring )); then
+        sudo pacman -Sy --needed --noconfirm archlinux-keyring || return
+    fi
+
+    command paru --sudoloop "$@"
+}
+yay(){
+    paru "$@"
+}
 # single character aliases - be sparing!
 alias _=sudo
 if [ -n "$(whence lsd)" ]; then
@@ -45,31 +76,16 @@ alias please=sudo
 alias zshrc='${EDITOR:-nvim} "${ZDOTDIR:-$HOME}"/.zshrc'
 alias zbench='for i in {1..10}; do /usr/bin/time zsh -lic exit; done'
 alias zdot='cd ${ZDOTDIR:-~}'
-function cd() {
-    if [[ -z $(command -v z) ]]; then
-        \builtin cd $*
-        return $?
-    fi
-    z $*
-    return $?
-}
 function wol(){
     local -A cmd
     cmd=(
         byl "ssh dell wakeonlan 34:5a:60:a6:66:44"
         wyy "ssh yoga wakeonlan 34:5a:60:a6:66:47"
     )
-    local c=$cmd[$1]
-    if [[ -z c ]]; then
-        local -A mac=()
-        local m=$mac[$1]
-        if [[ -z m ]]; then
-            wakeonlan $1
-        else
-            wakeonlan $m
-        fi
+    if [[ -n ${cmd[$1]} ]]; then
+        command zsh -c "${cmd[$1]}"
     else
-        zsh -c $c
+        command wakeonlan "$1"
     fi
 }
 # for macos

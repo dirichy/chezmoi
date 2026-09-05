@@ -1,0 +1,15 @@
+; use systemctl --user enable --now ssh-tunnel@port_number.service to enable this service
+[Unit]
+Description=Reverse SSH tunnel to server
+Documentation=man:ssh(1)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ssh -N -o "ControlMaster=no" -o "ServerAliveInterval=30" -o "ServerAliveCountMax=3" -o "ExitOnForwardFailure=yes" -R %i:localhost:22 server
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

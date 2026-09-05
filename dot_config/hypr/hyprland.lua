@@ -1,9 +1,11 @@
+local HOME = os.getenv("HOME")
+package.path = HOME .. "/.config/hypr/?.lua;" .. HOME .. "/scripts/lua/?.lua;" .. package.path
 local util = require("util")
 print = function(str)
-	hl.notification.create({ text = tostring(str), duration = 5000 })
+	hl.notification.create({ text = tostring(str), timeout = 5000 })
 end
 local im = require("fcitx")
-local SHELL = require("kmap.shell")
+local SHELL = require("wmux.shell")
 -- local monitor = require("monitor")
 require("monitor").setup()
 -- hl.monitor({
@@ -72,14 +74,12 @@ hl.config({
 		disable_hyprland_logo = true, -- If true disables the random hyprland logo / anime girl background :(
 		focus_on_activate = true,
 		-- mouse_move_enables_dpms = true
-		key_press_enables_dpms = true,
+		-- key_press_enables_dpms = true,
 		-- new_window_takes_over_fullscreen = 2
 	},
 })
 hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
 local terminal = "kitty"
-local filemgr = "kitty yazi"
-local menu = "wofi --show drun -i"
 local browser = "zen || zen-browser"
 local env_table = {
 	["QT_QPA_PLATFORMTHEME"] = "qt6ct",
@@ -112,13 +112,13 @@ hl.on("hyprland.start", function()
 	hl.exec_cmd("sleep 1;systemctl --user restart app-dev.lizardbyte.app.Sunshine")
 	hl.exec_cmd("sleep 1;systemctl --user restart udisken")
 	hl.exec_cmd("sleep 1;systemctl --user restart waybar")
+	hl.exec_cmd("sleep 1;systemctl --user restart hypridle")
 	hl.exec_cmd("xrdb -merge ~/.Xresources")
 	hl.exec_cmd("mkdir -p ~/Pictures/Screenshots")
 	hl.exec_cmd(terminal)
 	hl.exec_cmd(browser)
 end)
 hl.on("config.reloaded", function()
-	hl.exec_cmd("systemctl --user restart hyprlua")
 	hl.exec_cmd('gsettings set org.gnome.desktop.interface color-scheme "prefer-dark"')
 	hl.exec_cmd('gsettings set org.gnome.desktop.interface gtk-theme "adw-gtk3"')
 end)
@@ -176,10 +176,19 @@ local windowrules = {
 for _, rule in ipairs(windowrules) do
 	hl.window_rule(rule)
 end
+hl.layer_rule({
+	name = "blur waybar",
+	match = {
+		namespace = "waybar",
+	},
+	blur = true,
+	ignore_alpha = 0.2,
+})
 
 ---@type keybinder
-local kmap = require("kmap.bind")
-local wm = require("kmap.wm")
+local wmux = require("wmux")
+local kmap = wmux.keybinder
+local wm = wmux.wm
 local SHIFT = kmap.modifier.SHIFT
 local CTRL = kmap.modifier.CTRL
 local ALT = kmap.modifier.ALT
@@ -187,79 +196,44 @@ local SUPER = kmap.modifier.SUPER
 
 local winmod = SUPER
 local sysmod = SUPER + CTRL
-local appmod = ALT
-for _, dir in ipairs({ "h", "j", "k", "l" }) do
-	kmap.bind(dir, winmod, wm.focus(dir))
-end
-local wm_keymap = {
-	q = wm.close_window(),
-	f = wm.toggle_fullscreen(),
-	v = wm.toggle_float(),
-}
-for key, fn in pairs(wm_keymap) do
-	kmap.bind(key, winmod, fn)
-end
-for i = 1, 9 do
-	kmap.bind(tostring(i), winmod, wm.space(i))
-	kmap.bind(tostring(i), winmod + SHIFT, wm.move_win_to_space(i))
-end
-kmap.bind("backspace", winmod, wm.space(11))
+kmap.bind("backspace", winmod, wm.move_to_space(11))
 kmap.bind("backspace", winmod + SHIFT, wm.move_win_to_space(11))
 kmap.bind("mouse:272", winmod, hl.dsp.window.drag(), nil, nil, { mouse = true })
 kmap.bind("mouse:273", winmod, hl.dsp.window.resize(), nil, nil, { mouse = true })
 kmap.bind("mouse:272", winmod, hl.dsp.window.fullscreen(), nil, nil, { mouse = true, click = true })
 kmap.bind("mouse:273", winmod, hl.dsp.window.float(), nil, nil, { mouse = true, click = true })
-
-local app_keymap = {
-	t = SHELL.new(terminal),
-	b = SHELL.new(browser),
-	e = SHELL.new(filemgr),
-	q = SHELL.new("/home/dirichy/.local/bin/qq"),
-	w = SHELL.new("wechat-universal"),
-	space = SHELL.new(menu),
-}
-for key, cmd in pairs(app_keymap) do
-	kmap.bind(key, appmod, cmd)
-end
 local sys_keymap = {
 	s = SHELL.new("shutdown"),
 	r = SHELL.new("reboot"),
 	w = SHELL.new("sudo grub-reboot 2 && reboot"),
 	d = function()
 		hl.timer(function()
+			hl.exec_cmd("ddcutil setvcp 62 75")
 			hl.dispatch(hl.dsp.dpms({ action = "off" }))
 		end, { timeout = 1000, type = "oneshot" })
 	end,
-	c = hl.dsp.dpms({ action = "on" }),
+	c = function()
+		hl.dispatch(hl.dsp.dpms({ action = "on" }))
+		hl.exec_cmd("ddcutil setvcp 62 100")
+	end,
+	-- c = hl.util.dpms_on,
 }
 for key, cmd in pairs(sys_keymap) do
 	kmap.bind(key, sysmod, cmd, nil, nil, { release = true })
 end
-local ydotool_code = {
-	a = 30,
-	c = 46,
-	v = 47,
-}
-for key, code in pairs(ydotool_code) do
-	kmap.bind(key, ALT, function()
-		local win = wm.get_active_window()
-		if win and win.class == "kitty" then
-			hl.dispatch(hl.dsp.send_key_state({ mods = "CTRL + SHIFT ", key = key, state = "down" }))
-			hl.dispatch(hl.dsp.send_key_state({ mods = "CTRL + SHIFT ", key = key, state = "up" }))
-		else
-			hl.dispatch(hl.dsp.send_key_state({ mods = "CTRL", key = key, state = "down" }))
-			hl.dispatch(hl.dsp.send_key_state({ mods = "CTRL", key = key, state = "up" }))
-		end
-	end)
+local shortcuts = require("shortcuts")
+shortcuts.bind_navigation(kmap, wm)
+for _, key in ipairs({ "a", "c", "v", "x" }) do
+	shortcuts.bind_primary(kmap, key, ALT)
 end
+shortcuts.bind_terminal_primary(kmap, "n", ALT)
 local im_state = {
 	kitty = false,
 	wofi = false,
 	QQ = true,
 }
 local current_class = ""
-hl.on("window.active", function(win)
-	local class = win.class or ""
+local function update_im_context(class)
 	if current_class == class then
 		return
 	end
@@ -273,6 +247,33 @@ hl.on("window.active", function(win)
 			im.disable()
 		end
 	end)()
+end
+hl.on("window.active", function(win)
+	update_im_context(win.class or "")
+end)
+local function valid_layer(namespace)
+	if type(namespace) ~= "string" then
+		return true
+	end
+	namespace = namespace:lower()
+	if namespace == "hyprpaper" then
+		return false
+	end
+	if namespace:match("notif") then
+		return false
+	end
+end
+hl.on("layer.opened", function(layer)
+	local namespace = layer and (layer.namespace or layer.namespace_name) or ""
+	if namespace ~= "" and valid_layer(namespace) then
+		update_im_context(namespace)
+	end
+end)
+hl.on("layer.closed", function()
+	local win = hl.get_active_window()
+	if win then
+		update_im_context(win.class or "")
+	end
 end)
 hl.on(
 	"workspace.active",
@@ -281,20 +282,38 @@ hl.on(
 		hl.exec_cmd("hyprctl hyprpaper wallpaper ,~/wallpaper/wallpaper" .. tostring(id) .. ".JPG")
 	end, 200, true)
 )
-kmap.bind(
-	"1",
-	SHIFT + CTRL + ALT,
-	SHELL.new(
-		[[grim - | wl-copy && wl-paste > ~/Pictures/Screenshots/Screenshot-$(date +%F_%T).png | hyprctl notify -1 1000 "rgb(ff0000)" "全屏截图"]]
-	)
-)
-kmap.bind(
-	"2",
-	SHIFT + CTRL + ALT,
-	SHELL.new(
-		[[if area=$(slurp); then grim -g "$area" - | tee >(wl-copy) > ~/Pictures/Screenshots/Screenshot-$(date +%F_%T).png && hyprctl notify -1 1000 "rgb(ff0000)" "区域截图"; fi]]
-	)
-)
 hl.sunshine = require("sunshine")
 hl.timer(require("luv").run, { type = "repeat", timeout = 10 })
 require("window_focus_guard")
+-- example: foot --app-id=window-bg -o colors.alpha=0.0 [path-to-script]
+-- example: kitty --class=window-bg -o background_opacity=0.0 [path-to-script]
+-- example: xterm -class window-bg [path-to-script]
+-- any program will work, use `hyprctl clients` to discover your window's class/title
+
+-- class is an EXACT match and NOT a regex! Use `hyprctl clients` to find it.
+-- You may match on `class` and/or `title`. pos_*/size_* are percentages.
+if hl.plugin.hyprwinwrap ~= nil then
+	hl.plugin.hyprwinwrap.window({
+		class = "window-bg",
+		title = "window-bg",
+		layer = 0,
+		pos_x = 0,
+		pos_y = 0,
+		size_x = 100,
+		size_y = 100,
+	})
+	-- Second bg window sitting in the centre on top of the first,
+	-- useful for showing a visualizer only on a portion of the screen.
+	hl.plugin.hyprwinwrap.window({
+		class = "window-bg2",
+		title = "window-bg2",
+		layer = 1,
+		pos_x = 25,
+		pos_y = 25,
+		size_x = 50,
+		size_y = 50,
+	})
+	hl.bind("SUPER + B", function()
+		hl.plugin.hyprwinwrap.focus("window-bg")
+	end)
+end

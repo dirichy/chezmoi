@@ -1,0 +1,9 @@
+{
+	"custom/critical_monitor": {
+		"exec": "~/.config/waybar/scripts/critical-monitor.sh",
+		"return-type": "json",
+		"interval": 5,
+		"format": "{}",
+		"tooltip": true
+	}
+}

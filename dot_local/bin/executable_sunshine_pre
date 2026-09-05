@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# echo "${SUNSHINE_CLIENT_WIDTH},${SUNSHINE_CLIENT_HEIGHT},${SUNSHINE_CLIENT_FPS}" > /home/dirichy/sunshine.log
 case "$1" in
   expand)
     hyprctl eval "hl.sunshine.only_then_expand(${SUNSHINE_CLIENT_WIDTH},${SUNSHINE_CLIENT_HEIGHT},${SUNSHINE_CLIENT_FPS})"

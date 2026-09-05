@@ -76,7 +76,12 @@ set-volume() {
 	local value=$2
 	local vol new_vol icon
 
-	vol=$(pactl "get-$VOL" "$DEV" | awk '{print $5}' | tr -d '%')
+	vol=$(pactl "get-$VOL" "$DEV" |
+		grep -oE '[0-9]+%' |
+		head -n 1 |
+		tr -d '%')
+
+	[[ $vol =~ ^[0-9]+$ ]] || print-usage
 
 	case $action in
 		raise)

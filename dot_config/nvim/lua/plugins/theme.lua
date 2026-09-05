@@ -47,7 +47,7 @@ return {
 					highlight["@none"] = {
 						fg = "#a9b1d6",
 					}
-					highlight["@breaket"] = {
+					highlight["@bracket"] = {
 						fg = "#aa88bb",
 					}
 					highlight["@blueColor"] = {
@@ -94,7 +94,7 @@ return {
 			-- "linrongbin16/lsp-progress.nvim",
 		},
 		opts = function()
-			vim.o.laststatus = vim.g.lualine_laststatue
+			vim.o.laststatus = vim.g.lualine_laststatus or 2
 			return {
 				options = {
 					icons_enabled = true,
@@ -152,17 +152,6 @@ return {
 			})
 		end,
 	},
-	-- {
-	-- 	"utilyre/barbecue.nvim",
-	-- 	event = "LspAttach",
-	-- 	dependencies = {
-	-- 		"folke/tokyonight.nvim",
-	-- 		"nvim-tree/nvim-web-devicons",
-	-- 	},
-	-- 	opts = {
-	-- 		theme = "tokyonight",
-	-- 	},
-	-- },
 	{
 		"uga-rosa/ccc.nvim",
 		keys = {
@@ -193,11 +182,4 @@ return {
 			vim.api.nvim_create_user_command("BaleiaLogs", vim.g.baleia.logger.show, { bang = true })
 		end,
 	},
-	-- {
-	-- 	"norcalli/nvim-terminal.lua",
-	-- 	ft = "terminal",
-	-- 	config = function()
-	-- 		require("terminal").setup({})
-	-- 	end,
-	-- },
 }

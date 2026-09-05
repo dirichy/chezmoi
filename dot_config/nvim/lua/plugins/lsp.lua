@@ -1,5 +1,66 @@
+local lazydev_library = {
+	"~/.luarocks/lib/lua/5.1/",
+	{ path = "wezterm-types", mods = { "wezterm" } },
+	{ path = "~/Documents/.lib/LuaTeX_Lua-API/library/", words = { "tex" } },
+	{ path = "luvit-meta/library", words = { "vim%.uv" } },
+	{ path = "~/.hammerspoon/Spoons/EmmyLua.spoon/annotations/", words = { "hs" } },
+}
+if vim.fn.executable("brew") == 1 then
+	local brew_prefix = vim.fn.systemlist({ "brew", "--prefix" })[1]
+	if brew_prefix and brew_prefix ~= "" then
+		table.insert(lazydev_library, brew_prefix .. "/lib/lua/5.4/")
+	end
+end
+
 return {
-	{ "mfussenegger/nvim-lint" },
+	{
+		"mfussenegger/nvim-lint",
+		event = { "BufReadPost", "BufWritePost", "InsertLeave" },
+		config = function()
+			local lint = require("lint")
+			local candidates = {
+				bash = { "shellcheck" },
+				dockerfile = { "hadolint" },
+				lua = { "luacheck" },
+				markdown = { "markdownlint" },
+				python = { "ruff" },
+				sh = { "shellcheck" },
+				yaml = { "yamllint" },
+			}
+
+			local function linter_command(name)
+				local linter = lint.linters[name]
+				if type(linter) == "function" then
+					local ok, resolved = pcall(linter)
+					if not ok then
+						return nil
+					end
+					linter = resolved
+				end
+				return type(linter) == "table" and linter.cmd or nil
+			end
+
+			for ft, names in pairs(candidates) do
+				local available = {}
+				for _, name in ipairs(names) do
+					local cmd = linter_command(name)
+					if cmd and vim.fn.executable(cmd) == 1 then
+						table.insert(available, name)
+					end
+				end
+				if #available > 0 then
+					lint.linters_by_ft[ft] = available
+				end
+			end
+
+			vim.api.nvim_create_autocmd({ "BufReadPost", "BufWritePost", "InsertLeave" }, {
+				group = vim.api.nvim_create_augroup("user_nvim_lint", { clear = true }),
+				callback = function()
+					require("lint").try_lint()
+				end,
+			})
+		end,
+	},
 	{
 		"rachartier/tiny-inline-diagnostic.nvim",
 		-- priority = 1001, -- needs to be loaded in first
@@ -10,7 +71,7 @@ return {
 	},
 	{
 		"mason-org/mason.nvim",
-		cmd = "Mason",
+		lazy = false,
 		keys = {
 			{ "<leader>om", "<cmd>Mason<cr>", desc = "Open Mason" },
 		},
@@ -75,7 +136,7 @@ return {
 			})
 
 			vim.diagnostic.config({
-				virtual_text = true,
+				virtual_text = false,
 				virtual_lines = false,
 				underline = true,
 				update_in_insert = false,
@@ -234,14 +295,7 @@ return {
 		ft = "lua",
 		priority = 1000,
 		opts = {
-			library = {
-				"~/.luarocks/lib/lua/5.1/",
-				"/opt/homebrew/lib/lua/5.4/",
-				{ path = "wezterm-types", mods = { "wezterm" } },
-				{ path = "~/Documents/.lib/LuaTeX_Lua-API/library/", words = { "tex" } },
-				{ path = "luvit-meta/library", words = { "vim%.uv" } },
-				{ path = "~/.hammerspoon/Spoons/EmmyLua.spoon/annotations/", words = { "hs" } },
-			},
+			library = lazydev_library,
 			enabled = function(root_dir)
 				return vim.g.lazydev_enabled == nil and true or vim.g.lazydev_enabled
 			end,

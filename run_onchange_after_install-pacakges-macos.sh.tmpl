@@ -1,14 +1,265 @@
 {{- if eq .chezmoi.os "darwin" -}}
 #!/usr/bin/env zsh
-if xcode-select --install; then
-  echo "Install xcode from the popup window, if not popup, then use command+tab to find it. "
-  echo "Press any key to continue after xcode installed..."
-  read -n 1
+set -euo pipefail
+
+# Install packages used by this chezmoi setup on macOS.
+# Homebrew is configured not to auto-update; only missing formulae/casks are installed.
+#
+# Profiles:
+#   headless         CLI-only machine
+#   minimal          CLI tools and fonts
+#   desktop          macOS desktop applications
+#   devbox           CLI development tools
+#   full             devbox + macOS desktop
+#   everything       full + extra applications
+
+INSTALL_PROFILE="${INSTALL_PROFILE-}"
+INSTALL_MODULES="${INSTALL_MODULES:-}"
+
+if [[ -z "$INSTALL_PROFILE" && -z "$INSTALL_MODULES" ]]; then
+  while :; do
+    printf '%s\n' \
+      'Choose an install profile:' \
+      '  h) headless         CLI-only machine' \
+      '  m) minimal          CLI tools and fonts' \
+      '  d) desktop          macOS desktop applications' \
+      '  v) devbox           CLI development tools' \
+      '  f) full              Devbox plus macOS desktop' \
+      '  e) everything        Full setup plus extra applications' \
+      '  c) custom modules    Choose individual modules' \
+      '  x) skip installation Do not install anything'
+    printf 'Profile [d]: '
+    read -r profile_choice
+    profile_choice="${profile_choice:-d}"
+    case "$profile_choice" in
+      h) INSTALL_PROFILE=headless; break ;;
+      m) INSTALL_PROFILE=minimal; break ;;
+      d) INSTALL_PROFILE=desktop; break ;;
+      v) INSTALL_PROFILE=devbox; break ;;
+      f) INSTALL_PROFILE=full; break ;;
+      e) INSTALL_PROFILE=everything; break ;;
+      c)
+        printf '%s\n' \
+          'Select modules using letters (combine as needed):' \
+          '  c core      s shell      i font-and-im' \
+          '  d desktop   p proxy      v dev' \
+          '  e extra'
+        printf 'Modules: '
+        read -r module_choices
+        module_choices="${module_choices//,/}"
+        module_choices="${module_choices// /}"
+        [[ -n "$module_choices" ]] || { printf 'At least one module is required.\n' >&2; exit 2; }
+        INSTALL_MODULES=""
+        for ((module_index = 1; module_index <= ${#module_choices}; module_index++)); do
+          module_choice="${module_choices[module_index]}"
+          case "$module_choice" in
+            c) INSTALL_MODULES+="core," ;;
+            s) INSTALL_MODULES+="shell," ;;
+            i) INSTALL_MODULES+="font-and-im," ;;
+            d) INSTALL_MODULES+="desktop," ;;
+            p) INSTALL_MODULES+="proxy," ;;
+            v) INSTALL_MODULES+="dev," ;;
+            e) INSTALL_MODULES+="extra," ;;
+            *) printf 'Unknown module selection: %s\n' "$module_choice" >&2; exit 2 ;;
+          esac
+        done
+        INSTALL_PROFILE=""
+        break
+        ;;
+      x) exit 0 ;;
+      *) printf 'Unknown profile selection: %s\n\n' "$profile_choice" >&2 ;;
+    esac
+  done
 fi
-echo "detecting network by ping google..."
-if curl --max-time 5 google.com > /dev/null; then
-  {{template "macos_install_softwares_proxy"}}
+
+if ! command -v xcode-select >/dev/null 2>&1 || ! xcode-select -p >/dev/null 2>&1; then
+  printf 'Xcode Command Line Tools are required. Install them first, then run this script again.\n' >&2
+  exit 1
+fi
+
+if ! command -v brew >/dev/null 2>&1; then
+  printf 'Homebrew is not installed. Installing it now.\n'
+  if curl --max-time 5 -fsSL https://www.google.com >/dev/null 2>&1; then
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  else
+    export HOMEBREW_API_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api"
+    export HOMEBREW_BOTTLE_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles"
+    export HOMEBREW_BREW_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git"
+    export HOMEBREW_CORE_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git"
+    export HOMEBREW_INSTALL_FROM_API=1
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/install/raw/HEAD/install.sh)"
+  fi
+fi
+
+if command -v brew >/dev/null 2>&1; then
+  BREW="$(command -v brew)"
+elif [[ -x /opt/homebrew/bin/brew ]]; then
+  BREW=/opt/homebrew/bin/brew
+elif [[ -x /usr/local/bin/brew ]]; then
+  BREW=/usr/local/bin/brew
 else
-  {{template "macos_install_softwares_in_cn"}}
+  printf 'Homebrew installation did not produce a usable brew command.\n' >&2
+  exit 1
+fi
+
+eval "$($BREW shellenv)"
+export HOMEBREW_NO_AUTO_UPDATE=1
+export HOMEBREW_NO_INSTALL_CLEANUP=1
+
+formula_installed() {
+  local package="$1"
+  local base
+  local candidate
+  local -a candidates=("$package")
+  case "$package" in
+    *-git) base="${package%-git}"; candidates+=("$base" "$base-bin") ;;
+    *-bin) base="${package%-bin}"; candidates+=("$base" "$base-git") ;;
+    *) candidates+=("$package-git" "$package-bin") ;;
+  esac
+  for candidate in "${candidates[@]}"; do
+    if $BREW list --formula --versions "$candidate" >/dev/null 2>&1; then
+      if [[ "$candidate" != "$package" ]]; then
+        printf 'Warning: requested formula "%s", but "%s" is already installed; skipping.\n' \
+          "$package" "$candidate" >&2
+      fi
+      return 0
+    fi
+  done
+  return 1
+}
+
+cask_installed() {
+  $BREW list --cask --versions "$1" >/dev/null 2>&1
+}
+
+install_formulae() {
+  local module="$1"
+  shift
+  local package
+  local -a missing=()
+  for package in "$@"; do
+    formula_installed "$package" || missing+=("$package")
+  done
+  printf '\n==> [%s formulae]\n' "$module"
+  if ((${#missing[@]} == 0)); then
+    printf 'All formulae are already installed.\n'
+    return
+  fi
+  printf 'Installing missing formulae: %s\n' "${missing[*]}"
+  $BREW install "${missing[@]}"
+}
+
+install_casks() {
+  local module="$1"
+  shift
+  local package
+  local -a missing=()
+  for package in "$@"; do
+    cask_installed "$package" || missing+=("$package")
+  done
+  printf '\n==> [%s casks]\n' "$module"
+  if ((${#missing[@]} == 0)); then
+    printf 'All casks are already installed.\n'
+    return
+  fi
+  printf 'Installing missing casks: %s\n' "${missing[*]}"
+  $BREW install --cask "${missing[@]}"
+}
+
+module_core() {
+  install_formulae core chezmoi openssh mihomo
+}
+
+module_shell() {
+  install_formulae shell \
+    git neovim jq lazygit autossh curl fd ffmpeg fzf gcc gh lsd lua luajit \
+    perl stow texlive tex-fmt tldr tmux tree-sitter wget xz yazi yarn npm \
+    zoxide mpv pinentry-mac
+}
+
+module_font_and_im() {
+  install_casks font-and-im font-jetbrains-mono-nerd
+}
+
+module_proxy() {
+  install_formulae proxy 
+}
+
+module_desktop() {
+  install_casks desktop \
+    hammerspoon karabiner-elements kitty easydict keycastr mac-mouse-fix \
+    maccy sioyek tailscale-app rar topit platypus
+}
+
+module_dev() {
+  install_formulae dev yarn npm tree-sitter
+}
+
+module_extra() {
+  install_casks extra telegram tailscale
+}
+
+profile_headless() {
+  run_modules core shell
+}
+
+profile_minimal() {
+  run_modules core shell font_and_im
+}
+
+profile_desktop() {
+  run_modules core shell font_and_im proxy desktop
+}
+
+profile_devbox() {
+  run_modules core shell font_and_im proxy dev
+}
+
+profile_full() {
+  profile_devbox
+  run_modules desktop
+}
+
+profile_everything() {
+  profile_full
+  run_modules extra
+}
+
+run_profile() {
+  local profile="${1//-/_}"
+  if (( $+functions[profile_$profile] )); then
+    "profile_$profile"
+  else
+    printf 'Unknown profile: %s\n' "$1" >&2
+    printf 'Available profiles: headless, minimal, desktop, devbox, full, everything\n' >&2
+    exit 2
+  fi
+}
+
+run_modules() {
+  local module
+  for module in "$@"; do
+    module="${module//-/_}"
+    if (( $+functions[module_$module] )); then
+      "module_$module"
+    else
+      printf 'Unknown module: %s\n' "$module" >&2
+      printf 'Available modules: core, shell, font-and-im, proxy, desktop, dev, extra\n' >&2
+      exit 2
+    fi
+  done
+}
+
+normalize_list() {
+  local raw="$1"
+  raw="${raw//,/ }"
+  printf '%s\n' "$raw"
+}
+
+if [[ -n "$INSTALL_MODULES" ]]; then
+  read -rA modules <<<"$(normalize_list "$INSTALL_MODULES")"
+  run_modules "${modules[@]}"
+else
+  run_profile "$INSTALL_PROFILE"
 fi
 {{- end -}}

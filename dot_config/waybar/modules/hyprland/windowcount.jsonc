@@ -1,12 +1,6 @@
 {
 	"hyprland/windowcount": {
 		"format": "[{}]",
-		// "format-empty":
-		// "format-windowed":
-		// "format-fullscreen":
-		// "separate-outputs":
-		// "min-length":
-		// "max-length":
 		"swap-icon-label": false
 	}
 }

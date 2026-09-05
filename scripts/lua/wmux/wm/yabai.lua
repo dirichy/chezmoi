@@ -13,7 +13,7 @@ local direction = {
 ---@type WM
 local M = {}
 function M.focus_window(dir)
-	return yabai_m("window --focus " .. direction[dir] or dir)
+	return yabai_m("window --focus " .. (direction[dir] or dir))
 end
 local moveWorkSpace = {
 	h = "(.index + 7) % 9 + 1",
@@ -33,7 +33,7 @@ function M.focus(dir)
 		[[ i=$(/opt/homebrew/bin/yabai -m query --spaces --space | jq ']]
 			.. moveWorkSpace[dir]
 			.. [[');/opt/homebrew/bin/yabai -m window --focus ]]
-			.. direction[dir]
+			.. (direction[dir] or dir)
 			.. [[ || /opt/homebrew/bin/yabai -m space --focus "fullscreen$i" || /opt/homebrew/bin/yabai -m space --focus "$i"]]
 	)
 end

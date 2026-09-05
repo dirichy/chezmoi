@@ -1,0 +1,331 @@
+{{- $heightPercent := 3.25 -}}
+{{- $monitors := output "bash" "-lc" "out=$(hyprctl monitors -j 2>/dev/null); [[ $out == \\[* ]] && printf %s \"$out\" || printf []" | fromJson -}}
+{{- $monitor := dict "height" 1000 "scale" 1 -}}
+{{- if gt (len $monitors) 0 -}}
+{{- $monitor = index $monitors 0 -}}
+{{- range $m := $monitors -}}
+{{- if $m.focused -}}
+{{- $monitor = $m -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $logicalHeight := divf $monitor.height (default 1 $monitor.scale) -}}
+{{- $height := max 1 (int (printf "%.0f" (divf (mulf $logicalHeight $heightPercent) 100))) -}}
+{{- define "px" -}}
+{{- $percent := .percent -}}
+{{- $height := .height -}}
+{{- $scaled := int (printf "%.0f" (divf (mulf $height $percent) 100)) -}}
+{{- if lt $percent 0 -}}{{ min -1 $scaled }}px{{- else if eq $percent 0 -}}0px{{- else -}}{{ max 1 $scaled }}px{{- end -}}
+{{- end -}}
+
+@import "styles/modules-left.css";
+@import "styles/modules-center.css";
+@import "styles/modules-right.css";
+
+* {
+	border: none;
+	font-family: "Maple Mono", "Symbols Nerd Font Mono", monospace;
+	font-size: {{ template "px" (dict "percent" 70 "height" $height) }};
+	font-weight: 800;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	color: #cdd6f4;
+}
+
+window#waybar {
+	background: rgba(17, 17, 27, 0.72);
+	border-bottom: 1px solid rgba(203, 166, 247, 0.18);
+	box-shadow: 0 2px 12px rgba(0, 0, 0, 0.36);
+}
+
+window#waybar > box {
+	background: transparent;
+	margin: 0;
+}
+
+tooltip {
+	background: rgba(4, 4, 4, 0.8);
+	border: 1px solid rgba(100, 114, 125, 0.5);
+	border-radius: {{ template "px" (dict "percent" 24 "height" $height) }};
+}
+
+tooltip label {
+	color: #cdd6f4;
+	font-family: "Maple Mono", "Symbols Nerd Font Mono", monospace;
+	font-weight: normal;
+	margin: {{ template "px" (dict "percent" 6 "height" $height) }} {{ template "px" (dict "percent" 12 "height" $height) }};
+}
+
+#workspaces {
+	transition: all 150ms ease-in-out;
+}
+
+#workspaces button {
+	background: rgba(30, 30, 46, 0.58);
+	border: 1px solid transparent;
+	border-radius: 999px;
+	color: #cdd6f4;
+	margin: 0 {{ template "px" (dict "percent" 8 "height" $height) }};
+	padding: {{ template "px" (dict "percent" 4 "height" $height) }} 0;
+	transition: all 150ms ease-in-out;
+}
+
+#workspaces button.active {
+	background: rgba(203, 166, 247, 0.9);
+	border: 1px solid rgba(203, 166, 247, 0.55);
+	border-radius: {{ template "px" (dict "percent" 32 "height" $height) }};
+	color: #11111b;
+	min-width: {{ template "px" (dict "percent" 140 "height" $height) }};
+}
+
+#clock,
+#pulseaudio,
+#pulseaudio.output,
+#pulseaudio.input,
+#pulseaudio-slider,
+#network,
+#custom-tailscale,
+#bluetooth,
+#custom-system_update,
+#custom-critical_monitor,
+#custom-backlight,
+#cpu,
+#memory,
+#temperature,
+#custom-disk,
+#custom-gpu,
+#custom-distro,
+#idle_inhibitor,
+#mpris,
+#tray,
+#battery,
+#windowcount {
+	background: rgba(30, 30, 46, 0.68);
+	border-radius: {{ template "px" (dict "percent" 32 "height" $height) }};
+	color: #cdd6f4;
+	margin: 0 {{ template "px" (dict "percent" 8 "height" $height) }};
+	padding: 0 {{ template "px" (dict "percent" 14 "height" $height) }};
+}
+
+#group-system_monitor,
+#group-pulseaudio {
+	background: transparent;
+	border-radius: 0;
+	margin: 0;
+	padding: 0;
+}
+
+#window {
+	color: #bac2de;
+	margin-left: {{ template "px" (dict "percent" 20 "height" $height) }};
+	font-weight: normal;
+}
+
+#windowcount,
+#windowcount label {
+	color: #f5c2e7;
+}
+
+#custom-disk,
+#custom-disk label,
+#custom-gpu,
+#custom-gpu label {
+	color: #a6e3a1;
+}
+
+#custom-distro,
+#custom-distro label {
+	color: #1793d1;
+}
+
+#idle_inhibitor,
+#idle_inhibitor label {
+	color: #cdd6f4;
+}
+
+#idle_inhibitor.activated,
+#idle_inhibitor.activated label {
+	color: #8f6b4f;
+}
+
+#cpu,
+#cpu label,
+#memory,
+#memory label,
+#temperature,
+#temperature label,
+#custom-disk,
+#custom-disk label,
+#custom-gpu,
+#custom-gpu label {
+	color: #a6e3a1;
+}
+
+#cpu.warning,
+#cpu.warning label,
+#memory.warning,
+#memory.warning label,
+#temperature.warning,
+#temperature.warning label,
+#custom-disk.warning,
+#custom-disk.warning label,
+#custom-gpu.warning,
+#custom-gpu.warning label {
+	color: #f9e2af;
+}
+
+#cpu.critical,
+#cpu.critical label,
+#memory.critical,
+#memory.critical label,
+#temperature.critical,
+#temperature.critical label,
+#custom-disk.critical,
+#custom-disk.critical label,
+#custom-gpu.critical,
+#custom-gpu.critical label {
+	color: #f38ba8;
+}
+
+#custom-disk.disabled,
+#custom-disk.disabled label,
+#custom-gpu.disabled,
+#custom-gpu.disabled label {
+	color: #6c7086;
+}
+
+#network,
+#network label {
+	color: #b4befe;
+}
+
+#network.left {
+	border-radius: {{ template "px" (dict "percent" 32 "height" $height) }} 0 0 {{ template "px" (dict "percent" 32 "height" $height) }};
+	margin-right: 0;
+	padding-right: {{ template "px" (dict "percent" 10 "height" $height) }};
+}
+
+#network.right {
+	border-radius: 0 {{ template "px" (dict "percent" 32 "height" $height) }} {{ template "px" (dict "percent" 32 "height" $height) }} 0;
+	margin-left: 0;
+	min-width: {{ template "px" (dict "percent" 130 "height" $height) }};
+	padding-left: {{ template "px" (dict "percent" 6 "height" $height) }};
+}
+
+#custom-tailscale,
+#custom-tailscale label {
+	color: #74c7ec;
+}
+
+#bluetooth,
+#bluetooth label {
+	color: #74c7ec;
+}
+
+#custom-system_update,
+#custom-system_update label {
+	color: #a6e3a1;
+}
+
+#custom-critical_monitor,
+#custom-critical_monitor label {
+	color: #f38ba8;
+}
+
+#custom-critical_monitor.disabled {
+	background: transparent;
+	margin: 0;
+	padding: 0;
+}
+
+#mpris,
+#mpris label {
+	color: #f5c2e7;
+}
+
+#pulseaudio,
+#pulseaudio.output,
+#pulseaudio.input,
+#group-pulseaudio,
+#pulseaudio label,
+#pulseaudio.output label,
+#pulseaudio.input label,
+#group-pulseaudio label {
+	color: #fab387;
+}
+
+#custom-backlight,
+#custom-backlight label {
+	color: #f9e2af;
+}
+
+#custom-backlight {
+	min-width: {{ template "px" (dict "percent" 145 "height" $height) }};
+	padding: 0 {{ template "px" (dict "percent" 24 "height" $height) }};
+}
+
+#battery,
+#battery label {
+	color: #a6e3a1;
+}
+
+#tray,
+#tray label {
+	color: #cdd6f4;
+}
+
+#clock,
+#clock label {
+	color: #cdd6f4;
+}
+
+#clock {
+	min-width: {{ template "px" (dict "percent" 150 "height" $height) }};
+}
+
+#network.right,
+#network.right label,
+#clock,
+#clock label {
+	font-family: "Maple Mono", "Symbols Nerd Font Mono", monospace;
+	font-size: {{ template "px" (dict "percent" 40 "height" $height) }};
+}
+
+#network.right label {
+	min-width: {{ template "px" (dict "percent" 120 "height" $height) }};
+}
+
+#clock label {
+	min-width: {{ template "px" (dict "percent" 135 "height" $height) }};
+}
+
+#workspaces .active label {
+	font-size: {{ template "px" (dict "percent" 82 "height" $height) }};
+}
+
+#custom-distro {
+	padding: 0 {{ template "px" (dict "percent" 40 "height" $height) }};
+}
+
+#pulseaudio-slider slider {
+	background-image: none;
+	border: none;
+	box-shadow: none;
+	min-height: 0;
+	min-width: 0;
+	opacity: 0;
+}
+
+#pulseaudio-slider trough {
+	background: rgba(255, 255, 255, 0.25);
+	border-radius: {{ template "px" (dict "percent" 16 "height" $height) }};
+	min-height: {{ template "px" (dict "percent" 16 "height" $height) }};
+	min-width: {{ template "px" (dict "percent" 240 "height" $height) }};
+}
+
+#pulseaudio-slider highlight {
+	background: white;
+	border-radius: {{ template "px" (dict "percent" 16 "height" $height) }};
+	min-width: 0;
+}

@@ -169,6 +169,7 @@ prepend_keymap = [
   # =======================
   { on = "<C-Up>", run = "seek -5", desc = "预览向上跳转5个单位" },
   { on = "<C-Down>", run = "seek 5",  desc = "预览向下跳转5个单位" },
+  { on = [ ",", "p" ], run = "plugin fs-guard -- preview", desc = "预览当前文件" },
   { on = "<Tab>", run = "spot", desc = "聚焦悬浮文件" },
 
 

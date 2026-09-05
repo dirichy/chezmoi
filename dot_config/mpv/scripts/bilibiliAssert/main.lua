@@ -271,11 +271,11 @@ function Add_fps_vf()
 	local video_fps = mp.get_property_number("container-fps", 30)
 	local video_speed = mp.get_property_number("speed", 1)
 
-	if video_fps < 45 and video_speed < 1.5 then
-		mp.commandv("vf", "append", '@Danmaku-FPS:lavfi="fps=fps=60:round=down"')
-	else
-		mp.commandv("vf", "remove", "@Danmaku-FPS")
-	end
+	-- if video_fps < 45 and video_speed < 1.5 then
+	mp.commandv("vf", "append", '@Danmaku-FPS:lavfi="fps=fps=120:round=down"')
+	-- else
+	-- 	mp.commandv("vf", "remove", "@Danmaku-FPS")
+	-- end
 end
 
 mp.register_event("file-loaded", Danmaku_check)

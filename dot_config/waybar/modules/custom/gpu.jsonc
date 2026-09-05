@@ -1,0 +1,12 @@
+{
+	"custom/gpu": {
+		"exec": "~/.config/waybar/scripts/gpu.sh status",
+		"return-type": "json",
+		"interval": 5,
+		"format": "{}",
+		"min-length": 5,
+		"max-length": 6,
+		"on-click": "kitty --class system_menu --title system_menu -e ~/.config/waybar/scripts/gpu.sh usage",
+		"tooltip": true
+	}
+}

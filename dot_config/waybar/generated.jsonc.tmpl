@@ -1,0 +1,16 @@
+{{- $heightPercent := 3.0 -}}
+{{- $monitors := output "bash" "-lc" "out=$(hyprctl monitors -j 2>/dev/null); [[ $out == \\[* ]] && printf %s \"$out\" || printf []" | fromJson -}}
+{{- $monitor := dict "height" 1000 "scale" 1 -}}
+{{- if gt (len $monitors) 0 -}}
+{{- $monitor = index $monitors 0 -}}
+{{- range $m := $monitors -}}
+{{- if $m.focused -}}
+{{- $monitor = $m -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $logicalHeight := divf $monitor.height (default 1 $monitor.scale) -}}
+{{- $height := max 1 (int (printf "%.0f" (divf (mulf $logicalHeight $heightPercent) 100))) -}}
+{
+  "height": {{ $height }}
+}

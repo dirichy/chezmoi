@@ -1,6 +1,7 @@
 {
 	"custom/distro": {
 		"format": "󰣇",
-		"tooltip": false
+		"on-click": "kitty --class system_menu --title system_menu -e ~/.config/waybar/scripts/power-menu.sh",
+		"tooltip-format": "Power Menu"
 	}
 }

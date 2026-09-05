@@ -1,0 +1,8 @@
+# 默认所有通知显示时间 3000ms（3秒）
+default-timeout=3000
+
+# 样式配置，可选
+margin=10
+padding=10
+border-radius=5
+font="monospace 10"

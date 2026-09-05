@@ -1,0 +1,43 @@
+{{- $hasBattery := gt (len (glob "/sys/class/power_supply/BAT*")) 0 -}}
+{
+  "layer": "top",
+  "include": [
+    "~/.config/waybar/generated.jsonc",
+    "~/.config/waybar/modules/*.jsonc",
+    "~/.config/waybar/modules/custom/*.jsonc",
+    "~/.config/waybar/modules/hyprland/*.jsonc"
+  ],
+
+  "modules-left": [
+    "hyprland/workspaces",
+    "hyprland/window"
+  ],
+  "modules-center": [
+    "hyprland/windowcount",
+    "group/system_monitor",
+    "custom/critical_monitor",
+    "custom/disk",
+    "custom/distro",
+    "idle_inhibitor",
+    "custom/tailscale",
+    "bluetooth",
+    "custom/system_update",
+    "group/network"
+  ],
+  "modules-right": [
+    "mpris",
+    "group/pulseaudio",
+    "custom/backlight",
+{{- if $hasBattery }}
+    "battery",
+{{- end }}
+    "tray",
+    "clock"
+  ],
+
+  "width": 0,
+  "margin": 0,
+  "spacing": 0,
+  "mode": "dock",
+  "reload_style_on_change": true
+}

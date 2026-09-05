@@ -39,6 +39,10 @@ local opts = {
 	-- 能检测到 cid 时，将 cid 发给 API 并在本地再次过滤。
 	use_cid = true,
 
+	-- 只在明确来自 Bilibili 的播放项上启用。
+	-- 设为 no 才会允许仅凭本地文件名/标题中的 BV 号触发。
+	require_bilibili_source = true,
+
 	-- 最低票数。API 通常已经做过过滤，此项只是本地保护。
 	min_votes = -9999,
 
@@ -54,7 +58,7 @@ local opts = {
 	-- seek 模式：
 	--   exact     精确，但网络流/长 GOP 视频上可能更慢；
 	--   keyframes 更快，但落点可能不够精确。
-	seek_mode = "exact",
+	seek_mode = "keyframes",
 
 	-- 发出 seek 后，最多等待多少秒解除内部 seek 锁。
 	-- 正常情况下会由 playback-restart 更早解除。
@@ -98,6 +102,7 @@ local state = {
 	request_token = 0,
 
 	file_active = false,
+	is_bilibili = false,
 	user_paused = false,
 	cache_paused = false,
 	seeking = false,
@@ -226,6 +231,67 @@ local function find_cid_in_string(value)
 
 	local str = tostring(value)
 	return str:match("[?&]cid=(%d+)") or str:match("[?&]cid%%3D(%d+)") or str:match("cid=(%d+)")
+end
+
+local function is_bilibili_value(value)
+	if value == nil then
+		return false
+	end
+
+	local str = tostring(value):lower()
+	return str:find("bilibili.com", 1, true) ~= nil
+		or str:find("b23.tv", 1, true) ~= nil
+		or str:find("bilivideo.com", 1, true) ~= nil
+		or str == "bilibili"
+		or str == "biliintl"
+end
+
+local function is_bilibili_source()
+	if not opts.require_bilibili_source then
+		return true
+	end
+
+	local properties = {
+		"path",
+		"stream-open-filename",
+		"media-title",
+		"metadata/by-key/webpage_url",
+		"metadata/by-key/original_url",
+		"metadata/by-key/purl",
+		"metadata/by-key/comment",
+		"metadata/by-key/extractor",
+		"metadata/by-key/extractor_key",
+		"metadata/by-key/uploader_url",
+		"metadata/by-key/channel_url",
+	}
+
+	for _, property in ipairs(properties) do
+		if is_bilibili_value(mp.get_property(property)) then
+			return true
+		end
+	end
+
+	local metadata = mp.get_property_native("metadata")
+	if type(metadata) == "table" then
+		for key, value in pairs(metadata) do
+			local lower_key = tostring(key):lower()
+			if
+				lower_key == "webpage_url"
+				or lower_key == "original_url"
+				or lower_key == "purl"
+				or lower_key == "extractor"
+				or lower_key == "extractor_key"
+				or lower_key == "uploader_url"
+				or lower_key == "channel_url"
+			then
+				if is_bilibili_value(value) then
+					return true
+				end
+			end
+		end
+	end
+
+	return false
 end
 
 local function detect_from_properties(finder)
@@ -453,6 +519,7 @@ end
 local function check_timer_should_run()
 	return opts.enabled
 		and state.file_active
+		and state.is_bilibili
 		and state.loaded
 		and #state.segments > 0
 		and not state.user_paused
@@ -518,6 +585,10 @@ local function reset_file_state()
 	clear_seek_guard()
 
 	state.file_active = false
+	state.is_bilibili = false
+	state.user_paused = false
+	state.cache_paused = false
+	state.seeking = false
 	state.seek_busy = false
 	state.bvid = nil
 	state.cid = nil
@@ -537,6 +608,16 @@ local function load_segments()
 		return
 	end
 
+	state.is_bilibili = is_bilibili_source()
+	if not state.is_bilibili then
+		state.loaded = false
+		state.loading = false
+		state.segments = {}
+		update_check_timer()
+		msg.debug("skip loading: current item is not a bilibili source")
+		return
+	end
+
 	state.request_token = state.request_token + 1
 	local request_token = state.request_token
 	local generation = state.generation
@@ -549,7 +630,7 @@ local function load_segments()
 	update_check_timer()
 
 	if not state.bvid then
-		notify("没有在当前播放项中找到 BV 号", "debug")
+		msg.debug("skip loading: no BV id found in bilibili source")
 		return
 	end
 
@@ -672,11 +753,12 @@ mp.register_event("file-loaded", function()
 	reset_file_state()
 
 	state.file_active = true
+	state.is_bilibili = is_bilibili_source()
 	state.user_paused = mp.get_property_bool("pause", false)
 	state.cache_paused = mp.get_property_bool("paused-for-cache", false)
 	state.seeking = mp.get_property_bool("seeking", false)
 
-	if opts.enabled then
+	if opts.enabled and state.is_bilibili then
 		schedule_load(tonumber(opts.fetch_delay) or 0.50)
 	end
 end)
@@ -749,6 +831,11 @@ mp.add_key_binding(nil, "bsb-reload", function()
 
 	if not opts.enabled then
 		notify("脚本当前已禁用", "warn")
+		return
+	end
+
+	if not is_bilibili_source() then
+		notify("当前播放项不是 Bilibili 来源，未加载", "warn")
 		return
 	end
 

@@ -1,38 +1,374 @@
 {{- if eq .chezmoi.os "linux" -}}
 #!/usr/bin/env bash
-# font
-paru -S --needed noto-fonts-cjk
-# rime
-paru -S --needed fcitx5-rime fcitx5 fcitx5-configtool
-# audio
-paru -S --needed pipewire-audio pipewire-pulse wireplumber bluez bluez-utils blueman pavucontrol
-sudo systemctl enable --now bluetooth
-# util
-paru -S --needed keyd chezmoi openssh autossh greetd github-cli wl-clipboard fuse
-sudo systemctl enable --now sshd greetd keyd
-# util_network
-paru -S --needed mihomo tailscale networkmanager
-sudo systemctl enable --now NetworkManager
-# util_gui
-paru -S --needed kitty mpv zen-browser-bin wofi xorg-xrdb zathura sioyek-git zenity linuxqq-nt-bwrap wechat-universal-bwrap
-# util nvidia
-paru -S --needed nvidia-open
-sudo systemctl enable --now nvidia-suspend.service nvidia-resume.service nvidia-hibernate.service
-# util_cli
-paru -S --needed ffmpeg git gopass gopass-jsonapi fzf zoxide thefuck ripgrep tree-sitter-cli unzip tar wget curl zsh uv tmux luarocks lua luajit imagemagick lsd fd jq
-# language
-paru -S --needed go ruby php julia cargo lua luajit lua51
-# util_tui
-paru -S --needed neovim vim yazi lazygit bottom
-# desktop
-paru -S --needed hyprland hyprpaper waybar hypridle udisken sunshine socat ddcutil xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-hyprland xwaylandvideobridge
-sudo luarocks --lua-version=5.1 install luasocket
-sudo luarocks --lua-version=5.1 install lua-cjson 
-sudo luarocks --lua-version=5.1 install luv
-sudo luarocks install luasocket
-sudo luarocks install lua-cjson 
-sudo luarocks install luv
-systemctl --user start hyprpaper waybar hypridle udisken
-# latex
-paru -S --needed texlive
+set -euo pipefail
+
+# Install packages used by this chezmoi setup on Arch Linux.
+#
+# Profiles:
+#   headless         CLI-only remote machine with system services
+#   minimal          CLI + input method
+#   desktop          Hyprland desktop without heavy optional stacks
+#   devbox           CLI development tools and LaTeX
+#   full             devbox + Hyprland desktop and hardware-specific support
+#   everything       full + personal extra apps/games
+#
+# Usage:
+#   chezmoi apply
+#   INSTALL_PROFILE=headless chezmoi apply
+#   INSTALL_PROFILE=full chezmoi apply
+#   INSTALL_MODULES=core,shell,system,font-and-im,proxy chezmoi apply
+#   SKIP_SERVICES=1 chezmoi apply
+#   SKIP_LUAROCKS=1 chezmoi apply
+
+AUR_HELPER="${AUR_HELPER-paru}"
+INSTALL_PROFILE="${INSTALL_PROFILE-}"
+INSTALL_MODULES="${INSTALL_MODULES:-}"
+SKIP_SERVICES="${SKIP_SERVICES:-0}"
+SKIP_LUAROCKS="${SKIP_LUAROCKS:-0}"
+SUDO_KEEPALIVE_PID=""
+
+if [[ -z "$INSTALL_PROFILE" && -z "$INSTALL_MODULES" ]]; then
+  while :; do
+    printf '%s\n' \
+      'Choose an install profile:' \
+      '  h) headless         CLI-only machine with system services' \
+      '  m) minimal          CLI tools and input method' \
+      '  d) desktop          Hyprland desktop without optional stacks' \
+      '  v) devbox           CLI development tools and LaTeX' \
+      '  f) full              Devbox plus Hyprland desktop' \
+      '  e) everything        Full setup plus personal apps and games' \
+      '  c) custom modules    Choose individual modules' \
+      '  x) skip installation Do not install anything'
+    printf 'Profile [d]: '
+    read -r profile_choice
+    profile_choice="${profile_choice:-d}"
+
+    case "$profile_choice" in
+      h) INSTALL_PROFILE=headless; break ;;
+      m) INSTALL_PROFILE=minimal; break ;;
+      d) INSTALL_PROFILE=desktop; break ;;
+      v) INSTALL_PROFILE=devbox; break ;;
+      f) INSTALL_PROFILE=full; break ;;
+      e) INSTALL_PROFILE=everything; break ;;
+      c)
+        printf '%s\n' \
+          'Select modules using letters (combine as needed):' \
+          '  c core      s shell      y system      i font-and-im' \
+          '  d desktop   p proxy      a apps        v dev' \
+          '  l latex     n nvidia     e extra'
+        printf 'Modules: '
+        read -r module_choices
+        module_choices="${module_choices//,/}"
+        module_choices="${module_choices// /}"
+        [[ -n "$module_choices" ]] || { printf 'At least one module is required.\n' >&2; exit 2; }
+        INSTALL_MODULES=""
+        for ((module_index = 0; module_index < ${#module_choices}; module_index++)); do
+          module_choice="${module_choices:module_index:1}"
+          case "$module_choice" in
+            c) INSTALL_MODULES+="core," ;;
+            s) INSTALL_MODULES+="shell," ;;
+            y) INSTALL_MODULES+="system," ;;
+            i) INSTALL_MODULES+="font-and-im," ;;
+            d) INSTALL_MODULES+="desktop," ;;
+            p) INSTALL_MODULES+="proxy," ;;
+            a) INSTALL_MODULES+="apps," ;;
+            v) INSTALL_MODULES+="dev," ;;
+            l) INSTALL_MODULES+="latex," ;;
+            n) INSTALL_MODULES+="nvidia," ;;
+            e) INSTALL_MODULES+="extra," ;;
+            *) printf 'Unknown module selection: %s\n' "$module_choice" >&2; exit 2 ;;
+          esac
+        done
+        INSTALL_PROFILE=""
+        break
+        ;;
+      x) exit 0 ;;
+      *) printf 'Unknown profile selection: %s\n\n' "$profile_choice" >&2 ;;
+    esac
+  done
+fi
+
+start_sudo_session() {
+  sudo -v
+
+  (
+    while kill -0 "$$" 2>/dev/null; do
+      sleep 60
+      sudo -n -v 2>/dev/null || exit 0
+    done
+  ) &
+  SUDO_KEEPALIVE_PID="$!"
+
+  trap 'kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true' EXIT
+}
+
+start_sudo_session
+
+install_aur_helper() {
+  local helper="$1"
+  local build_dir
+
+  printf 'Installing AUR helper: %s\n' "$helper"
+  sudo pacman -S --needed --noconfirm git base-devel
+  build_dir="$(mktemp -d)"
+  git clone --depth=1 "https://aur.archlinux.org/$helper.git" "$build_dir/$helper"
+  (cd "$build_dir/$helper" && makepkg -si --noconfirm)
+  rm -rf "$build_dir"
+}
+
+if [[ -z "$AUR_HELPER" ]] || ! command -v "$AUR_HELPER" >/dev/null 2>&1; then
+  if [[ -n "$AUR_HELPER" ]]; then
+    printf 'AUR helper not found: %s\n' "$AUR_HELPER" >&2
+  fi
+  printf 'Choose an AUR helper to install [paru/yay] (default: paru): '
+  read -r AUR_HELPER
+  AUR_HELPER="${AUR_HELPER:-paru}"
+  case "$AUR_HELPER" in
+    paru|yay) ;;
+    *)
+      printf 'Unsupported AUR helper: %s\n' "$AUR_HELPER" >&2
+      exit 2
+      ;;
+  esac
+  install_aur_helper "$AUR_HELPER"
+fi
+
+package_installed() {
+  local package="$1"
+  local base
+  local candidate
+  local -a candidates=("$package")
+
+  case "$package" in
+    *-git)
+      base="${package%-git}"
+      candidates+=("$base" "$base-bin")
+      ;;
+    *-bin)
+      base="${package%-bin}"
+      candidates+=("$base" "$base-git")
+      ;;
+    *)
+      candidates+=("$package-git" "$package-bin")
+      ;;
+  esac
+
+  for candidate in "${candidates[@]}"; do
+    if pacman -Q "$candidate" >/dev/null 2>&1; then
+      if [[ "$candidate" != "$package" ]]; then
+        printf 'Warning: requested package "%s", but "%s" is already installed; skipping.\n' \
+          "$package" "$candidate" >&2
+      fi
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+install_packages() {
+  local module="$1"
+  local package
+  local -a missing_packages=()
+  shift
+
+  for package in "$@"; do
+    if ! package_installed "$package"; then
+      missing_packages+=("$package")
+    fi
+  done
+
+  printf '\n==> [%s]\n' "$module"
+  if ((${#missing_packages[@]} == 0)); then
+    printf 'All packages are already installed.\n'
+    return
+  fi
+
+  printf 'Installing missing packages: %s\n' "${missing_packages[*]}"
+  "$AUR_HELPER" -S --needed --noconfirm --skipreview "${missing_packages[@]}"
+}
+
+enable_system_services() {
+  [[ "$SKIP_SERVICES" == 1 ]] && return
+  sudo systemctl enable --now "$@"
+}
+
+enable_user_services() {
+  [[ "$SKIP_SERVICES" == 1 ]] && return
+  systemctl --user enable --now "$@"
+}
+
+install_luarocks() {
+  [[ "$SKIP_LUAROCKS" == 1 ]] && return
+
+  printf '\n==> [luarocks]\n'
+  sudo luarocks --lua-version=5.1 install luasocket
+  sudo luarocks --lua-version=5.1 install lua-cjson
+  sudo luarocks --lua-version=5.1 install luv
+}
+
+module_core() {
+  install_packages core \
+    chezmoi openssh zsh tmux gopass mihomo 
+}
+
+module_shell() {
+  install_packages shell \
+    neovim vim yazi lazygit bottom duf dust bashmount uv \
+    github-cli autossh gopass-jsonapi \
+    ripgrep fd jq fzf zoxide thefuck lsd tldr fdu-connect-git
+}
+
+module_system() {
+  install_packages system \
+    keyd networkmanager tailscale udisken
+
+  enable_system_services keyd NetworkManager tailscaled
+  enable_user_services udisken
+}
+
+module_desktop() {
+  install_packages desktop \
+    hyprland hyprpaper hypridle greetd mako kitty waybar-git wofi \
+    xorg-xrdb xdg-desktop-portal xdg-desktop-portal-gtk \
+    xdg-desktop-portal-hyprland xwaylandvideobridge \
+    wl-clipboard grim slurp brightnessctl ddcutil \
+    pipewire pipewire-audio pipewire-pulse pipewire-alsa wireplumber \
+    bluez bluez-utils blueman pavucontrol
+
+  enable_system_services sshd greetd bluetooth
+  enable_user_services hyprpaper hypridle waybar
+}
+
+module_font_and_im() {
+  install_packages font-and-im \
+    fcitx5 fcitx5-rime fcitx5-configtool \
+    noto-fonts-cjk noto-fonts-emoji ttf-nerd-fonts-symbols-mono \
+    ttf-sarasa-gothic maplemono-ttf
+}
+
+module_proxy() {
+  install_packages proxy \
+    
+}
+
+module_apps() {
+  install_packages apps \
+    zen-browser-bin mpv imv sioyek-git zathura zathura-pdf-mupdf \
+    linuxqq-nt-bwrap wechat-universal-bwrap \
+    sunshine moonlight-qt calcurse
+}
+
+module_dev() {
+  install_packages dev \
+    go ruby php julia cargo lua lua51 luajit luarocks lua-language-server \
+    tree-sitter-cli pkgconf ffmpeg imagemagick
+
+  install_luarocks
+}
+
+module_latex() {
+  install_packages latex \
+    biber pandoc-cli texlive-binextra texlive-latex texlive-latexextra \
+    texlive-latexrecommended texlive-luatex texlive-xetex texlive-mathscience \
+    texlive-pictures texlive-fontsrecommended texlive-fontsextra \
+    texlive-langchinese texlive-langcjk texlive-langenglish
+}
+
+has_nvidia_gpu() {
+  local vendor_file
+
+  for vendor_file in /sys/class/drm/card*/device/vendor; do
+    if [[ -r "$vendor_file" ]] && [[ "$(<"$vendor_file")" == 0x10de ]]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+module_nvidia() {
+  if ! has_nvidia_gpu; then
+    printf 'No NVIDIA GPU detected; skipping NVIDIA packages.\n'
+    return
+  fi
+
+  install_packages nvidia \
+    nvidia-open nvidia-settings nvtop
+
+  enable_system_services nvidia-suspend.service nvidia-resume.service nvidia-hibernate.service
+}
+
+module_extra() {
+  install_packages extra \
+    ayugram-desktop telegram-desktop wemeet-bin \
+    bilibili-tui cmatrix genact lolcat linux-wallpaperengine-git \
+    majsoul-plus-bin piliplus steam \
+    libreoffice-fresh foliate rnote xournalpp darktable koreader-bin \
+    keepassxc fastfetch
+}
+
+profile_headless() {
+  run_modules core shell system
+}
+
+profile_minimal() {
+  run_modules core shell system font_and_im
+}
+
+profile_desktop() {
+  run_modules core shell system desktop font_and_im proxy apps
+}
+
+profile_devbox() {
+  run_modules core shell system dev latex
+}
+
+profile_full() {
+  profile_devbox
+  run_modules desktop font_and_im proxy apps nvidia
+}
+
+profile_everything() {
+  profile_full
+  run_modules extra
+}
+
+run_profile() {
+  local profile="${1//-/_}"
+  if declare -F "profile_$profile" >/dev/null 2>&1; then
+    "profile_$profile"
+  else
+    printf 'Unknown profile: %s\n' "$1" >&2
+    printf 'Available profiles: headless, minimal, desktop, devbox, full, everything\n' >&2
+    exit 2
+  fi
+}
+
+run_modules() {
+  local module
+  for module in "$@"; do
+    module="${module//-/_}"
+    if declare -F "module_$module" >/dev/null 2>&1; then
+      "module_$module"
+    else
+      printf 'Unknown module: %s\n' "$module" >&2
+    printf 'Available modules: core, shell, system, font-and-im, desktop, proxy, apps, dev, latex, nvidia, extra\n' >&2
+      exit 2
+    fi
+  done
+}
+
+normalize_list() {
+  local raw="$1"
+  raw="${raw//,/ }"
+  printf '%s\n' "$raw"
+}
+
+if [[ -n "$INSTALL_MODULES" ]]; then
+  read -r -a modules <<<"$(normalize_list "$INSTALL_MODULES")"
+  run_modules "${modules[@]}"
+else
+  run_profile "$INSTALL_PROFILE"
+fi
 {{- end -}}

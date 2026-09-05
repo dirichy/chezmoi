@@ -1,32 +1,34 @@
 {
-	"network": {
-		// "interface":
-		"interval": 10,
-		// "family":
-		"format": "󰤨",
-		"format-ethernet": "󰈀",
-		"format-wifi": "{icon}",
-		// "format-linked":
-		"format-disconnected": "󰤯",
-		"format-disabled": "󰤮",
-		// "format-alt":
-		"format-icons": [
-			"󰤟", "󰤢", "󰤥", "󰤨"
-		],
-		// "rotate":
-		"min-length": 2,
-		"max-length": 2,
-		"on-click": "kitty --title system_menu -e ~/.config/waybar/scripts/network.sh",
-		// "on-click-middle":
-		"on-click-right": "nmcli radio wifi off && notify-send -t 1000 'Wi-Fi Disabled' -i 'network-wireless-off' -r 1125",
-		// "on-scroll-up":
-		// "on-scroll-down":
-		// "smooth-scrolling-threshold":
-		// "tooltip":
-		"tooltip-format": "Gateway: {gwaddr}",
-		"tooltip-format-ethernet": "Interface: {ifname}",
-		"tooltip-format-wifi": "Network: {essid}\nIP Addr: {ipaddr}/{cidr}\nStrength: {signalStrength}%\nFrequency: {frequency} GHz",
-		"tooltip-format-disconnected": "Wi-Fi Disconnected",
-		"tooltip-format-disabled": "Wi-Fi Disabled"
-	}
+  "group/network": {
+    "orientation": "horizontal",
+    "modules": ["network#left", "network#right"],
+  },
+  "network#left": {
+    "interval": 1,
+    "format-wifi": "󰤨",
+    "format-ethernet": "󰈀",
+    "format-disconnected": "󰤭",
+    "format-disabled": "󰤮",
+    "on-click": "kitty --class system_menu --title system_menu -e ~/.config/waybar/scripts/network.sh",
+    "on-click-right": "kitty --class system_menu --title system_menu -e nmtui",
+    "tooltip-format": "Network\nDown: {bandwidthDownBytes}\nUp: {bandwidthUpBytes}\nGateway: {gwaddr}",
+    "tooltip-format-ethernet": "Interface: {ifname}\nDown: {bandwidthDownBytes}\nUp: {bandwidthUpBytes}",
+    "tooltip-format-wifi": "{essid}\nIP: {ipaddr}/{cidr}\nSignal: {signalStrength}%\nFrequency: {frequency} GHz\nDown: {bandwidthDownBytes}\nUp: {bandwidthUpBytes}",
+    "tooltip-format-disconnected": "Wi-Fi Disconnected",
+    "tooltip-format-disabled": "Wi-Fi Disabled",
+  },
+  "network#right": {
+    "interval": 1,
+    "format-wifi": "↓ {bandwidthDownBytes:>iu}\n↑ {bandwidthUpBytes:>iu}",
+    "format-ethernet": "↓ {bandwidthDownBytes:>3}\n↑ {bandwidthUpBytes:>3}",
+    "format-disconnected": "",
+    "format-disabled": "",
+    "on-click": "kitty --class system_menu --title system_menu -e ~/.config/waybar/scripts/network.sh",
+    "on-click-right": "kitty --class system_menu --title system_menu -e nmtui",
+    "tooltip-format": "Network\nDown: {bandwidthDownBytes}\nUp: {bandwidthUpBytes}\nGateway: {gwaddr}",
+    "tooltip-format-ethernet": "Interface: {ifname}\nDown: {bandwidthDownBytes}\nUp: {bandwidthUpBytes}",
+    "tooltip-format-wifi": "{essid}\nIP: {ipaddr}/{cidr}\nSignal: {signalStrength}%\nFrequency: {frequency} GHz\nDown: {bandwidthDownBytes}\nUp: {bandwidthUpBytes}",
+    "tooltip-format-disconnected": "Wi-Fi Disconnected",
+    "tooltip-format-disabled": "Wi-Fi Disabled",
+  },
 }

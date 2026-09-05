@@ -115,7 +115,7 @@ function hypr.focus_space(dir)
 		end
 		local id = space.id
 		hl.dispatch(hl.dsp.focus({ workspace = moveWorkSpace[dir](id) }))
-		return not id == hl.get_active_workspace().id
+		return id ~= hl.get_active_workspace().id
 	end
 end
 hypr.focus = function(dir)
@@ -131,6 +131,7 @@ end
 function hypr.swap_window(dir)
 	return wrap_dsp(hl.dsp.window.swap({ direction = dir_table[dir] or dir }))
 end
+hypr.swap_win = hypr.swap_window
 function hypr.toggle_float(float)
 	if float == nil then
 		return wrap_dsp(hl.dsp.window.float())
