@@ -15,6 +15,7 @@ local opts = {
 	crop_cmd = "magick",
 	crop_suffix = "-crop",
 	crop_min_pixels = 4,
+	crop_preview_fps = 30,
 }
 
 options.read_options(opts, "image_mode")
@@ -34,11 +35,13 @@ local slideshow_timer = nil
 local reset_timer = nil
 local saved_properties = nil
 local drag_cleanup = nil
-local crop_overlay = mp.create_osd_overlay("ass-events")
 local crop_mode = false
 local crop_selection = nil
-local crop_dragging = false
+local crop_tracking = false
+local crop_redraw_timer = nil
+local crop_dirty = false
 local refresh_overlay
+local draw_crop_overlay
 
 local function path_ext(path)
 	return path and path:match("%.([^./\\]+)$")
@@ -225,15 +228,64 @@ local function open_in_editor()
 end
 
 local function remove_crop_overlay()
-	crop_overlay:remove()
+	mp.set_osd_ass(0, 0, "")
+end
+
+local function mark_crop_dirty()
+	crop_dirty = true
+end
+
+local function stop_crop_redraw()
+	if crop_redraw_timer then
+		crop_redraw_timer:kill()
+		crop_redraw_timer = nil
+	end
+	crop_dirty = false
+end
+
+local function start_crop_redraw()
+	stop_crop_redraw()
+	local fps = tonumber(opts.crop_preview_fps) or 30
+	crop_redraw_timer = mp.add_periodic_timer(1 / math.max(1, fps), function()
+		if crop_dirty then
+			crop_dirty = false
+			draw_crop_overlay()
+		end
+	end)
 end
 
 local function stop_crop_drag()
-	crop_dragging = false
+	crop_tracking = false
 	mp.remove_key_binding("image-mode-crop-mouse-move")
 end
 
-local function video_rect()
+local function screen_size()
+	local w, h = mp.get_osd_size()
+	if not w or not h or w <= 0 or h <= 0 then
+		return nil
+	end
+	return { w = w, h = h }
+end
+
+local function crop_rect_screen()
+	if not crop_selection then
+		return nil
+	end
+	local size = screen_size()
+	if not size then
+		return nil
+	end
+	local x1 = clamp(math.min(crop_selection.x1, crop_selection.x2), 0, size.w)
+	local y1 = clamp(math.min(crop_selection.y1, crop_selection.y2), 0, size.h)
+	local x2 = clamp(math.max(crop_selection.x1, crop_selection.x2), 0, size.w)
+	local y2 = clamp(math.max(crop_selection.y1, crop_selection.y2), 0, size.h)
+	if x2 - x1 < 1 or y2 - y1 < 1 then
+		return nil
+	end
+	return { x1 = x1, y1 = y1, x2 = x2, y2 = y2 }
+end
+
+local function image_display_rect()
 	local dim = mp.get_property_native("osd-dimensions")
 	if not dim then
 		return nil
@@ -253,7 +305,7 @@ local function video_rect()
 	}
 end
 
-local function image_size()
+local function image_pixel_size()
 	local params = mp.get_property_native("video-params")
 	if type(params) ~= "table" then
 		return nil
@@ -266,37 +318,25 @@ local function image_size()
 	return { w = w, h = h }
 end
 
-local function crop_rect_screen()
-	if not crop_selection then
+local function crop_rect_image()
+	local screen = crop_rect_screen()
+	local display = image_display_rect()
+	local size = image_pixel_size()
+	if not screen or not display or not size then
 		return nil
 	end
-	local rect = video_rect()
-	if not rect then
-		return nil
-	end
-	local x1 = clamp(math.min(crop_selection.x1, crop_selection.x2), rect.x1, rect.x2)
-	local y1 = clamp(math.min(crop_selection.y1, crop_selection.y2), rect.y1, rect.y2)
-	local x2 = clamp(math.max(crop_selection.x1, crop_selection.x2), rect.x1, rect.x2)
-	local y2 = clamp(math.max(crop_selection.y1, crop_selection.y2), rect.y1, rect.y2)
+	local x1 = clamp(math.max(screen.x1, display.x1), display.x1, display.x2)
+	local y1 = clamp(math.max(screen.y1, display.y1), display.y1, display.y2)
+	local x2 = clamp(math.min(screen.x2, display.x2), display.x1, display.x2)
+	local y2 = clamp(math.min(screen.y2, display.y2), display.y1, display.y2)
 	if x2 - x1 < 1 or y2 - y1 < 1 then
 		return nil
 	end
-	return { x1 = x1, y1 = y1, x2 = x2, y2 = y2 }
-end
 
-local function crop_rect_image()
-	local screen = crop_rect_screen()
-	local rect = video_rect()
-	local size = image_size()
-	if not screen or not rect or not size then
-		return nil
-	end
-
-	local x = math.floor((screen.x1 - rect.x1) / rect.w * size.w + 0.5)
-	local y = math.floor((screen.y1 - rect.y1) / rect.h * size.h + 0.5)
-	local w = math.floor((screen.x2 - screen.x1) / rect.w * size.w + 0.5)
-	local h = math.floor((screen.y2 - screen.y1) / rect.h * size.h + 0.5)
-
+	local x = math.floor((x1 - display.x1) / display.w * size.w + 0.5)
+	local y = math.floor((y1 - display.y1) / display.h * size.h + 0.5)
+	local w = math.floor((x2 - x1) / display.w * size.w + 0.5)
+	local h = math.floor((y2 - y1) / display.h * size.h + 0.5)
 	x = clamp(x, 0, size.w - 1)
 	y = clamp(y, 0, size.h - 1)
 	w = clamp(w, 1, size.w - x)
@@ -304,35 +344,63 @@ local function crop_rect_image()
 	return { x = x, y = y, w = w, h = h }
 end
 
-local function draw_crop_overlay()
+draw_crop_overlay = function()
 	if not crop_mode then
 		remove_crop_overlay()
 		return
 	end
 
+	local size = screen_size()
+	if not size then
+		remove_crop_overlay()
+		return
+	end
 	local ass = assdraw.ass_new()
 	local screen = crop_rect_screen()
+	local cursor_x = crop_selection and crop_selection.x2
+	local cursor_y = crop_selection and crop_selection.y2
+	local add_rect = function(style, x1, y1, x2, y2)
+		x1 = math.floor(x1 + 0.5)
+		y1 = math.floor(y1 + 0.5)
+		x2 = math.floor(x2 + 0.5)
+		y2 = math.floor(y2 + 0.5)
+		if x2 <= x1 or y2 <= y1 then
+			return
+		end
+		ass:new_event()
+		ass:append(style)
+		ass:draw_start()
+		ass:pos(0, 0)
+		ass:rect_cw(x1, y1, x2, y2)
+		ass:draw_stop()
+	end
 	if screen then
-		ass:new_event()
-		ass:append("{\\an7\\bord0\\shad0\\1c&HFFFFFF&\\alpha&H80&}")
-		ass:draw_start()
-		ass:rect_cw(screen.x1, screen.y1, screen.x2, screen.y2)
-		ass:draw_stop()
-		ass:new_event()
-		ass:append("{\\an7\\bord2\\shad0\\1c&H00FFFF&\\3c&H000000&}")
-		ass:draw_start()
-		ass:move_to(screen.x1, screen.y1)
-		ass:line_to(screen.x2, screen.y1)
-		ass:line_to(screen.x2, screen.y2)
-		ass:line_to(screen.x1, screen.y2)
-		ass:line_to(screen.x1, screen.y1)
-		ass:draw_stop()
+		local x1 = math.floor(screen.x1 + 0.5)
+		local y1 = math.floor(screen.y1 + 0.5)
+		local x2 = math.floor(screen.x2 + 0.5)
+		local y2 = math.floor(screen.y2 + 0.5)
+		local dim = "{\\an7\\bord0\\shad0\\1c&H000000&\\alpha&H70&}"
+		local line = "{\\an7\\bord0\\shad0\\1c&H00FFFF&\\alpha&H00&}"
+		add_rect(dim, 0, 0, size.w, y1)
+		add_rect(dim, 0, y2, size.w, size.h)
+		add_rect(dim, 0, y1, x1, y2)
+		add_rect(dim, x2, y1, size.w, y2)
+		add_rect(line, x1, y1, x2, y1 + 2)
+		add_rect(line, x1, y2 - 2, x2, y2)
+		add_rect(line, x1, y1, x1 + 2, y2)
+		add_rect(line, x2 - 2, y1, x2, y2)
+	end
+	if size and cursor_x and cursor_y then
+		cursor_x = math.floor(clamp(cursor_x, 0, size.w) + 0.5)
+		cursor_y = math.floor(clamp(cursor_y, 0, size.h) + 0.5)
+		local cross = "{\\an7\\bord0\\shad0\\1c&H00FFFF&\\alpha&H20&}"
+		add_rect(cross, cursor_x, 0, cursor_x + 1, size.h)
+		add_rect(cross, 0, cursor_y, size.w, cursor_y + 1)
 	end
 	ass:new_event()
 	ass:pos(20, 20)
-	ass:append("{\\bord2\\shad0}crop: drag mouse, Enter save, Esc cancel")
-	crop_overlay.data = ass.text
-	crop_overlay:update()
+	ass:append("{\\bord2\\shad0}crop: move mouse, Enter save, Esc cancel")
+	mp.set_osd_ass(size.w, size.h, ass.text)
 end
 
 local function crop_output_path(path)
@@ -362,24 +430,23 @@ local function save_crop()
 		show("crop: selection too small")
 		return
 	end
-	if mp.get_property_number("video-rotate", 0) % 360 ~= 0 then
-		show("crop: reset rotation first")
-		return
-	end
 
 	local output = crop_output_path(path)
 	local geometry = string.format("%dx%d+%d+%d", crop.w, crop.h, crop.x, crop.y)
+	crop_mode = false
+	crop_selection = nil
+	stop_crop_drag()
+	stop_crop_redraw()
+	remove_crop_overlay()
+
 	mp.command_native_async({
 		name = "subprocess",
 		args = { opts.crop_cmd, path, "-auto-orient", "-crop", geometry, "+repage", output },
 		playback_only = false,
 	}, function(success, _, error_text)
 		if success then
-			crop_mode = false
-			crop_selection = nil
-			stop_crop_drag()
-			remove_crop_overlay()
 			show("crop saved: " .. output)
+			mp.commandv("loadfile", output, "append-play")
 		else
 			show("crop failed: " .. tostring(error_text))
 		end
@@ -390,6 +457,7 @@ local function cancel_crop(silent)
 	local was_active = crop_mode
 	crop_mode = false
 	stop_crop_drag()
+	stop_crop_redraw()
 	crop_selection = nil
 	remove_crop_overlay()
 	if was_active and not silent then
@@ -398,14 +466,25 @@ local function cancel_crop(silent)
 end
 
 local function toggle_crop_mode()
-	crop_mode = not crop_mode
-	crop_dragging = false
-	crop_selection = nil
 	if crop_mode then
-		draw_crop_overlay()
-	else
 		cancel_crop(true)
+		return
 	end
+
+	local x, y = mp.get_mouse_pos()
+	crop_mode = true
+	crop_tracking = true
+	crop_selection = { x1 = x, y1 = y, x2 = x, y2 = y }
+	start_crop_redraw()
+	mp.add_forced_key_binding("mouse_move", "image-mode-crop-mouse-move", function()
+		if crop_mode and crop_tracking and crop_selection then
+			local move_x, move_y = mp.get_mouse_pos()
+			crop_selection.x2 = move_x
+			crop_selection.y2 = move_y
+			mark_crop_dirty()
+		end
+	end)
+	draw_crop_overlay()
 end
 
 local function crop_drag(e)
@@ -414,23 +493,19 @@ local function crop_drag(e)
 	end
 	local x, y = mp.get_mouse_pos()
 	if e.event == "down" then
-		crop_dragging = true
+		save_crop()
+	end
+	return true
+end
+
+local function crop_reset_anchor(e)
+	if not crop_mode then
+		return false
+	end
+	if e.event == "down" then
+		local x, y = mp.get_mouse_pos()
+		crop_tracking = true
 		crop_selection = { x1 = x, y1 = y, x2 = x, y2 = y }
-		mp.add_forced_key_binding("mouse_move", "image-mode-crop-mouse-move", function()
-			if crop_mode and crop_dragging and crop_selection then
-				local move_x, move_y = mp.get_mouse_pos()
-				crop_selection.x2 = move_x
-				crop_selection.y2 = move_y
-				draw_crop_overlay()
-			end
-		end)
-		draw_crop_overlay()
-	elseif e.event == "up" then
-		stop_crop_drag()
-		if crop_selection then
-			crop_selection.x2 = x
-			crop_selection.y2 = y
-		end
 		draw_crop_overlay()
 	end
 	return true
@@ -653,6 +728,9 @@ local bindings = {
 	{ "t", "slideshow-up", function() set_slideshow(opts.slideshow_step) end },
 	{ "T", "slideshow-down", function() set_slideshow(-opts.slideshow_step) end },
 	{ "MBTN_LEFT", "drag-to-pan", drag_to_pan, { complex = true } },
+	{ "mouse_btn0", "drag-to-pan-legacy", drag_to_pan, { complex = true } },
+	{ "MBTN_RIGHT", "crop-reset-anchor", crop_reset_anchor, { complex = true } },
+	{ "mouse_btn2", "crop-reset-anchor-legacy", crop_reset_anchor, { complex = true } },
 	{ "WHEEL_UP", "wheel-zoom-in", function() zoom(opts.zoom_step) end },
 	{ "WHEEL_DOWN", "wheel-zoom-out", function() zoom(-opts.zoom_step) end },
 }
