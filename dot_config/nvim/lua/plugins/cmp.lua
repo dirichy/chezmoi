@@ -28,7 +28,9 @@ return {
 					return require("luasnip").expandable()
 				end,
 				"accept",
-				"fallback_to_mappings",
+				function()
+					return require("keyflow.util").feed_key("<enter>")
+				end,
 			},
 			["<tab>"] = {
 				function()
