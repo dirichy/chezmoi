@@ -102,8 +102,8 @@ return {
 			keyflow.mode.new({
 				name = "Math Environment Change",
 				mode = "n",
-				body = "m",
-				heads = {
+				trigger = "m",
+				maps = {
 					["<C-a>"] = {
 						action = function()
 							require("nvimtex.surround").upgrade_math()

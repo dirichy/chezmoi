@@ -660,7 +660,7 @@ return {
 					},
 				},
 				explorer = {
-					-- replace_netrw = true,
+					replace_netrw = false,
 				},
 				---@class snacks.image.Config
 				-- image = {

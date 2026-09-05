@@ -18,16 +18,16 @@ return {
 							local timer = vim.uv.new_timer()
 							timer:start(400, 0, function()
 								vim.schedule(function()
-									vim.cmd([[lua require("persistence").load()]])
+									require("persistence").load()
 								end)
 								timer:stop()
 								timer:close()
 							end)
 						else
-							vim.cmd([[lua require("persistence").load()]])
+							require("persistence").load()
 						end
 					else
-						vim.cmd([[lua require("persistence").load()]])
+						require("persistence").load()
 					end
 				end,
 				desc = "Load Session",
