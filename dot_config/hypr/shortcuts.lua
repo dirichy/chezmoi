@@ -58,12 +58,12 @@ function M.bind_navigation(kmap, wm)
 	-- end
 
 	local mouse_bindings = {
-		{ "mouse:276", "zen-browser", { "o", kmap.modifier.CTRL } },
-		{ "mouse:275", "zen-browser", { "i", kmap.modifier.CTRL } },
+		{ "mouse:276", "zen", { "i", kmap.modifier.CTRL } },
+		{ "mouse:275", "zen", { "o", kmap.modifier.CTRL } },
 		{ "mouse:276", "mpv", { "left" } },
 		{ "mouse:275", "mpv", { "right" } },
-		{ "mouse:276", "sioyek", { "u", kmap.modifier.CTRL } },
-		{ "mouse:275", "sioyek", { "d", kmap.modifier.CTRL } },
+		{ "mouse:276", "sioyek", { "i", kmap.modifier.CTRL } },
+		{ "mouse:275", "sioyek", { "o", kmap.modifier.CTRL } },
 		{
 			"mouse:276",
 			"steam_app_0",
