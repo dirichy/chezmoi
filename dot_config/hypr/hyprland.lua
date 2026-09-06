@@ -232,47 +232,28 @@ local im_state = {
 	wofi = false,
 	QQ = true,
 }
-local current_class = ""
-local function update_im_context(class)
-	if current_class == class then
-		return
+local restore_repeat_rate = 0
+hl.on("window.open", function(win)
+	local class = win.class or ""
+	if im_state[class] then
+		im.active()
 	end
-	coroutine.wrap(function()
-		local active = im.is_active()
-		im_state[current_class] = active
-		current_class = class
-		if im_state[class] then
-			im.active()
-		else
-			im.disable()
-		end
-	end)()
-end
+end)
 hl.on("window.active", function(win)
-	update_im_context(win.class or "")
-end)
-local function valid_layer(namespace)
-	if type(namespace) ~= "string" then
-		return true
-	end
-	namespace = namespace:lower()
-	if namespace == "hyprpaper" then
-		return false
-	end
-	if namespace:match("notif") then
-		return false
-	end
-end
-hl.on("layer.opened", function(layer)
-	local namespace = layer and (layer.namespace or layer.namespace_name) or ""
-	if namespace ~= "" and valid_layer(namespace) then
-		update_im_context(namespace)
-	end
-end)
-hl.on("layer.closed", function()
-	local win = hl.get_active_window()
-	if win then
-		update_im_context(win.class or "")
+	local class = win.class or ""
+	if class:match("^steam_app") then
+		if restore_repeat_rate == 0 then
+			restore_repeat_rate = hl.get_config("input.repeat_rate")
+			hl.config({ input = { repeat_rate = 0 } })
+		else
+			return
+		end
+	else
+		if restore_repeat_rate == 0 then
+			return
+		else
+			hl.config({ input = { repeat_rate = restore_repeat_rate } })
+		end
 	end
 end)
 hl.on(
@@ -283,7 +264,6 @@ hl.on(
 	end, 200, true)
 )
 hl.sunshine = require("sunshine")
-hl.timer(require("luv").run, { type = "repeat", timeout = 10 })
 require("window_focus_guard")
 -- example: foot --app-id=window-bg -o colors.alpha=0.0 [path-to-script]
 -- example: kitty --class=window-bg -o background_opacity=0.0 [path-to-script]
@@ -292,7 +272,7 @@ require("window_focus_guard")
 
 -- class is an EXACT match and NOT a regex! Use `hyprctl clients` to find it.
 -- You may match on `class` and/or `title`. pos_*/size_* are percentages.
-if hl.plugin.hyprwinwrap ~= nil then
+if hl.plugin.hyprwinwrap then
 	hl.plugin.hyprwinwrap.window({
 		class = "window-bg",
 		title = "window-bg",

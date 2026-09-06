@@ -2,7 +2,8 @@ local cmd = require("system.cmd").system
 local M = {}
 local fcitx_remote = "fcitx5-remote"
 M.active = function()
-	cmd({ fcitx_remote, "-o" }):await()
+	hl.exec_cmd(fcitx_remote .. " " .. "-o")
+	-- cmd({ fcitx_remote, "-o" }):await()
 end
 M.disable = function()
 	cmd({ fcitx_remote, "-c" }):await()
