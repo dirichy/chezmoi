@@ -72,7 +72,7 @@ unbind Left
 {{- $prefixBinds := list
   (dict "key" "i" "cmd" "display-popup -w 90% -h 90% -E btm -b")
   (dict "key" "?" "cmd" "list-keys -T prefix")
-  (dict "key" "C-e" "cmd" "new-window -n 'tmux.conf' \"sh -c '\\${EDITOR:-nvim} ~/.config/tmux && tmux source ~/.tmux.conf && tmux display \\\"Config reloaded\\\"'\"")
+  (dict "key" "C-e" "cmd" "new-window -n 'tmux.conf' \"sh -c '\\${EDITOR:-nvim} ~/.config/tmux && tmux source-file ~/.config/tmux/tmux.conf && tmux display \\\"Config reloaded\\\"'\"")
   (dict "key" "C-r" "cmd" "source-file ~/.config/tmux/tmux.conf \\; display \"Config reloaded\"")
   (dict "key" "t" "cmd" "new-window -c \"#{pane_current_path}\"")
   (dict "key" "\\\\" "cmd" "split-window -h -c \"#{pane_current_path}\"")

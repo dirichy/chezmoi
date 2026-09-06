@@ -81,25 +81,52 @@ hl.config({
 hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
 local terminal = "kitty"
 local browser = "zen || zen-browser"
+
+local function has_path(path)
+	local file = io.open(path, "r")
+	if file then
+		file:close()
+		return true
+	end
+	return false
+end
+
+local function command_ok(cmd)
+	local ok = os.execute(cmd)
+	return ok == true or ok == 0
+end
+
+local function has_nvidia()
+	return has_path("/proc/driver/nvidia/version") or has_path("/sys/module/nvidia")
+end
+
+local function has_proxy()
+	return command_ok("timeout 1 bash -c '</dev/tcp/127.0.0.1/7890' >/dev/null 2>&1")
+end
+
 local env_table = {
 	["QT_QPA_PLATFORMTHEME"] = "qt6ct",
 	["XCURSOR_SIZE"] = "24",
 	["HYPRCURSOR_SIZE"] = "24",
-	["LIBVA_DRIVER_NAME"] = "nvidia",
-	["__GLX_VENDOR_LIBRARY_NAME"] = "nvidia",
 	["ELECTRON_OZONE_PLATFORM_HINT"] = "auto",
-	["NVD_BACKEND"] = "direct",
-	["WLR_DRM_NO_ATOMIC"] = "1",
-	["GBM_BACKEND"] = "nvidia-drm",
 	["GTK_USE_PORTAL"] = "1",
 	["XMODIFIERS"] = "@im=fcitx",
 	["QT_QPA_PLATFORM"] = "wayland;xcb",
 	["QT_SCALE_FACTOR"] = "1",
 	["GDK_SCALE"] = "1",
-	["http_proxy"] = "http://127.0.0.1:7890",
-	["https_proxy"] = "http://127.0.0.1:7890",
-	["all_proxy"] = "socks5://127.0.0.1:7890",
 }
+if has_nvidia() then
+	env_table["LIBVA_DRIVER_NAME"] = "nvidia"
+	env_table["__GLX_VENDOR_LIBRARY_NAME"] = "nvidia"
+	env_table["NVD_BACKEND"] = "direct"
+	env_table["WLR_DRM_NO_ATOMIC"] = "1"
+	env_table["GBM_BACKEND"] = "nvidia-drm"
+end
+if has_proxy() then
+	env_table["http_proxy"] = "http://127.0.0.1:7890"
+	env_table["https_proxy"] = "http://127.0.0.1:7890"
+	env_table["all_proxy"] = "socks5://127.0.0.1:7890"
+end
 for key, value in pairs(env_table) do
 	hl.env(key, value)
 end

@@ -21,7 +21,6 @@ require("options")
 require("lazy_nvim")
 require("keymaps")
 require("autocmds")
-require("hypr")
 
 local function copy_diagnostics()
 	local buf = vim.api.nvim_get_current_buf()

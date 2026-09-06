@@ -6,6 +6,8 @@ DISPLAY_NUM=${WAYBAR_DDCUTIL_DISPLAY:-1}
 STEP=${WAYBAR_BRIGHTNESS_STEP:-5}
 STATE_DIR=${XDG_RUNTIME_DIR:-/tmp}
 STATE_FILE="$STATE_DIR/waybar_brightness.tmp"
+DDC_TARGET_FILE="$STATE_DIR/waybar_brightness_ddc_target_${DISPLAY_NUM}.tmp"
+DDC_LOCK_DIR="$STATE_DIR/waybar_brightness_ddc_${DISPLAY_NUM}.lock"
 BACKEND_FILE="$STATE_DIR/waybar_brightness_backend.tmp"
 SIGNAL=9
 
@@ -100,8 +102,32 @@ set_ddc() {
 	local value=$1
 
 	echo "$value" > "$STATE_FILE"
-	pkill -f "ddcutil.*setvcp 10" 2>/dev/null || true
-	(ddcutil --display "$DISPLAY_NUM" setvcp 10 "$value" >/dev/null 2>&1) &
+	printf '%s\n' "$value" > "${DDC_TARGET_FILE}.$$"
+	mv "${DDC_TARGET_FILE}.$$" "$DDC_TARGET_FILE"
+	ddc_worker &
+}
+
+ddc_worker() {
+	local target next_target
+
+	mkdir "$DDC_LOCK_DIR" 2>/dev/null || return
+	trap 'rmdir "$DDC_LOCK_DIR" 2>/dev/null || true' EXIT
+
+	while true; do
+		target=$(cat "$DDC_TARGET_FILE" 2>/dev/null || true)
+		is_number "$target" || return
+		target=$(clamp "$target")
+
+		ddcutil --display "$DISPLAY_NUM" setvcp 10 "$target" >/dev/null 2>&1 || return
+
+		next_target=$(cat "$DDC_TARGET_FILE" 2>/dev/null || true)
+		if [[ $next_target == "$target" ]]; then
+			rmdir "$DDC_LOCK_DIR" 2>/dev/null || true
+			next_target=$(cat "$DDC_TARGET_FILE" 2>/dev/null || true)
+			[[ $next_target == "$target" ]] && return
+			mkdir "$DDC_LOCK_DIR" 2>/dev/null || return
+		fi
+	done
 }
 
 set_brightness() {
