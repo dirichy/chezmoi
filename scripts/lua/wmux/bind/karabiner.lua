@@ -36,8 +36,8 @@ karabiner.feature = {
 	physicalmod = true,
 	virtualmod = true,
 }
-karabiner.vitualMod = {}
-karabiner._next_vitual_mod_value = 32
+karabiner.virtualMod = {}
+karabiner._next_virtual_mod_value = 32
 
 function karabiner.mod2int(mods)
 	if not mods then
@@ -133,13 +133,13 @@ function karabiner.int2mods(mod)
 	end
 	return flag and ret
 end
-function karabiner.int2vitualmods(mod)
+function karabiner.int2virtualmods(mod)
 	if not mod then
 		return nil
 	end
 	local flag = nil
 	local ret = {}
-	for index, value in pairs(karabiner.vitualMod) do
+	for index, value in pairs(karabiner.virtualMod) do
 		if mod & value ~= 0 then
 			ret[#ret + 1] = index
 			flag = true
@@ -251,7 +251,7 @@ karabiner.bind = function(key, mod, fn, conditions, priority, opts)
 	insert_binding(key, mod, to, conditions, priority)
 end
 
---- Create a vitual modifier with name `name` and key `key`.
+--- Create a virtual modifier with name `name` and key `key`.
 ---@param key string
 ---@param name string
 ---@param overload string|table|SHELL|nil if has any value, this modifier will be lazy, i.e., when press with other key, it will be mod; when pressed alone, it will trig `overload`
@@ -284,9 +284,9 @@ function karabiner.createmod(key, name, overload, conditions, fallback)
 			type = "basic",
 		})
 		return karabiner._modifier[name]
-	elseif karabiner.vitualMod[name] then
+	elseif karabiner.virtualMod[name] then
 		if conditions == INVALID then
-			return { mod = karabiner.vitualMod[name], fallback = fallback, virtual = true }
+			return { mod = karabiner.virtualMod[name], fallback = fallback, virtual = true }
 		end
 		insert_manipulator({
 			from = {
@@ -294,13 +294,13 @@ function karabiner.createmod(key, name, overload, conditions, fallback)
 			},
 			to = {
 				set_variable = {
-					name = "vitual_mod_" .. name,
+					name = "virtual_mod_" .. name,
 					value = 1,
 				},
 			},
 			to_after_key_up = {
 				set_variable = {
-					name = "vitual_mod_" .. name,
+					name = "virtual_mod_" .. name,
 					value = 0,
 				},
 			},
@@ -308,7 +308,7 @@ function karabiner.createmod(key, name, overload, conditions, fallback)
 			conditions = conditions,
 			type = "basic",
 		})
-		return { mod = karabiner.vitualMod[name], fallback = fallback, virtual = true }
+		return { mod = karabiner.virtualMod[name], fallback = fallback, virtual = true }
 	else
 		if conditions == INVALID then
 			return { fallback = fallback, virtual = true }
@@ -319,13 +319,13 @@ function karabiner.createmod(key, name, overload, conditions, fallback)
 			},
 			to = {
 				set_variable = {
-					name = "vitual_mod_" .. name,
+					name = "virtual_mod_" .. name,
 					value = 1,
 				},
 			},
 			to_after_key_up = {
 				set_variable = {
-					name = "vitual_mod_" .. name,
+					name = "virtual_mod_" .. name,
 					value = 0,
 				},
 			},
@@ -333,12 +333,12 @@ function karabiner.createmod(key, name, overload, conditions, fallback)
 			conditions = conditions,
 			type = "basic",
 		})
-		karabiner.vitualMod[name] = karabiner._next_vitual_mod_value
-		karabiner._next_vitual_mod_value = karabiner._next_vitual_mod_value * 2
-		for i = karabiner.vitualMod[name], karabiner._next_vitual_mod_value - 1 do
+		karabiner.virtualMod[name] = karabiner._next_virtual_mod_value
+		karabiner._next_virtual_mod_value = karabiner._next_virtual_mod_value * 2
+		for i = karabiner.virtualMod[name], karabiner._next_virtual_mod_value - 1 do
 			karabiner.bindlist[i] = {}
 		end
-		return { mod = karabiner.vitualMod[name], fallback = fallback, virtual = true }
+		return { mod = karabiner.virtualMod[name], fallback = fallback, virtual = true }
 	end
 end
 
@@ -348,13 +348,13 @@ function karabiner.print()
 		local mod_t = karabiner.bindlist[i]
 		for key, key_t in pairs(mod_t) do
 			for _, to in ipairs(key_t) do
-				local vitualmods = karabiner.int2vitualmods(mod)
+				local virtualmods = karabiner.int2virtualmods(mod)
 				local conditions = to.conditions
-				if vitualmods then
+				if virtualmods then
 					conditions = copy_conditions(to.conditions)
-					for _, vitualmod in ipairs(vitualmods) do
+					for _, virtualmod in ipairs(virtualmods) do
 						table.insert(conditions, {
-							name = "vitual_mod_" .. vitualmod,
+							name = "virtual_mod_" .. virtualmod,
 							type = "variable_if",
 							value = 1,
 						})

@@ -2,6 +2,25 @@ local module = {}
 
 function noop() end
 
+function module.debugEnabled()
+	if hs.g and hs.g.debug ~= nil then
+		return hs.g.debug
+	end
+
+	if hs.settings and hs.settings.get("debug") ~= nil then
+		return hs.settings.get("debug")
+	end
+
+	local env = os.getenv("HAMMERSPOON_DEBUG")
+	return env == "1" or env == "true" or env == "yes"
+end
+
+function module.debugPrint(...)
+	if module.debugEnabled() then
+		print(...)
+	end
+end
+
 function module.debounce(func, delay)
 	local timer = nil
 

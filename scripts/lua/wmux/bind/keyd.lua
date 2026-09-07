@@ -31,10 +31,10 @@ local keyd_mod = {
 }
 
 local keyd_layer = {
-	[M.modifier.SHIFT] = "vitualS",
-	[M.modifier.CTRL] = "vitualC",
-	[M.modifier.ALT] = "vitualA",
-	[M.modifier.SUPER] = "vitualM",
+	[M.modifier.SHIFT] = "virtualS",
+	[M.modifier.CTRL] = "virtualC",
+	[M.modifier.ALT] = "virtualA",
+	[M.modifier.SUPER] = "virtualM",
 }
 
 local modifier_alias = {
@@ -237,7 +237,7 @@ function M.createmod(key, name, overload, conditions, fallback)
 		warn("ignoring virtual modifier without fallback: " .. name)
 		return nil
 	end
-	local layer = mod and keyd_layer[mod] or "vitual" .. name:sub(1, 1):upper() .. name:sub(2)
+	local layer = mod and keyd_layer[mod] or "virtual" .. name:sub(1, 1):upper() .. name:sub(2)
 	local to = "layer(" .. layer .. ")"
 	if overload then
 		to = "overload(" .. layer .. "," .. convert_to(overload) .. ")"

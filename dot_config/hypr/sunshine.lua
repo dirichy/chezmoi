@@ -74,7 +74,7 @@ function M.enable_default()
 	hl.monitor({
 		output = M.default_monitor and M.default_monitor.name or "",
 		-- mode = "3840x2160@60",
-		mode = "prefered",
+		mode = "preferred",
 		position = "auto-up",
 		scale = M.default_monitor and M.default_monitor.height == 2160 and 2.5 or 2,
 	})
@@ -89,7 +89,7 @@ function M.reset()
 	-- hl.monitor({
 	-- 	output = M.default_monitor and M.default_monitor.name or "",
 	-- 	-- mode = "3840x2160@60",
-	-- 	mode = "prefered",
+	-- 	mode = "preferred",
 	-- 	-- position = "0x0",
 	-- 	scale = M.default_monitor and M.default_monitor.height == 2160 and 2.5 or 2,
 	-- })

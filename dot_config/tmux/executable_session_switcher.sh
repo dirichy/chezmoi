@@ -2,20 +2,20 @@
 
 # Open window to select tmux session to switch to
 
-local result=$(tmux list-sessions | ~/.config/tmux/fzfp.sh | awk -F: '{print $1}')
+result=$(tmux list-sessions | ~/.config/tmux/fzfp.sh | awk -F: '{print $1}')
 
 if [[ -z $result ]]; then
-    return 0
+    exit 0
 fi
 
 curr_session=$(tmux display-message -p '#S')
 
 if [[ $curr_session == $result ]]; then
-    return 0
+    exit 0
 fi
 
 if [[ -v TMUX ]]; then
-    tmux switch-client -t $result
+    tmux switch-client -t "$result"
 else
     tmux attach -t "$result"
 fi

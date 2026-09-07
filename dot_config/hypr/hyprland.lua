@@ -11,7 +11,7 @@ require("monitor").setup()
 -- hl.monitor({
 -- 	output = "",
 -- 	-- mode = "3840x2160@60",
--- 	mode = "prefered",
+-- 	mode = "preferred",
 -- 	-- position = "0x0",
 -- 	scale = 2.5,
 -- })

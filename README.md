@@ -79,8 +79,8 @@ command = "{{ joinPath .chezmoi.sourceDir "tools" "gopass-safe" }}"
 
 依赖安装脚本：
 
-- Arch Linux: `run_onchange_after_install-pacakges-archlinux.sh.tmpl`
-- macOS: `run_onchange_after_install-pacakges-macos.sh.tmpl`
+- Arch Linux: `run_onchange_after_install-packages-archlinux.sh.tmpl`
+- macOS: `run_onchange_after_install-packages-macos.sh.tmpl`
 
 Arch 主要依赖：
 
@@ -130,7 +130,6 @@ private_Library/LaunchAgents       macOS launchd services
 Linux 桌面以 Hyprland 为主，入口是：
 
 - `~/.config/hypr/hyprland.lua`
-- `~/.config/hypr/shortcuts.lua`
 - `~/scripts/lua/wmux.lua`
 
 主要功能：
@@ -141,12 +140,13 @@ Linux 桌面以 Hyprland 为主，入口是：
 - NVIDIA/Wayland/Electron/Fcitx 相关环境变量
 - 针对 QQ、微信、Sioyek、mpv、pavucontrol 等窗口规则
 - `keyd.lua` 支持按当前窗口动态调整 keyd 绑定
+- 双系统配置nopasswd后可以一键切系统。需要免密sudo执行grub-reboot和reboot。
 
 相关服务：
 
-- `mihomo_config_server.service`: 在 `~/.config/mihomo` 起 HTTP server
-- `fdu-connect.service`: 复旦 VPN
-- `ssh-tunnel@.service`: 反向 SSH tunnel
+- `mihomo_config_server.service`: 在 `~/.config/mihomo` 起 HTTP server，用于给局域网其他设备提供定阅。
+- `fdu-connect.service`: 复旦 VPN，一个账号只能登录在一台设备，不然有bug。可以一个设备然后局域网共享。
+- `ssh-tunnel@.service`: 反向 SSH tunnel，用于在外网中转访问内网，需要有服务器。
 
 反向 SSH tunnel 示例：
 
@@ -160,7 +160,7 @@ Waybar 配置在 `dot_config/waybar`。
 
 特性：
 
-- Catppuccin Frappe 固定配色
+- Catppuccin 主题配色
 - 模块按 `modules/`, `modules/custom/`, `modules/hyprland/` 拆分
 - chezmoi 动态检测电池：台式机隐藏 battery，笔记本显示 battery
 - CPU 常驻，GPU/memory/temperature 放入系统监控抽屉
@@ -191,18 +191,18 @@ Hammerspoon 功能：
 - 输入法/Rime 辅助
 - Wi-Fi 相关静音逻辑
 - Cmd-Q 防误触
-- 通过 Spoon 安装 `Caffeine` 和 `EmmyLua`
+- `Caffeine` 模块防止电脑休眠。
 
 Karabiner 功能：
 
 - `fn` 切换 Fcitx5 输入法
 - Moonlight 场景下交换 Command/Option，统一远程控制体验
 - Joy-Con 控制 Sioyek
-- 部分规则由 `lua_keymapper` 生成
+- 部分规则由 `wmux` 生成，与linux有一样的平铺桌面keybind。
 
-AeroSpace/Yabai 功能：
+Yabai 功能：
 
-- Vim 风格窗口导航
+- 由`wmux`生成的与`hyprland`一样的keybind。
 - 1-9 工作区
 - 浮动窗口规则
 - mpv/Moonlight 全屏规则
@@ -310,8 +310,7 @@ SSH 配置在 `dot_ssh/config.tmpl`：
 `dot_local/bin` 提供本地命令：
 
 - `hyprmonitor`: 读取当前 Hyprland monitor 字段
-- `lua_keymapper`: 生成 Karabiner/keyd/WM 相关 keymap
-- `qq`, `tencentqq`: Linux QQ/Hyprland wrapper
+- `qq` : Linux QQ/Hyprland wrapper
 - `sioyek`: 强制 Sioyek 使用 xcb
 - `sunshine_pre`: Sunshine 启动前显示器布局处理
 - `toggle_proxy`: macOS 网络代理开关

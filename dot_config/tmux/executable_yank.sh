@@ -13,34 +13,35 @@ copy_backend_remote_tunnel_port=$(tmux show-option -gvq "@copy_backend_remote_tu
 copy_use_osc52_fallback=$(tmux show-option -gvq "@copy_use_osc52_fallback")
 
 # Resolve copy backend: pbcopy (OSX), reattach-to-user-namespace (OSX), xclip/xsel (Linux)
-copy_backend=""
+copy_backend=()
 if is_app_installed pbcopy; then
-  copy_backend="pbcopy"
+  copy_backend=(pbcopy)
 elif is_app_installed reattach-to-user-namespace; then
-  copy_backend="reattach-to-user-namespace pbcopy"
+  copy_backend=(reattach-to-user-namespace pbcopy)
 elif [ -n "${DISPLAY-}" ] && is_app_installed xsel; then
-  copy_backend="xsel -i --clipboard"
+  copy_backend=(xsel -i --clipboard)
 elif [ -n "${DISPLAY-}" ] && is_app_installed xclip; then
-  copy_backend="xclip -i -f -selection primary | xclip -i -selection clipboard"
+  printf "%s" "$buf" | xclip -i -f -selection primary | xclip -i -selection clipboard
+  exit
 elif [ -n "${DISPLAY-}" ] && is_app_installed wl-copy; then
-  copy_backend="wl-copy"
+  copy_backend=(wl-copy)
 elif [ -n "${copy_backend_remote_tunnel_port-}" ] \
     && (netstat -f inet -nl 2>/dev/null || netstat -4 -nl 2>/dev/null) \
       | grep -q "[.:]$copy_backend_remote_tunnel_port"; then
-  copy_backend="nc localhost $copy_backend_remote_tunnel_port"
+  copy_backend=(nc localhost "$copy_backend_remote_tunnel_port")
 fi
 
 # if copy backend is resolved, copy and exit
-if [ -n "$copy_backend" ]; then
-  printf "%s" "$buf" | eval "$copy_backend"
-  exit;
+if [ "${#copy_backend[@]}" -gt 0 ]; then
+  printf "%s" "$buf" | "${copy_backend[@]}"
+  exit
 fi
 
 
 # If no copy backends were eligible, decide to fallback to OSC 52 escape sequences
 # Note, most terminals do not handle OSC
 if [ "$copy_use_osc52_fallback" == "off" ]; then
-  exit;
+  exit
 fi
 
 # Copy via OSC 52 ANSI escape sequence to controlling terminal

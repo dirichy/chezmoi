@@ -1,4 +1,5 @@
 local M = {}
+local utils = require("utils")
 M.utiIdentifier = "com.hammerspoon.dirichy"
 ---@type string|number
 M.currentRegister = '"'
@@ -66,6 +67,6 @@ M.pasteboardWatcher = hs.timer.new(0.25, function()
 end)
 M.pasteboardWatcher:start()
 function M.showAll()
-	print(hs.inspect(M.RegisterCache))
+	utils.debugPrint(hs.inspect(M.RegisterCache))
 end
 return M

@@ -1,7 +1,7 @@
 local M = {}
 M.config = {
 	output = "",
-	mode = "prefered",
+	mode = "preferred",
 	-- position = "0x0",
 	scale = nil,
 }
