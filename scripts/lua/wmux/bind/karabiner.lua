@@ -3,6 +3,7 @@ local karabiner = {}
 local SHELL = require("wmux.shell")
 local log = require("wmux.log")
 local INVALID = {}
+local ALWAYS = {}
 local function warn(message)
 	log.warn("karabiner", message)
 end
@@ -64,9 +65,27 @@ function karabiner.mod2int(mods)
 end
 
 local JSON = require("cjson")
+local function print_json(value)
+	local json = JSON.encode(value)
+	local has_jq = os.execute("command -v jq >/dev/null 2>&1")
+	if has_jq == true or has_jq == 0 then
+		local jq = io.popen("jq .", "w")
+		if jq then
+			jq:write(json)
+			if jq:close() then
+				return
+			end
+		end
+	end
+	print(json)
+end
+
 karabiner.condition = {
 	always = function()
-		return nil
+		return ALWAYS
+	end,
+	moonlight = function()
+		return karabiner.condition.application("^com\\.moonlight-stream\\.Moonlight$")
 	end,
 	not_moonlight = function()
 		return karabiner.condition.application_unless("^com\\.moonlight-stream\\.Moonlight$")
@@ -166,6 +185,9 @@ local function normalize_conditions(conditions)
 	if not conditions then
 		return nil
 	end
+	if conditions == ALWAYS then
+		return nil
+	end
 	if type(conditions) == "string" then
 		return karabiner.condition.application(conditions)
 	end
@@ -177,13 +199,6 @@ local function normalize_conditions(conditions)
 		return karabiner.condition.application(conditions)
 	end
 	return conditions
-end
-
-local function has_fn(mod)
-	if not mod then
-		return false
-	end
-	return mod & karabiner.modifier.FN ~= 0
 end
 
 local function copy_conditions(conditions)
@@ -230,13 +245,10 @@ karabiner.bind = function(key, mod, fn, conditions, priority, opts)
 	priority = priority or (explicit_conditions and 100 or 1)
 	if explicit_conditions then
 		conditions = normalize_conditions(conditions)
-	elseif not has_fn(mod) then
+	else
 		conditions = karabiner.condition.not_moonlight()
 	end
 	insert_binding(key, mod, to, conditions, priority)
-	if not explicit_conditions and not has_fn(mod) then
-		insert_binding(key, mod + karabiner.modifier.FN, to, nil, priority)
-	end
 end
 
 --- Create a vitual modifier with name `name` and key `key`.
@@ -253,18 +265,6 @@ function karabiner.createmod(key, name, overload, conditions, fallback)
 	end
 	local function insert_manipulator(manipulator)
 		table.insert(karabiner.rule.manipulators, manipulator)
-		if not explicit_conditions then
-			local fn_manipulator = {}
-			for k, v in pairs(manipulator) do
-				fn_manipulator[k] = v
-			end
-			fn_manipulator.from = {
-				key_code = key,
-				modifiers = { mandatory = { "fn" } },
-			}
-			fn_manipulator.conditions = nil
-			table.insert(karabiner.rule.manipulators, fn_manipulator)
-		end
 	end
 	if karabiner._modifier[name] then
 		if conditions == INVALID then
@@ -384,6 +384,6 @@ function karabiner.print()
 			end
 		end
 	end
-	print(JSON.encode(karabiner.rule))
+	print_json(karabiner.rule)
 end
 return karabiner

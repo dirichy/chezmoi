@@ -2,10 +2,11 @@
 local source = debug.getinfo(1, "S").source
 local script = source:sub(1, 1) == "@" and source:sub(2) or nil
 local script_dir = script and script:match("^(.*)/[^/]*$")
+local home_lua_path = os.getenv("HOME") .. "/scripts/lua/?.lua;"
+package.path = home_lua_path .. package.path
 if script_dir then
 	package.path = script_dir .. "/?.lua;" .. package.path
 end
-package.path = os.getenv("HOME") .. "/scripts/lua/?.lua;" .. package.path
 local wm = require("wmux.wm")
 local kmap = require("wmux.bind")
 local apps = require("wmux.applauncher")
@@ -18,6 +19,7 @@ local FN = kmap.modifier.FN
 local winmod = SUPER
 local sysmod = SUPER + CTRL
 local appmod = ALT
+local always = kmap.condition and kmap.condition.always and kmap.condition.always() or nil
 for _, dir in ipairs({ "h", "j", "k", "l" }) do
 	kmap.bind(dir, winmod, wm.focus(dir))
 	kmap.bind(dir, winmod + SHIFT, wm.swap_win(dir))
@@ -34,7 +36,7 @@ for i = 1, 9 do
 	kmap.bind(tostring(i), winmod, wm.move_to_space(i))
 	kmap.bind(tostring(i), winmod + SHIFT, wm.move_win_to_space(i))
 	if FN then
-		kmap.bind(tostring(i), FN, wm.move_to_space(i))
+		kmap.bind(tostring(i), FN, wm.move_to_space(i), always)
 	end
 end
 -- kmap.bind("backspace", winmod, wm.move_to_space(11))
@@ -71,9 +73,25 @@ if kmap.feature and kmap.feature.physicalmod then
 end
 if kmap.feature and kmap.feature.createmod then
 	local esc_overload = arg and arg[1] == "keyd" and "`" or nil
-	local ESC = kmap.createmod("escape", "esc", esc_overload, nil, fallbackmod)
+	local ESC = kmap.createmod(
+		"escape",
+		"esc",
+		esc_overload,
+		always,
+		fallbackmod
+	)
 	kmap.bind("1", ESC, wm.capture_screen())
 	kmap.bind("2", ESC, wm.capture_screen(true))
+	if kmap.condition and kmap.condition.moonlight then
+		local moonlight = kmap.condition.moonlight()
+		local moonlight_exit_mod = CTRL + SUPER + SHIFT
+		kmap.bind("left_command", 0, "left_option", moonlight)
+		kmap.bind("left_option", 0, "left_command", moonlight)
+		kmap.bind("q", ESC, { "q", moonlight_exit_mod }, moonlight)
+		kmap.bind("z", ESC, { "z", moonlight_exit_mod }, moonlight)
+		kmap.bind("f", ESC, { "x", moonlight_exit_mod }, moonlight)
+		kmap.bind("v", ESC, { "v", moonlight_exit_mod }, moonlight)
+	end
 end
 if kmap.print then
 	kmap.print()
