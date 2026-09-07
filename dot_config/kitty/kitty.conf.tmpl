@@ -9,8 +9,11 @@
 # italic_font      auto
 # bold_italic_font auto
 # Run `kitten choose-fonts` when selecting a specific font family.
-
+{{- if eq .chezmoi.os "darwin" }}
+font_size 17.0
+{{- else }}
 font_size 15.0
+{{- end }}
 
 # Useful if a coding font's ligatures get in the way while editing.
 # disable_ligatures never
@@ -175,9 +178,10 @@ allow_remote_control yes
   (dict "key" "left" "cmd" "resize_window narrower 1")
   (dict "key" "right" "cmd" "resize_window wider 1")
 -}}
+{{ $kittyConfigDir := joinPath .chezmoi.homeDir ".config" "kitty" -}}
 {{ $toolBinds := list
   (dict "key" "i" "cmd" "launch --type=overlay --cwd=current btm -b")
-  (dict "key" "ctrl+e" "cmd" "launch --type=tab --tab-title=kitty.conf --cwd=/home/dirichy/.config/kitty nvim /home/dirichy/.config/kitty/kitty.conf")
+  (dict "key" "ctrl+e" "cmd" (printf "launch --type=tab --tab-title=kitty.conf --cwd=%s nvim %s" $kittyConfigDir (joinPath $kittyConfigDir "kitty.conf")))
   (dict "key" "ctrl+r" "cmd" "load_config_file")
 -}}
 {{ $hintBinds := list
