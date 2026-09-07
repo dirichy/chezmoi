@@ -6,6 +6,18 @@ return {
 		config = function()
 			local keyflow = require("keyflow")
 			keyflow.mode.new({
+				name = "Vitual move cursor",
+				vimmode = "n",
+				trigger = "g",
+				maps = {
+					j = "gj",
+					k = "gk",
+					h = "h",
+					l = "l",
+				},
+				hint = true,
+			})
+			keyflow.mode.new({
 				name = "Move Screen",
 				vimmode = "n",
 				trigger = "z",
@@ -72,7 +84,6 @@ return {
 				{ "<leader>ol", "<cmd>Lazy<cr>", desc = "Open Lazy" },
 				-- { "<leader>om", "<cmd>Mason<cr>", desc = "Open Mason(for LSP install)", icon = "" },
 			})
-			-- wk.add(require("mapper").which_key_spec)
 		end,
 	},
 }
