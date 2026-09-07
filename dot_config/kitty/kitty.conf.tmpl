@@ -135,6 +135,9 @@ allow_remote_control yes
 # Toggle this whole leader layer with Ctrl+Alt+Shift+F. In disabled mode, keys
 # pass through to programs such as tmux until Ctrl+Alt+Shift+F is pressed again.
 {{ $hideTabBar := "remote_control load-config --override tab_bar_min_tabs=999" -}}
+{{ $leaderImScript := joinPath .chezmoi.homeDir ".config" "kitty" "leader-im.sh" -}}
+{{ $leaderImEnter := printf "launch --type=background --keep-focus %s enter" $leaderImScript -}}
+{{ $leaderImRestore := printf "launch --type=background --keep-focus %s restore" $leaderImScript -}}
 {{ $leaderBinds := list
   (dict "key" "ctrl+g" "cmd" "pop_keyboard_mode")
   (dict "key" "ctrl+f" "cmd" "send_key ctrl+f")
@@ -190,38 +193,38 @@ allow_remote_control yes
 map --new-mode kitty_leader_disabled --on-unknown=passthrough ctrl+alt+shift+f
 map --mode kitty_leader_disabled ctrl+alt+shift+f pop_keyboard_mode
 map --new-mode kitty_leader --on-action=end --on-unknown=end f13 noop
-map ctrl+f combine : remote_control load-config --override tab_bar_min_tabs=1 : push_keyboard_mode kitty_leader
+map ctrl+f combine : {{ $leaderImEnter }} : remote_control load-config --override tab_bar_min_tabs=1 : push_keyboard_mode kitty_leader
 {{- range $leaderBinds }}
-map --mode kitty_leader {{ .key }} combine : {{ .cmd }} : {{ $hideTabBar }}
+map --mode kitty_leader {{ .key }} combine : {{ .cmd }} : {{ $leaderImRestore }} : {{ $hideTabBar }}
 {{- end }}
 
 # Tabs: tmux windows map to kitty tabs.
 {{- range $tabBinds }}
-map --mode kitty_leader {{ .key }} combine : {{ .cmd }} : {{ $hideTabBar }}
+map --mode kitty_leader {{ .key }} combine : {{ .cmd }} : {{ $leaderImRestore }} : {{ $hideTabBar }}
 {{- end }}
 {{- range $i := untilStep 1 10 1 }}
-map --mode kitty_leader {{ $i }} combine : goto_tab {{ $i }} : {{ $hideTabBar }}
+map --mode kitty_leader {{ $i }} combine : goto_tab {{ $i }} : {{ $leaderImRestore }} : {{ $hideTabBar }}
 {{- end }}
-map --mode kitty_leader 0 combine : goto_tab 10 : {{ $hideTabBar }}
+map --mode kitty_leader 0 combine : goto_tab 10 : {{ $leaderImRestore }} : {{ $hideTabBar }}
 
 # Panes: tmux panes map to kitty windows inside a tab.
 {{- range $paneBinds }}
-map --mode kitty_leader {{ .key }} combine : {{ .cmd }} : {{ $hideTabBar }}
+map --mode kitty_leader {{ .key }} combine : {{ .cmd }} : {{ $leaderImRestore }} : {{ $hideTabBar }}
 {{- end }}
 
 # Resize panes, matching the tmux arrow-key prefix bindings.
 {{- range $resizeBinds }}
-map --mode kitty_leader {{ .key }} combine : {{ .cmd }} : {{ $hideTabBar }}
+map --mode kitty_leader {{ .key }} combine : {{ .cmd }} : {{ $leaderImRestore }} : {{ $hideTabBar }}
 {{- end }}
 
 # Popup-like tools.
 {{- range $toolBinds }}
-map --mode kitty_leader {{ .key }} combine : {{ .cmd }} : {{ $hideTabBar }}
+map --mode kitty_leader {{ .key }} combine : {{ .cmd }} : {{ $leaderImRestore }} : {{ $hideTabBar }}
 {{- end }}
 
 # Keyboard selection/copy helpers, complementing the nvim scrollback pager.
 {{- range $hintBinds }}
-map --mode kitty_leader {{ .key }} combine : {{ .cmd }} : {{ $hideTabBar }}
+map --mode kitty_leader {{ .key }} combine : {{ .cmd }} : {{ $leaderImRestore }} : {{ $hideTabBar }}
 {{- end }}
 
 # ==============================
