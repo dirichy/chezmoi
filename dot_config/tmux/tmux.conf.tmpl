@@ -13,6 +13,7 @@ set -g display-time 1500
 set -g remain-on-exit off
 set -g repeat-time 300
 setw -g automatic-rename off
+# Let tmux-wrapped terminal escapes such as OSC 1337 reach kitty.
 set -gq allow-passthrough on
 #TODO:need to test
 setw -g aggressive-resize on
@@ -111,9 +112,9 @@ bind -r {{ .key }} {{ .cmd }} {{ $hideStatus }}
 {{- end }}
 
 {{- range $i := untilStep 1 10 1 }}
-bind {{ $i }} select-window -t {{ $i }} {{ $hideStatus }}
+bind {{ $i }} if-shell -b "tmux has-session -t '#{session_name}:{{ $i }}'" "select-window -t {{ $i }}" "new-window -t {{ $i }} -c '#{pane_current_path}'" {{ $hideStatus }}
 {{- end }}
-bind 0 select-window -t 10 {{ $hideStatus }}
+bind 0 if-shell -b "tmux has-session -t '#{session_name}:10'" "select-window -t 10" "new-window -t 10 -c '#{pane_current_path}'" {{ $hideStatus }}
 
 unbind |
 # bind | split-window -v -c "#{pane_current_path}"
