@@ -3,13 +3,21 @@
 set -euo pipefail
 
 usage() {
-	printf 'usage: %s temp_ascii|restore\n' "${0##*/}" >&2
+	printf 'usage: %s temp_ascii|restore|reset\n' "${0##*/}" >&2
 }
 
 case "${1:-}" in
-	temp_ascii | restore) value=$1 ;;
+	temp_ascii | restore | reset) value=$1 ;;
 	*) usage; exit 2 ;;
 esac
 
 encoded=$(printf '%s' "$value" | base64 | tr -d '\n')
-printf '\033]1337;SetUserVar=im=%s\007' "$encoded"
+osc=$(printf '\033]1337;SetUserVar=im=%s\033\\' "$encoded")
+
+if [ -n "${TMUX:-}" ]; then
+	esc=$'\033'
+	tmux_payload=${osc//$esc/$esc$esc}
+	printf '\033Ptmux;%s\033\\' "$tmux_payload"
+else
+	printf '%s' "$osc"
+fi
