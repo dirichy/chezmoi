@@ -21,7 +21,7 @@ current_state() {
 	printf '%s' "$output" | tr -d '[:space:]'
 }
 
-enter() {
+temp_ascii() {
 	has_remote || exit 0
 	ensure_state_dir
 
@@ -53,7 +53,7 @@ restore() {
 }
 
 case "${1:-}" in
-	enter) enter ;;
+	temp_ascii) temp_ascii ;;
 	restore) restore ;;
 	*) exit 2 ;;
 esac

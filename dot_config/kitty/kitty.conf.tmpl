@@ -128,6 +128,9 @@ scrollback_pager nvim --cmd 'set clipboard=unnamedplus' --cmd 'set eventignore=F
 
 # Required for leader mappings that temporarily show/hide the tab bar.
 allow_remote_control yes
+{{- if eq .chezmoi.os "linux" }}
+watcher {{ joinPath .chezmoi.homeDir ".config" "kitty" "im-control.py" }}
+{{- end }}
 
 # Safer alternatives if remote control ever needs to be exposed beyond local TTY.
 # listen_on unix:@kitty
@@ -139,7 +142,7 @@ allow_remote_control yes
 # pass through to programs such as tmux until Ctrl+Alt+Shift+F is pressed again.
 {{ $hideTabBar := "remote_control load-config --override tab_bar_min_tabs=999" -}}
 {{ $leaderImScript := joinPath .chezmoi.homeDir ".config" "kitty" "leader-im.sh" -}}
-{{ $leaderImEnter := printf "launch --type=background --keep-focus %s enter" $leaderImScript -}}
+{{ $leaderImTempAscii := printf "launch --type=background --keep-focus %s temp_ascii" $leaderImScript -}}
 {{ $leaderImRestore := printf "launch --type=background --keep-focus %s restore" $leaderImScript -}}
 {{ $leaderBinds := list
   (dict "key" "ctrl+g" "cmd" "pop_keyboard_mode")
@@ -197,7 +200,7 @@ allow_remote_control yes
 map --new-mode kitty_leader_disabled --on-unknown=passthrough ctrl+alt+shift+f
 map --mode kitty_leader_disabled ctrl+alt+shift+f pop_keyboard_mode
 map --new-mode kitty_leader --on-action=end --on-unknown=end f13 noop
-map ctrl+f combine : {{ $leaderImEnter }} : remote_control load-config --override tab_bar_min_tabs=1 : push_keyboard_mode kitty_leader
+map ctrl+f combine : {{ $leaderImTempAscii }} : remote_control load-config --override tab_bar_min_tabs=1 : push_keyboard_mode kitty_leader
 {{- range $leaderBinds }}
 map --mode kitty_leader {{ .key }} combine : {{ .cmd }} : {{ $leaderImRestore }} : {{ $hideTabBar }}
 {{- end }}

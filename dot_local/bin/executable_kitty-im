@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+usage() {
+	printf 'usage: %s temp_ascii|restore\n' "${0##*/}" >&2
+}
+
+case "${1:-}" in
+	temp_ascii | restore) value=$1 ;;
+	*) usage; exit 2 ;;
+esac
+
+encoded=$(printf '%s' "$value" | base64 | tr -d '\n')
+printf '\033]1337;SetUserVar=im=%s\007' "$encoded"
