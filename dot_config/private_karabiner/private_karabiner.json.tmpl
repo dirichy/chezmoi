@@ -33,7 +33,6 @@
                 ],
                 "type": "basic"
               },
-{{ output (joinPath .chezmoi.sourceDir "scripts" "lua" "executable_wmux.lua") "karabiner" | trim | indent 14 }},
               {
                 "from": {
                   "apple_vendor_top_case_key_code": "keyboard_fn"
@@ -53,6 +52,7 @@
               }
             ]
           },
+{{ output (joinPath .chezmoi.sourceDir "scripts" "lua" "executable_wmux.lua") "karabiner" | trim | indent 10 }},
           {
             "description": "Keybind for using joycon to control sioyek, see github.com/dirichy/dotfiles",
             "manipulators": [
