@@ -210,9 +210,9 @@ map --mode kitty_leader {{ .key }} combine : {{ .cmd }} : {{ $leaderImRestore }}
 map --mode kitty_leader {{ .key }} combine : {{ .cmd }} : {{ $leaderImRestore }} : {{ $hideTabBar }}
 {{- end }}
 {{- range $i := untilStep 1 10 1 }}
-map --mode kitty_leader {{ $i }} combine : goto_tab {{ $i }} : {{ $leaderImRestore }} : {{ $hideTabBar }}
+map --mode kitty_leader {{ $i }} combine : kitten goto-tab-or-new.py {{ $i }} : {{ $leaderImRestore }} : {{ $hideTabBar }}
 {{- end }}
-map --mode kitty_leader 0 combine : goto_tab 10 : {{ $leaderImRestore }} : {{ $hideTabBar }}
+map --mode kitty_leader 0 combine : kitten goto-tab-or-new.py 10 : {{ $leaderImRestore }} : {{ $hideTabBar }}
 
 # Panes: tmux panes map to kitty windows inside a tab.
 {{- range $paneBinds }}
