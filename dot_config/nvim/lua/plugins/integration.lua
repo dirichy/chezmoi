@@ -3,11 +3,14 @@ return {
 		vim.fn.isdirectory(vim.env.HOME .. "/imselect.nvim/") == 0 and "dirichy/imselect.nvim",
 		dir = vim.fn.isdirectory(vim.env.HOME .. "/imselect.nvim/") == 1 and vim.env.HOME .. "/imselect.nvim",
 		opts = function()
-			if vim.env.SSH_TTY and (vim.env.TERM == "xterm-kitty" or vim.env.KITTY_WINDOW_ID) then
+			if vim.env.SSH_TTY or vim.env.SSH_CONNECTION or vim.env.SSH_CLIENT then
 				return {
 					default_driver = {
 						Darwin = "kitty",
 						Linux = "kitty",
+					},
+					kitty = {
+						tmux_passthrough = true,
 					},
 					enable_in_ssh = true,
 				}
