@@ -69,17 +69,11 @@ for key, cmd in pairs(sys_keymap) do
 end
 local fallbackmod = SHIFT + CTRL + ALT
 if kmap.feature and kmap.feature.physicalmod then
-	kmap.createmod("caps_lock", "control", "escape")
+	kmap.createmod("caps_lock", "control", "escape", always)
 end
 if kmap.feature and kmap.feature.createmod then
-	local esc_overload = arg and arg[1] == "keyd" and "`" or nil
-	local ESC = kmap.createmod(
-		"escape",
-		"esc",
-		esc_overload,
-		always,
-		fallbackmod
-	)
+	local esc_overload = "`"
+	local ESC = kmap.createmod("escape", "esc", esc_overload, always, fallbackmod)
 	kmap.bind("1", ESC, wm.capture_screen())
 	kmap.bind("2", ESC, wm.capture_screen(true))
 	if kmap.condition and kmap.condition.moonlight then
