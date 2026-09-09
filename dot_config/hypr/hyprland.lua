@@ -229,6 +229,7 @@ kmap.bind("mouse:272", winmod, hl.dsp.window.drag(), nil, nil, { mouse = true })
 kmap.bind("mouse:273", winmod, hl.dsp.window.resize(), nil, nil, { mouse = true })
 kmap.bind("mouse:272", winmod, hl.dsp.window.fullscreen(), nil, nil, { mouse = true, click = true })
 kmap.bind("mouse:273", winmod, hl.dsp.window.float(), nil, nil, { mouse = true, click = true })
+hl.bind("SUPER + p", hl.dsp.window.pin())
 local sys_keymap = {
 	s = SHELL.new("shutdown"),
 	r = SHELL.new("reboot"),

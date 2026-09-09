@@ -150,6 +150,7 @@ function v() {
     fi
     return 1
 }
+alias v.="nvim ."
 function u() {
     if [ -f "$1" ]; then
         case $1 in

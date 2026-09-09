@@ -85,6 +85,7 @@ if [[ -z "$INSTALL_PROFILE" && -z "$INSTALL_MODULES" ]]; then
       x) exit 0 ;;
       *) printf 'Unknown profile selection: %s\n\n' "$profile_choice" >&2 ;;
     esac
+    "$AUR_HELPER" -S --needed --noconfirm --skipreview archlinux-keyring
   done
 fi
 

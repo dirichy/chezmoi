@@ -1,6 +1,10 @@
+{{- $groupName := "默认" -}}
+{{- if eq .chezmoi.os "linux" -}}
+{{- $groupName = "Default" -}}
+{{- end -}}
 [Groups/0]
 # Group Name
-Name=默认
+Name={{ $groupName }}
 # Layout
 Default Layout=us
 # Default Input Method
@@ -19,5 +23,5 @@ Name=rime
 Layout=
 
 [GroupOrder]
-0=默认
+0={{ $groupName }}
 
