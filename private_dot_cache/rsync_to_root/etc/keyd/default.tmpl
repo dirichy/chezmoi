@@ -1,0 +1,19 @@
+[main]
+leftmeta = overload(meta,C-space)
+rightmeta = overload(meta,C-space)
+backslash = overload(meta,backslash)
+capslock = overload(control,esc)
+mouse1 = overload(virtualMa,mouse1)
+mouse2 = overload(virtualMb,mouse2)
+[virtualEsc:C-S-A]
+rightshift = ~
+leftshift = ~
+leftmeta = command(systemd-run --user --machine=dirichy@ sh -c 'pidof fcitx5 && fcitx5-remote -e || fcitx5-remote')
+home = command(echo s | /proc/sysrq-trigger;sleep 2;echo u | /proc/sysrq-trigger;sleep 2;echo b | /proc/sysrq-trigger;)
+r = command(systemd-run --user --machine={{.chezmoi.username}}@ {{.chezmoi.homeDir}}/.config/hypr/scripts/exit.sh)
+capslock=capslock
+
+[virtualMa:M]
+middlemouse = M-q
+
+[virtualMb:M]
