@@ -1,0 +1,101 @@
+[flags]
+rate = "1s"
+default_time_value = "5m"
+retention = "15m"
+default_widget_type = "proc"
+default_widget_count = 1
+show_table_scroll_position = true
+hide_table_gap = true
+temperature_type = "c"
+
+[processes]
+columns = ["PID", "Name", "CPU%", "Mem", "R/s", "W/s", "User", "State", "Time"]
+default_memory_value = true
+
+[cpu]
+default = "average"
+
+[memory_graph]
+legend_position = "top-right"
+cache_memory = true
+
+[network_graph]
+legend_position = "top-right"
+
+[disk]
+columns = ["Disk", "Mount", "Used", "Free", "Used%", "R/s", "W/s"]
+
+[styles.cpu]
+all_entry_color = "#7aa2f7"
+avg_entry_color = "#ff9e64"
+cpu_core_colors = [
+  "#7aa2f7",
+  "#bb9af7",
+  "#7dcfff",
+  "#73daca",
+  "#9ece6a",
+  "#e0af68",
+  "#f7768e",
+  "#ff9e64",
+]
+
+[styles.memory]
+ram_color = "#7aa2f7"
+cache_color = "#73daca"
+swap_color = "#bb9af7"
+arc_color = "#7dcfff"
+gpu_colors = ["#7aa2f7", "#bb9af7", "#7dcfff", "#73daca"]
+
+[styles.network]
+rx_color = "#7dcfff"
+tx_color = "#e0af68"
+rx_total_color = "#7aa2f7"
+tx_total_color = "#ff9e64"
+
+[styles.battery]
+high_battery_color = "#9ece6a"
+medium_battery_color = "#e0af68"
+low_battery_color = "#f7768e"
+
+[styles.tables]
+headers = { color = "#7aa2f7", bold = true }
+
+[styles.graphs]
+graph_color = "#3b4261"
+legend_text = { color = "#a9b1d6" }
+
+[styles.widgets]
+border_color = "#3b4261"
+selected_border_color = "#ff9e64"
+widget_title = { color = "#7aa2f7", bold = true }
+text = { color = "#c0caf5" }
+selected_text = { color = "#1d202f", bg_color = "#7aa2f7", bold = true }
+disabled_text = { color = "#565f89" }
+thread_text = { color = "#73daca" }
+
+[[row]]
+ratio = 28
+[[row.child]]
+type = "cpu"
+
+[[row]]
+ratio = 32
+[[row.child]]
+ratio = 3
+type = "mem"
+[[row.child]]
+ratio = 2
+type = "net"
+
+[[row]]
+ratio = 40
+[[row.child]]
+ratio = 5
+type = "proc"
+default = true
+[[row.child]]
+ratio = 3
+[[row.child.child]]
+type = "disk"
+[[row.child.child]]
+type = "temp"
