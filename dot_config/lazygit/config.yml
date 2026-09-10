@@ -1,5 +1,10 @@
 gui:
   nerdFontsVersion: "3"
+  border: single
+  scrollHeight: 6
+  scrollOffMargin: 4
+  showRandomTip: false
+  showPanelJumps: true
   theme:
     activeBorderColor:
       - "#ff9e64"
@@ -25,3 +30,75 @@ gui:
       - "#db4b4b"
     defaultFgColor:
       - "#c0caf5"
+keybinding:
+  universal:
+    return: "<esc>"
+    quit: "q"
+    quitWithoutChangingDirectory: "Q"
+    prevItem: "<up>"
+    nextItem: "<down>"
+    prevItem-alt: "k"
+    nextItem-alt: "j"
+    prevBlock: "<left>"
+    nextBlock: "<right>"
+    prevBlock-alt: "h"
+    nextBlock-alt: "l"
+    gotoTop: ["g", "<home>"]
+    gotoBottom: "G"
+    prevPage: "<ctrl+u>"
+    nextPage: "<ctrl+d>"
+    scrollUpMain: "<pgup>"
+    scrollDownMain: "<pgdown>"
+    scrollUpMain-alt1: "K"
+    scrollDownMain-alt1: "J"
+    startSearch: "/"
+    nextMatch: "n"
+    prevMatch: "N"
+    toggleRangeSelect: "v"
+    select: ["a", "<space>"]
+    goInto: "<enter>"
+    openFile: "o"
+    copyToClipboard: "y"
+    executeShellCommand: ":"
+    refresh: "R"
+    nextTab: "]"
+    prevTab: "["
+    nextScreenMode: "+"
+    prevScreenMode: "_"
+  files:
+    toggleStagedAll: ["A", "<ctrl+a>"]
+    commitChanges: "c"
+    commitChangesWithEditor: "C"
+    confirmDiscard: "x"
+    stashAllChanges: "s"
+    viewStashOptions: "S"
+    fetch: "f"
+    copyFileInfoToClipboard: "y"
+    toggleTreeView: "`"
+    collapseAll: "-"
+    expandAll: "="
+  branches:
+    checkoutBranchByName: "c"
+    checkoutPreviousBranch: "-"
+    rebaseBranch: "r"
+    renameBranch: "R"
+    mergeIntoCurrentBranch: "M"
+    createPullRequest: "o"
+    openPullRequestInBrowser: "O"
+    sortOrder: "s"
+  commits:
+    pickCommit: "p"
+    renameCommit: "r"
+    renameCommitWithEditor: "R"
+    squashDown: "s"
+    squashAboveCommits: "S"
+    markCommitAsFixup: "f"
+    createFixupCommit: "F"
+    copyCommitAttributeToClipboard: "y"
+    openInBrowser: "o"
+    viewResetOptions: ["D", "<ctrl+r>"]
+    startInteractiveRebase: "i"
+  main:
+    prevHunk: ["<left>", "h"]
+    nextHunk: ["<right>", "l"]
+    toggleSelectHunk: "a"
