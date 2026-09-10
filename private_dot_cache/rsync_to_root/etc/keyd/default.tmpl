@@ -13,6 +13,21 @@ home = command(echo s | /proc/sysrq-trigger;sleep 2;echo u | /proc/sysrq-trigger
 r = command(systemd-run --user --machine={{.chezmoi.username}}@ {{.chezmoi.homeDir}}/.config/hypr/scripts/exit.sh)
 capslock=capslock
 
+[keydOff]
+esc = timeout(esc, 2000, toggle(keydOff))
+leftmeta = layer(meta)
+rightmeta = layer(meta)
+backslash = backslash
+capslock = capslock
+mouse1 = mouse1
+mouse2 = mouse2
+1 = 1
+2 = 2
+rightshift = layer(shift)
+leftshift = layer(shift)
+home = home
+r = r
+
 [virtualMa:M]
 middlemouse = M-q
 
