@@ -16,6 +16,8 @@ local opts = {
 	crop_suffix = "-crop",
 	crop_min_pixels = 4,
 	crop_preview_fps = 30,
+	delete_cmd = "gio",
+	delete_arg = "trash",
 }
 
 options.read_options(opts, "image_mode")
@@ -598,6 +600,64 @@ local function close_current()
 	end
 end
 
+local function same_path(a, b)
+	return absolute_path(a or "") == absolute_path(b or "")
+end
+
+local function remove_path_from_playlist(path)
+	if same_path(current_path(), path) then
+		close_current()
+		return
+	end
+
+	local playlist = mp.get_property_native("playlist")
+	if type(playlist) ~= "table" then
+		return
+	end
+	for index, item in ipairs(playlist) do
+		if type(item) == "table" and same_path(item.filename, path) then
+			mp.commandv("playlist-remove", tostring(index - 1))
+			return
+		end
+	end
+end
+
+local function delete_current()
+	if crop_mode then
+		cancel_crop(true)
+	end
+
+	local path = absolute_path(current_path())
+	if not path or path == "" or path:find("://", 1, true) then
+		show("delete: local files only")
+		return
+	end
+	if not utils.file_info(path) then
+		show("delete: file not found")
+		return
+	end
+
+	local args = { tostring(opts.delete_cmd or "gio") }
+	local delete_arg = tostring(opts.delete_arg or "")
+	if delete_arg ~= "" then
+		args[#args + 1] = delete_arg
+	end
+	args[#args + 1] = path
+
+	mp.command_native_async({
+		name = "subprocess",
+		args = args,
+		playback_only = false,
+	}, function(success, _, error_text)
+		if success then
+			remove_path_from_playlist(path)
+			show("deleted: " .. path)
+		else
+			show("delete failed: " .. tostring(error_text))
+		end
+	end)
+end
+
 local function slideshow_tick()
 	if active and slideshow_delay > 0 then
 		mp.command("playlist-next")
@@ -716,6 +776,8 @@ local bindings = {
 		show("upscaling: " .. mp.get_property("scale", ""))
 	end },
 	{ "x", "close", close_current },
+	{ "D", "delete", delete_current },
+	{ "DEL", "delete-key", delete_current },
 	{ "f", "fullscreen", function() mp.command("cycle fullscreen") end },
 	{ "d", "overlay", toggle_overlay },
 	{ "e", "edit", open_in_editor },
