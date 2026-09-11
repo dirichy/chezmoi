@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+source_dir="${WALLPAPER_SOURCE_DIR:-$HOME/Pictures/wallpaper}"
+link_dir="${WALLPAPER_LINK_DIR:-$HOME/wallpaper}"
+count="${WALLPAPER_LINK_COUNT:-11}"
+
+if [[ ! -d "$source_dir" ]]; then
+  printf 'wallpaper source directory does not exist: %s\n' "$source_dir" >&2
+  exit 0
+fi
+
+mapfile -d '' wallpapers < <(
+  find "$source_dir" -maxdepth 1 -type f \
+    \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' -o -iname '*.bmp' \) \
+    -print0 | shuf -z -n "$count"
+)
+
+if ((${#wallpapers[@]} == 0)); then
+  printf 'no wallpapers found in: %s\n' "$source_dir" >&2
+  exit 0
+fi
+
+mkdir -p "$link_dir"
+
+for ((i = 1; i <= count; i++)); do
+  wallpaper="${wallpapers[$(((i - 1) % ${#wallpapers[@]}))]}"
+  tmp_link="$link_dir/.wallpaper${i}.JPG.tmp"
+  final_link="$link_dir/wallpaper${i}.JPG"
+
+  ln -sfn "$wallpaper" "$tmp_link"
+  mv -Tf "$tmp_link" "$final_link"
+done
