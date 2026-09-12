@@ -1,5 +1,6 @@
 *.md
 tools
+ignore
 .config/fcitx5/conf/cached_layouts
 {{if ne .chezmoi.os "darwin"}}
 .gnupg/gpg-agent.conf
