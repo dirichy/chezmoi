@@ -290,6 +290,7 @@ hl.on("window.active", function(win)
 			return
 		else
 			hl.config({ input = { repeat_rate = restore_repeat_rate } })
+			restore_repeat_rate = 0
 		end
 	end
 end)
