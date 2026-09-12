@@ -69,7 +69,7 @@ local function print_json(value)
 	local json = JSON.encode(value)
 	local has_jq = os.execute("command -v jq >/dev/null 2>&1")
 	if has_jq == true or has_jq == 0 then
-		local jq = io.popen("jq .", "w")
+		local jq = io.popen("jq -S .", "w")
 		if jq then
 			jq:write(json)
 			if jq:close() then
