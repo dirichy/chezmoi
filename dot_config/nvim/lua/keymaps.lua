@@ -19,6 +19,17 @@ end
 map("v", ">", ">gv")
 map("v", "<", "<gv")
 
+map("n", "o", function()
+	local count = vim.v.count1
+	local lnum = vim.api.nvim_win_get_cursor(0)[1]
+	local indent = vim.api.nvim_get_current_line():match("^%s*") or ""
+	local lines = vim.fn["repeat"]({ indent }, count)
+
+	vim.api.nvim_buf_set_lines(0, lnum, lnum, false, lines)
+	vim.api.nvim_win_set_cursor(0, { lnum + count, #indent })
+	vim.cmd("startinsert")
+end, { desc = "Insert counted lines below" })
+
 --Add comment below or above
 map("n", "gco", "o<esc>Vcx<esc><cmd>normal gcc<cr>fxa<bs>", { desc = "Add Comment Below" })
 map("n", "gcO", "O<esc>Vcx<esc><cmd>normal gcc<cr>fxa<bs>", { desc = "Add Comment Above" })
