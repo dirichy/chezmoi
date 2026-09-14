@@ -1,15 +1,30 @@
 import subprocess
 import time
 from datetime import datetime
+from os.path import expanduser
 from pathlib import Path
 from shutil import which
 
 
-IS_ACTIVE_CMD = ("fcitx5-remote",)
-IS_ACTIVE_OUTPUT = "2"
-TEMP_ASCII_CMD = ("fcitx5-remote", "-c")
-RESTORE_CMD = ("fcitx5-remote", "-o")
-STATE_SETTLE_SECONDS = 0.15
+def find_command(name: str) -> str | None:
+    if path := which(name):
+        return path
+
+    path = expanduser(f"~/.local/bin/{name}")
+    if which(path):
+        return path
+
+    return None
+
+FCITX5_REMOTE = find_command("fcitx5-remote")
+
+if FCITX5_REMOTE is None:
+    exit() 
+else:
+    IS_ACTIVE_CMD = (FCITX5_REMOTE,)
+    IS_ACTIVE_OUTPUT = "2"
+    TEMP_ASCII_CMD = (FCITX5_REMOTE, "-c")
+    RESTORE_CMD = (FCITX5_REMOTE, "-o")
 DEBUG = False
 DEBUG_LOG = Path("/tmp/kitty-im-control.log")
 
@@ -39,10 +54,9 @@ def debug(message: str) -> None:
     except OSError:
         pass
 
-
 def command_exists(cmd: tuple[str, ...]) -> bool:
     return bool(cmd) and which(cmd[0]) is not None
-
+    
 
 def run_command(cmd: tuple[str, ...]) -> None:
     if not command_exists(cmd):
