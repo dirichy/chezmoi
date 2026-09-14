@@ -54,10 +54,12 @@ local function my_paste(reg)
 end
 
 if vim.env.SSH_TTY == nil then
-	--[ 当前环境为本地环境，也包括 wsl ]
-	option.clipboard:append("unnamedplus")
+	-- Keep normal yanks local; FocusLost syncs the last yank to the system clipboard.
+	option.clipboard:remove({ "unnamed", "unnamedplus" })
+	global.delayed_clipboard_sync = true
 else
-	option.clipboard:append("unnamedplus")
+	option.clipboard:remove({ "unnamed", "unnamedplus" })
+	global.delayed_clipboard_sync = false
 	vim.g.clipboard = {
 		name = "OSC 52",
 		copy = {
