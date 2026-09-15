@@ -128,9 +128,7 @@ scrollback_pager nvim --cmd 'set clipboard=unnamedplus' --cmd 'set eventignore=F
 
 # Required for leader mappings that temporarily show/hide the tab bar.
 allow_remote_control yes
-{{- if eq .chezmoi.os "linux" }}
 watcher {{ joinPath .chezmoi.homeDir ".config" "kitty" "im-control.py" }}
-{{- end }}
 
 # Safer alternatives if remote control ever needs to be exposed beyond local TTY.
 # listen_on unix:@kitty
