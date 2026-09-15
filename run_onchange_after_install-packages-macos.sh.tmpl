@@ -13,63 +13,12 @@ set -euo pipefail
 #   full             devbox + macOS desktop
 #   everything       full + extra applications
 
-INSTALL_PROFILE="${INSTALL_PROFILE-}"
-INSTALL_MODULES="${INSTALL_MODULES:-}"
+INSTALL_PROFILE="${INSTALL_PROFILE-{{ .install.profile }}}"
+INSTALL_MODULES="${INSTALL_MODULES:-{{ .install.modules }}}"
 
-if [[ -z "$INSTALL_PROFILE" && -z "$INSTALL_MODULES" ]]; then
-  while :; do
-    printf '%s\n' \
-      'Choose an install profile:' \
-      '  h) headless         CLI-only machine' \
-      '  m) minimal          CLI tools and fonts' \
-      '  d) desktop          macOS desktop applications' \
-      '  v) devbox           CLI development tools' \
-      '  f) full              Devbox plus macOS desktop' \
-      '  e) everything        Full setup plus extra applications' \
-      '  c) custom modules    Choose individual modules' \
-      '  x) skip installation Do not install anything'
-    printf 'Profile [d]: '
-    read -r profile_choice
-    profile_choice="${profile_choice:-d}"
-    case "$profile_choice" in
-      h) INSTALL_PROFILE=headless; break ;;
-      m) INSTALL_PROFILE=minimal; break ;;
-      d) INSTALL_PROFILE=desktop; break ;;
-      v) INSTALL_PROFILE=devbox; break ;;
-      f) INSTALL_PROFILE=full; break ;;
-      e) INSTALL_PROFILE=everything; break ;;
-      c)
-        printf '%s\n' \
-          'Select modules using letters (combine as needed):' \
-          '  c core      s shell      i font-and-im' \
-          '  d desktop   p proxy      v dev' \
-          '  e extra'
-        printf 'Modules: '
-        read -r module_choices
-        module_choices="${module_choices//,/}"
-        module_choices="${module_choices// /}"
-        [[ -n "$module_choices" ]] || { printf 'At least one module is required.\n' >&2; exit 2; }
-        INSTALL_MODULES=""
-        for ((module_index = 1; module_index <= ${#module_choices}; module_index++)); do
-          module_choice="${module_choices[module_index]}"
-          case "$module_choice" in
-            c) INSTALL_MODULES+="core," ;;
-            s) INSTALL_MODULES+="shell," ;;
-            i) INSTALL_MODULES+="font-and-im," ;;
-            d) INSTALL_MODULES+="desktop," ;;
-            p) INSTALL_MODULES+="proxy," ;;
-            v) INSTALL_MODULES+="dev," ;;
-            e) INSTALL_MODULES+="extra," ;;
-            *) printf 'Unknown module selection: %s\n' "$module_choice" >&2; exit 2 ;;
-          esac
-        done
-        INSTALL_PROFILE=""
-        break
-        ;;
-      x) exit 0 ;;
-      *) printf 'Unknown profile selection: %s\n\n' "$profile_choice" >&2 ;;
-    esac
-  done
+if [[ "$INSTALL_PROFILE" == "skip" ]]; then
+  printf 'Install profile is skip; not installing packages.\n'
+  exit 0
 fi
 
 if ! command -v xcode-select >/dev/null 2>&1 || ! xcode-select -p >/dev/null 2>&1; then
@@ -257,7 +206,7 @@ normalize_list() {
 }
 
 if [[ -n "$INSTALL_MODULES" ]]; then
-  read -rA modules <<<"$(normalize_list "$INSTALL_MODULES")"
+  modules=("${(@f)$(normalize_list "$INSTALL_MODULES")}")
   run_modules "${modules[@]}"
 else
   run_profile "$INSTALL_PROFILE"

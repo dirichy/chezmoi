@@ -1,8 +1,11 @@
 {{- if lookPath "tailscale" -}}
-{{- $status := output "tailscale" "status" "--json" | fromJson -}}
+{{- $tailscaleStatus := output "sh" "-c" "tailscale status --json 2>/dev/null || true" -}}
+{{- if $tailscaleStatus -}}
+{{- $status := $tailscaleStatus | fromJson -}}
 {{ with $status.Self.TailscaleIPs }}
 external_ip = {{ index . 0 }}
 {{ end }}
+{{- end }}
 {{- end }}
 locale = zh
 wan_encryption_mode = 0

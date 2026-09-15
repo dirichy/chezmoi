@@ -1,17 +1,102 @@
+{{- $profileChoices := list "headless" "minimal" "desktop" "devbox" "full" "everything" "custom" "skip" -}}
+{{- $profile := promptChoiceOnce . "install.profile" "machine profile" $profileChoices "desktop" -}}
+{{- $adminUser := promptBoolOnce . "install.admin" "administrator on this machine" true -}}
+{{- $installCommandDefault := "" -}}
+{{- if and $adminUser (eq .chezmoi.os "linux") -}}
+{{- if or (eq .chezmoi.osRelease.id "arch") (eq .chezmoi.osRelease.id "manjaro") -}}
+{{- $installCommandDefault = "paru -S --needed --noconfirm --skipreview" -}}
+{{- else if or (eq .chezmoi.osRelease.id "debian") (eq .chezmoi.osRelease.id "ubuntu") -}}
+{{- $installCommandDefault = "sudo apt-get install -y" -}}
+{{- else if eq .chezmoi.osRelease.id "fedora" -}}
+{{- $installCommandDefault = "sudo dnf install -y" -}}
+{{- else if contains "opensuse" .chezmoi.osRelease.id -}}
+{{- $installCommandDefault = "sudo zypper install -y" -}}
+{{- end -}}
+{{- else if eq .chezmoi.os "darwin" -}}
+{{- $installCommandDefault = "brew install" -}}
+{{- end -}}
+{{- $installCommand := promptStringOnce . "install.command" "package install command" $installCommandDefault -}}
+{{- $customModules := "" -}}
+{{- if eq $profile "custom" -}}
+{{- $customModules = promptStringOnce . "install.modules" "install modules" "core,shell" -}}
+{{- end -}}
+{{- $customModuleList := printf ",%s," (replace " " "" $customModules) -}}
+{{- $isHeadless := eq $profile "headless" -}}
+{{- $isMinimal := eq $profile "minimal" -}}
+{{- $isCustomDesktop := and (eq $profile "custom") (contains ",desktop," $customModuleList) -}}
+{{- $isCustomDev := and (eq $profile "custom") (or (contains ",dev," $customModuleList) (contains ",latex," $customModuleList)) -}}
+{{- $isCustomInputMethod := and (eq $profile "custom") (contains ",font-and-im," $customModuleList) -}}
+{{- $isCustomProxy := and (eq $profile "custom") (contains ",proxy," $customModuleList) -}}
+{{- $isCustomApps := and (eq $profile "custom") (contains ",apps," $customModuleList) -}}
+{{- $isCustomSystem := and (eq $profile "custom") (contains ",system," $customModuleList) -}}
+{{- $isDesktop := or (eq $profile "desktop") (eq $profile "full") (eq $profile "everything") $isCustomDesktop -}}
+{{- $isDevbox := or (eq $profile "devbox") (eq $profile "full") (eq $profile "everything") $isCustomDev -}}
+{{- $isFull := or (eq $profile "full") (eq $profile "everything") -}}
+{{- $isEverything := eq $profile "everything" -}}
+{{- $hasInputMethod := or $isMinimal $isDesktop $isFull $isEverything $isCustomInputMethod -}}
+{{- $hasProxy := or $isDesktop $isCustomProxy -}}
+{{- $hasApps := or $isDesktop $isCustomApps -}}
+{{- $hasSystemServices := and $adminUser (or $isHeadless $isMinimal $isDesktop $isDevbox $isFull $isEverything $isCustomSystem) -}}
+{{- $inputMethodChoices := list "tiger" "flypy" -}}
+{{- $inputMethod := promptChoiceOnce . "inputMethod" "input method profile" $inputMethodChoices "tiger" -}}
+{{- $fduConnect := promptBoolOnce . "fduConnect" "enable fdu-connect" false -}}
 [merge]
 command = "nvim"
 args = ["-d", "{{ "{{ .Destination }}" }}", "{{"{{ .Source }}"}}"]
 [data]
 name = {{ ( promptStringOnce . "name" "name" ) | quote }}
 email = {{ ( promptStringOnce . "email" "email" ) | quote }}
-inputMethod = {{ ( promptStringOnce . "inputMethod" "inputMethod, tiger or flypy" ) | quote }}
-{{ if ( index . "screenResolution" ) }}
-screenResolution = [{{ ( or (index ( index . "screenResolution" ) 0) ( promptStringOnce . "screenwidth" "screenwidth" ) ) }},{{ ( or (index ( index . "screenResolution" ) 1) ( promptStringOnce . "screenheight" "screenheight" ) ) }}]
-{{else}}
-screenResolution = [{{ (  ( promptStringOnce . "screenwidth" "screenwidth" ) ) }},{{ (  ( promptStringOnce . "screenheight" "screenheight" ) ) }}]
-{{end}}
-monitorScale = {{ ( promptStringOnce . "monitorScale" "monitorScale" ) }}
-fduConnect = {{ eq ( promptStringOnce . "fduConnect" "enable fdu-connect? (y/N)" ) "y"}}
+inputMethod = {{ $inputMethod | quote }}
+fduConnect = {{ $fduConnect }}
 phoneBluetoothMac = {{ ( promptStringOnce . "phoneBluetoothMac" "Your mobile BluetoothMac, only used in hypridle to judge if you are home" )|quote }}
+
+[data.install]
+# Host profile drives both dependency installation and which config groups are enabled.
+# Environment variables INSTALL_PROFILE and INSTALL_MODULES still override these values.
+profile = {{ $profile | quote }}
+modules = {{ $customModules | quote }}
+command = {{ $installCommand | quote }}
+admin = {{ $adminUser }}
+
+[data.features]
+cli = {{ ne $profile "skip" }}
+systemServices = {{ $hasSystemServices }}
+desktop = {{ $isDesktop }}
+dev = {{ $isDevbox }}
+extraApps = {{ $isEverything }}
+inputMethod = {{ $hasInputMethod }}
+proxy = {{ $hasProxy }}
+fduConnect = {{ $fduConnect }}
+linuxDesktop = {{ and (eq .chezmoi.os "linux") $isDesktop }}
+macDesktop = {{ and (eq .chezmoi.os "darwin") (or $isDesktop $isFull $isEverything) }}
+
+[data.apps]
+[data.apps.neovim]
+enabled = {{ or $isHeadless $isMinimal $isDesktop $isDevbox $isFull $isEverything }}
+profile = {{ ternary "full" "core" (or $isDevbox $isFull $isEverything) | quote }}
+
+[data.apps.fcitx5]
+enabled = {{ and (eq .chezmoi.os "linux") $hasInputMethod }}
+profile = {{ ternary "desktop" "rime-only" $isDesktop | quote }}
+
+[data.apps.hyprland]
+enabled = {{ and (eq .chezmoi.os "linux") $isDesktop }}
+profile = {{ ternary "everything" "desktop" $isEverything | quote }}
+
+[data.apps.mihomo]
+enabled = {{ or $hasProxy $isDevbox $isFull $isEverything }}
+profile = {{ ternary "gui" "headless" $isDesktop | quote }}
+
+[data.apps.sunshine]
+enabled = {{ and (eq .chezmoi.os "linux") (or $isDesktop $isFull $isEverything $hasApps) }}
+profile = {{ ternary "everything" "streaming" $isEverything | quote }}
+
+[data.apps.hammerspoon]
+enabled = {{ and (eq .chezmoi.os "darwin") (or $isDesktop $isFull $isEverything) }}
+profile = {{ ternary "everything" "desktop" $isEverything | quote }}
+
+[data.apps.karabiner]
+enabled = {{ and (eq .chezmoi.os "darwin") (or $isDesktop $isFull $isEverything) }}
+profile = {{ ternary "everything" "desktop" $isEverything | quote }}
 [secret]
 command="{{ joinPath .chezmoi.sourceDir "ignore" "bin" "gopass-safe" }}"

@@ -1,44 +1,117 @@
+# Repository-only files.
 *.md
-tools
+*.log
 ignore
+tools
 .config/fcitx5/conf/cached_layouts
-{{if ne .chezmoi.os "darwin"}}
+
+# Config groups controlled by host data.
+{{ if not .apps.neovim.enabled }}
+.config/nvim
+{{ end }}
+{{ if not .apps.mihomo.enabled }}
+.config/mihomo
+.config/systemd/user/mihomo_config_server.service
+{{ end }}
+{{ if not .features.inputMethod }}
+.config/fcitx5
+.local/share/fcitx5
+.local/bin/fcitx5-remote
+{{ end }}
+{{ if not .features.proxy }}
+.local/bin/toggle_proxy
+.config/systemd/user/ssh-tunnel@.service
+{{ end }}
+{{ if not .features.fduConnect }}
+.config/fdu-connect
+.local/bin/fdu-connect
+Library/LaunchAgents/fdu-connect.plist
+.config/systemd/user/fdu-connect.service
+{{ end }}
+{{ if not .features.desktop }}
+.config/kitty
+.config/mpv
+.config/sioyek
+.config/wezterm
+.config/zathura
+.local/bin/kitty-im
+.local/bin/sioyek
+.local/bin/wezterm-im
+.local/share/applications/sioyek.desktop
+{{ end }}
+
+# macOS-only files.
+{{ if ne .chezmoi.os "darwin" }}
+run_onchange_after_install-packages-macos.sh
 .gnupg/gpg-agent.conf
 .hammerspoon
 .config/karabiner
 .config/aerospace
 .config/yabai
-.local/bin/fcitx5-remote
-.local/bin/fdu-connect
-.local/bin/toggle_proxy
+Library
 .config/fcitx5/conf/macosfrontend.conf
 .config/fcitx5/conf/macosnotifications.conf
 .config/fcitx5/conf/imselector.conf
 .config/fcitx5/conf/keyboard.conf
-Library
-{{end}}
-{{if ne .chezmoi.os "linux"}}
-.config/fcitx5/conf/classicui.conf
-.config/fcitx5/conf/kimpanel.conf
-.config/fcitx5/conf/notifications.conf
-.config/fcitx5/conf/virtualkeyboardadapter.conf
-.config/fcitx5/conf/wayland.conf
-.config/fcitx5/conf/waylandim.conf
-.config/fcitx5/conf/xcb.conf
-.config/fcitx5/conf/xim.conf
-.config/wireplumber
-.config/hypr
-.config/waybar
-.config/wofi
-.config/systemd
-.config/qq-electron-flags.conf
+{{ end }}
+
+# macOS desktop automation.
+{{ if and (eq .chezmoi.os "darwin") (not .features.macDesktop) }}
+.hammerspoon
+.config/karabiner
+.config/aerospace
+.config/yabai
+Library/LaunchAgents/mihomo.plist
+{{ end }}
+
+# Linux-only files.
+{{ if ne .chezmoi.os "linux" }}
+run_onchange_after_install-packages-linux.sh
 .Xresources
 .cache/rsync_to_root
+.config/hypr
+.config/mako
+.config/qq-electron-flags.conf
 .config/sunshine
+.config/systemd
+.config/waybar
+.config/wireplumber
+.config/wofi
 .local/bin/qq
 .local/bin/sioyek
 .local/bin/sunshine_pre
 .local/bin/tencentqq
 .local/share/applications
+.config/fcitx5/conf/classicui.conf
+.config/fcitx5/conf/kimpanel.conf
+.config/fcitx5/conf/notifications.conf
+.config/fcitx5/conf/rime.conf
+.config/fcitx5/conf/virtualkeyboardadapter.conf
+.config/fcitx5/conf/wayland.conf
+.config/fcitx5/conf/waylandim.conf
+.config/fcitx5/conf/xcb.conf
+.config/fcitx5/conf/xim.conf
+{{ end }}
+
+# Linux desktop files.
+{{ if and (eq .chezmoi.os "linux") (not .features.linuxDesktop) }}
+.Xresources
+.cache/rsync_to_root
+.config/hypr
+.config/mako
+.config/qq-electron-flags.conf
+.config/waybar
+.config/wireplumber
+.config/wofi
+.local/bin/qq
+.local/bin/sioyek
+.local/bin/tencentqq
+.local/share/applications
 .config/zathura
-{{end}}
+{{ end }}
+
+# Optional Linux apps.
+{{ if and (eq .chezmoi.os "linux") (not .apps.sunshine.enabled) }}
+.config/sunshine
+.local/bin/sunshine_pre
+{{ end }}

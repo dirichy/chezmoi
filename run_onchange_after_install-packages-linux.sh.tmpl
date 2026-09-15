@@ -1,0 +1,403 @@
+{{- if eq .chezmoi.os "linux" -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Install packages used by this chezmoi setup on Linux.
+#
+# Profiles:
+#   headless         CLI-only remote machine with system services
+#   minimal          CLI + input method
+#   desktop          Hyprland desktop without heavy optional stacks
+#   devbox           CLI development tools and LaTeX
+#   full             devbox + Hyprland desktop and hardware-specific support
+#   everything       full + personal extra apps/games
+#
+# Usage:
+#   chezmoi apply
+#   INSTALL_PROFILE=headless chezmoi apply
+#   INSTALL_PROFILE=full chezmoi apply
+#   INSTALL_MODULES=core,shell,system,font-and-im,proxy chezmoi apply
+#   INSTALL_COMMAND='sudo apt-get install -y' chezmoi apply
+#   INSTALL_ADMIN=false chezmoi apply
+#   SKIP_SERVICES=1 chezmoi apply
+#   SKIP_LUAROCKS=1 chezmoi apply
+
+INSTALL_PROFILE="${INSTALL_PROFILE-{{ .install.profile }}}"
+INSTALL_MODULES="${INSTALL_MODULES:-{{ .install.modules }}}"
+INSTALL_COMMAND="${INSTALL_COMMAND-{{ .install.command }}}"
+INSTALL_ADMIN="${INSTALL_ADMIN-{{ .install.admin }}}"
+SKIP_SERVICES="${SKIP_SERVICES:-0}"
+SKIP_LUAROCKS="${SKIP_LUAROCKS:-0}"
+SUDO_KEEPALIVE_PID=""
+SUDO_SESSION_STARTED=0
+
+if [[ "$INSTALL_PROFILE" == "skip" ]]; then
+  printf 'Install profile is skip; not installing packages.\n'
+  exit 0
+fi
+
+is_admin_machine() {
+  [[ "$INSTALL_ADMIN" == "true" || "$INSTALL_ADMIN" == "1" || "$INSTALL_ADMIN" == "yes" ]]
+}
+
+install_command_needs_sudo() {
+  [[ "$INSTALL_COMMAND" == "sudo" || "$INSTALL_COMMAND" == sudo\ * ]]
+}
+
+is_arch_like() {
+  command -v pacman >/dev/null 2>&1
+}
+
+warn_manual_install() {
+  local module="$1"
+  shift
+
+  printf 'Warning: failed to install [%s]. Please install manually: %s\n' \
+    "$module" "$*" >&2
+}
+
+parse_package_spec() {
+  local spec="$1"
+
+  PARSED_PACKAGE="${spec%%:*}"
+  if [[ "$spec" == *:* ]]; then
+    PARSED_COMMAND="${spec#*:}"
+  else
+    PARSED_COMMAND=""
+  fi
+}
+
+run_install_command() {
+  local module="$1"
+  shift
+
+  if (($# == 0)); then
+    return
+  fi
+
+  if [[ -z "$INSTALL_COMMAND" ]]; then
+    printf 'Warning: no package install command configured for [%s]. Please install manually: %s\n' \
+      "$module" "$*" >&2
+    return
+  fi
+
+  if ! is_admin_machine && install_command_needs_sudo; then
+    printf 'Warning: not an admin user; refusing sudo install command for [%s]. Please install manually: %s\n' \
+      "$module" "$*" >&2
+    return
+  fi
+
+  printf 'Installing packages with: %s\n' "$INSTALL_COMMAND"
+  if ! bash -lc 'install_command="$1"; shift; $install_command "$@"' bash "$INSTALL_COMMAND" "$@"; then
+    warn_manual_install "$module" "$@"
+  fi
+}
+
+start_sudo_session() {
+  [[ "$SUDO_SESSION_STARTED" == 1 ]] && return
+  is_admin_machine || return 1
+  command -v sudo >/dev/null 2>&1 || return
+
+  sudo -v
+  SUDO_SESSION_STARTED=1
+
+  (
+    while kill -0 "$$" 2>/dev/null; do
+      sleep 60
+      sudo -n -v 2>/dev/null || exit 0
+    done
+  ) &
+  SUDO_KEEPALIVE_PID="$!"
+
+  trap 'kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true' EXIT
+}
+
+package_installed() {
+  local spec="$1"
+  local package
+  local command_name
+  local base
+  local candidate
+
+  parse_package_spec "$spec"
+  package="$PARSED_PACKAGE"
+  command_name="$PARSED_COMMAND"
+
+  if [[ -n "$command_name" ]] && command -v "$command_name" >/dev/null 2>&1; then
+    printf 'Command "%s" already exists; skipping package "%s".\n' "$command_name" "$package"
+    return 0
+  fi
+
+  local -a candidates=("$package")
+
+  if ! is_arch_like; then
+    return 1
+  fi
+
+  case "$package" in
+    *-git)
+      base="${package%-git}"
+      candidates+=("$base" "$base-bin")
+      ;;
+    *-bin)
+      base="${package%-bin}"
+      candidates+=("$base" "$base-git")
+      ;;
+    *)
+      candidates+=("$package-git" "$package-bin")
+      ;;
+  esac
+
+  for candidate in "${candidates[@]}"; do
+    if pacman -Q "$candidate" >/dev/null 2>&1; then
+      if [[ "$candidate" != "$package" ]]; then
+        printf 'Warning: requested package "%s", but "%s" is already installed; skipping.\n' \
+          "$package" "$candidate" >&2
+      fi
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+install_packages() {
+  local module="$1"
+  local spec
+  local -a missing_packages=()
+  shift
+
+  printf '\n==> [%s]\n' "$module"
+  for spec in "$@"; do
+    if ! package_installed "$spec"; then
+      missing_packages+=("$PARSED_PACKAGE")
+    fi
+  done
+
+  if ((${#missing_packages[@]} == 0)); then
+    printf 'All packages or matching commands are already available.\n'
+    return
+  fi
+
+  printf 'Installing missing packages: %s\n' "${missing_packages[*]}"
+  run_install_command "$module" "${missing_packages[@]}"
+}
+
+enable_system_services() {
+  [[ "$SKIP_SERVICES" == 1 ]] && return
+  if ! is_admin_machine; then
+    printf 'Warning: not an admin user; skipping system services: %s\n' "$*" >&2
+    return
+  fi
+  command -v systemctl >/dev/null 2>&1 || return
+  start_sudo_session || {
+    printf 'Warning: sudo is unavailable; failed to enable system services: %s\n' "$*" >&2
+    return
+  }
+  sudo systemctl enable --now "$@" || printf 'Warning: failed to enable system services: %s\n' "$*" >&2
+}
+
+enable_user_services() {
+  [[ "$SKIP_SERVICES" == 1 ]] && return
+  command -v systemctl >/dev/null 2>&1 || return
+  systemctl --user enable --now "$@" || printf 'Warning: failed to enable user services: %s\n' "$*" >&2
+}
+
+install_luarocks() {
+  [[ "$SKIP_LUAROCKS" == 1 ]] && return
+
+  printf '\n==> [luarocks]\n'
+  if ! command -v luarocks >/dev/null 2>&1; then
+    printf 'Warning: luarocks is not installed; please install luasocket lua-cjson luv manually.\n' >&2
+    return
+  fi
+  if ! is_admin_machine; then
+    printf 'Warning: not an admin user; please install luarocks packages manually: luasocket lua-cjson luv\n' >&2
+    return
+  fi
+  start_sudo_session || {
+    printf 'Warning: sudo is unavailable; please install luarocks packages manually: luasocket lua-cjson luv\n' >&2
+    return
+  }
+  sudo luarocks --lua-version=5.1 install luasocket || printf 'Warning: failed to install luarock: luasocket\n' >&2
+  sudo luarocks --lua-version=5.1 install lua-cjson || printf 'Warning: failed to install luarock: lua-cjson\n' >&2
+  sudo luarocks --lua-version=5.1 install luv || printf 'Warning: failed to install luarock: luv\n' >&2
+}
+
+module_core() {
+  install_packages core \
+    chezmoi:chezmoi zsh:zsh tmux:tmux gopass:gopass
+}
+
+module_shell() {
+  install_packages shell \
+    neovim:nvim vim:vim yazi:yazi lazygit:lazygit bottom:btm duf:duf dust:dust bashmount:bashmount uv:uv \
+    github-cli:gh autossh:autossh \
+    ripgrep:rg fd:fd jq:jq fzf:fzf zoxide:zoxide thefuck:thefuck lsd:lsd tldr:tldr 
+}
+
+module_system() {
+  if ! is_admin_machine; then
+    printf '\n==> [system]\n'
+    printf 'Warning: not an admin user; skipping system packages and services.\n' >&2
+    return
+  fi
+
+  install_packages system \
+    keyd:keyd networkmanager:nmcli udisken:udisken openssh:ssh 
+
+  enable_system_services keyd NetworkManager tailscaled sshd 
+  enable_user_services udisken
+}
+
+module_desktop() {
+  install_packages desktop \
+    hyprland:Hyprland hyprpaper:hyprpaper hypridle:hypridle greetd:greetd mako:mako kitty:kitty waybar-git:waybar wofi:wofi \
+    xorg-xrdb xdg-desktop-portal xdg-desktop-portal-gtk \
+    xdg-desktop-portal-hyprland xwaylandvideobridge \
+    wl-clipboard:wl-copy grim:grim slurp:slurp brightnessctl:brightnessctl ddcutil:ddcutil \
+    pipewire pipewire-audio pipewire-pulse pipewire-alsa wireplumber \
+    bluez bluez-utils:bluetoothctl blueman:blueman-manager pavucontrol:pavucontrol gopass-jsonapi:gopass-jsonapi 
+
+  enable_system_services greetd bluetooth
+  enable_user_services hyprpaper hypridle waybar
+}
+
+module_font_and_im() {
+  install_packages font-and-im \
+    fcitx5 fcitx5-rime fcitx5-configtool \
+    noto-fonts-cjk noto-fonts-emoji ttf-nerd-fonts-symbols-mono \
+    ttf-sarasa-gothic maplemono-ttf
+}
+
+module_proxy() {
+  install_packages proxy mihomo:mihomo tailscale:tailscale fdu-connect-git:fdu-connect\
+    
+}
+
+module_apps() {
+  install_packages apps \
+    zen-browser-bin:zen-browser mpv:mpv imv:imv sioyek-git:sioyek zathura:zathura zathura-pdf-mupdf \
+    linuxqq-nt-bwrap:qq wechat-universal-bwrap:wechat-universal \
+    sunshine:sunshine moonlight-qt:moonlight calcurse:calcurse
+}
+
+module_dev() {
+  install_packages dev \
+    go:go ruby:ruby php:php julia:julia cargo:cargo lua:lua lua51 luajit:luajit luarocks:luarocks lua-language-server:lua-language-server \
+    tree-sitter-cli:tree-sitter pkgconf:pkgconf ffmpeg:ffmpeg imagemagick:magick
+
+  install_luarocks
+}
+
+module_latex() {
+  install_packages latex \
+    biber:biber pandoc-cli:pandoc texlive-binextra texlive-latex texlive-latexextra \
+    texlive-latexrecommended texlive-luatex texlive-xetex texlive-mathscience \
+    texlive-pictures texlive-fontsrecommended texlive-fontsextra \
+    texlive-langchinese texlive-langcjk texlive-langenglish
+}
+
+has_nvidia_gpu() {
+  local vendor_file
+
+  for vendor_file in /sys/class/drm/card*/device/vendor; do
+    if [[ -r "$vendor_file" ]] && [[ "$(<"$vendor_file")" == 0x10de ]]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+module_nvidia() {
+  if ! is_admin_machine; then
+    printf '\n==> [nvidia]\n'
+    printf 'Warning: not an admin user; skipping NVIDIA driver packages and services.\n' >&2
+    return
+  fi
+
+  if ! has_nvidia_gpu; then
+    printf 'No NVIDIA GPU detected; skipping NVIDIA packages.\n'
+    return
+  fi
+
+  install_packages nvidia \
+    nvidia-open:nvidia-smi nvidia-settings:nvidia-settings nvtop:nvtop
+
+  enable_system_services nvidia-suspend.service nvidia-resume.service nvidia-hibernate.service
+}
+
+module_extra() {
+  install_packages extra \
+    ayugram-desktop:ayugram-desktop \
+    cmatrix:cmatrix genact:genact lolcat:lolcat \
+    majsoul-plus-bin:majsoul-plus steam:steam \
+    libreoffice-fresh:libreoffice foliate:foliate rnote:rnote koreader-bin:koreader \
+    fastfetch:fastfetch
+}
+
+profile_headless() {
+  run_modules core shell system
+}
+
+profile_minimal() {
+  run_modules core shell system font_and_im
+}
+
+profile_desktop() {
+  run_modules core shell system desktop font_and_im proxy apps
+}
+
+profile_devbox() {
+  run_modules core shell system dev 
+}
+
+profile_full() {
+  profile_devbox
+  run_modules desktop font_and_im proxy apps nvidia latex
+}
+
+profile_everything() {
+  profile_full
+  run_modules extra
+}
+
+run_profile() {
+  local profile="${1//-/_}"
+  if declare -F "profile_$profile" >/dev/null 2>&1; then
+    "profile_$profile"
+  else
+    printf 'Unknown profile: %s\n' "$1" >&2
+    printf 'Available profiles: headless, minimal, desktop, devbox, full, everything\n' >&2
+    exit 2
+  fi
+}
+
+run_modules() {
+  local module
+  for module in "$@"; do
+    module="${module//-/_}"
+    if declare -F "module_$module" >/dev/null 2>&1; then
+      "module_$module"
+    else
+      printf 'Unknown module: %s\n' "$module" >&2
+    printf 'Available modules: core, shell, system, font-and-im, desktop, proxy, apps, dev, latex, nvidia, extra\n' >&2
+      exit 2
+    fi
+  done
+}
+
+normalize_list() {
+  local raw="$1"
+  raw="${raw//,/ }"
+  printf '%s\n' "$raw"
+}
+
+if [[ -n "$INSTALL_MODULES" ]]; then
+  read -r -a modules <<<"$(normalize_list "$INSTALL_MODULES")"
+  run_modules "${modules[@]}"
+else
+  run_profile "$INSTALL_PROFILE"
+fi
+{{- end -}}
