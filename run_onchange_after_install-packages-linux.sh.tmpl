@@ -30,11 +30,23 @@ SKIP_SERVICES="${SKIP_SERVICES:-0}"
 SKIP_LUAROCKS="${SKIP_LUAROCKS:-0}"
 SUDO_KEEPALIVE_PID=""
 SUDO_SESSION_STARTED=0
+INSTALL_COMMAND_WORDS=()
+
+prepare_install_command() {
+  if [[ -z "$INSTALL_COMMAND" ]]; then
+    INSTALL_COMMAND_WORDS=()
+    return
+  fi
+
+  read -r -a INSTALL_COMMAND_WORDS <<<"$INSTALL_COMMAND"
+}
 
 if [[ "$INSTALL_PROFILE" == "skip" ]]; then
   printf 'Install profile is skip; not installing packages.\n'
   exit 0
 fi
+
+prepare_install_command
 
 is_admin_machine() {
   [[ "$INSTALL_ADMIN" == "true" || "$INSTALL_ADMIN" == "1" || "$INSTALL_ADMIN" == "yes" ]]
@@ -91,7 +103,7 @@ run_install_command() {
   printf 'Installing packages with: %s\n' "$INSTALL_COMMAND"
   for package in "$@"; do
     printf 'Installing package: %s\n' "$package"
-    if ! bash -lc 'install_command="$1"; package="$2"; $install_command "$package"' bash "$INSTALL_COMMAND" "$package"; then
+    if ! "${INSTALL_COMMAND_WORDS[@]}" "$package"; then
       warn_manual_install "$module" "$package"
     fi
   done
