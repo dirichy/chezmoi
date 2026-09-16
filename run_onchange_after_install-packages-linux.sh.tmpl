@@ -50,10 +50,10 @@ is_arch_like() {
 
 warn_manual_install() {
   local module="$1"
-  shift
+  local package="$2"
 
-  printf 'Warning: failed to install [%s]. Please install manually: %s\n' \
-    "$module" "$*" >&2
+  printf 'Warning: failed to install [%s] package. Please install manually: %s\n' \
+    "$module" "$package" >&2
 }
 
 parse_package_spec() {
@@ -69,6 +69,7 @@ parse_package_spec() {
 
 run_install_command() {
   local module="$1"
+  local package
   shift
 
   if (($# == 0)); then
@@ -88,9 +89,12 @@ run_install_command() {
   fi
 
   printf 'Installing packages with: %s\n' "$INSTALL_COMMAND"
-  if ! bash -lc 'install_command="$1"; shift; $install_command "$@"' bash "$INSTALL_COMMAND" "$@"; then
-    warn_manual_install "$module" "$@"
-  fi
+  for package in "$@"; do
+    printf 'Installing package: %s\n' "$package"
+    if ! bash -lc 'install_command="$1"; package="$2"; $install_command "$package"' bash "$INSTALL_COMMAND" "$package"; then
+      warn_manual_install "$module" "$package"
+    fi
+  done
 }
 
 start_sudo_session() {
