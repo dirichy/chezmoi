@@ -30,6 +30,13 @@ path=(
     $path
 )
 export EDITOR=nvim
+{{- if not .features.desktop }}
+case "$TERM" in
+    xterm-kitty|xterm-ghostty|wezterm|foot|alacritty)
+        export TERM=xterm-256color
+        ;;
+esac
+{{- end }}
 {{- if .proxy.address }}
 export https_proxy=http://{{ .proxy.address }} http_proxy=http://{{ .proxy.address }} #all_proxy=socks5://{{ .proxy.address }}
 {{- end }}
