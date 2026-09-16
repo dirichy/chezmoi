@@ -2,6 +2,8 @@
 
 WIFI_SERVICE="Wi-Fi"
 USB_SERVICE="Thunderbolt Bridge"
+PROXY_HOST={{ default "127.0.0.1" .proxy.host | quote }}
+PROXY_PORT={{ default "7890" .proxy.port | quote }}
 
 # 读取 HTTPS 代理状态（判断一个就够）
 STATE=$(networksetup -getsecurewebproxy "$WIFI_SERVICE" \
@@ -18,19 +20,18 @@ if [ "$STATE" = "Yes" ]; then
    /opt/homebrew/bin/hs -c 'hs.alert("Proxy off")'
 else
   # 打开全部代理
-  networksetup -setwebproxy "$WIFI_SERVICE" 127.0.0.1 7890
-  networksetup -setsecurewebproxy "$WIFI_SERVICE" 127.0.0.1 7890
-  networksetup -setsocksfirewallproxy "$WIFI_SERVICE" 127.0.0.1 7890
+  networksetup -setwebproxy "$WIFI_SERVICE" "$PROXY_HOST" "$PROXY_PORT"
+  networksetup -setsecurewebproxy "$WIFI_SERVICE" "$PROXY_HOST" "$PROXY_PORT"
+  networksetup -setsocksfirewallproxy "$WIFI_SERVICE" "$PROXY_HOST" "$PROXY_PORT"
   networksetup -setwebproxystate "$WIFI_SERVICE" on
   networksetup -setsecurewebproxystate "$WIFI_SERVICE" on
   networksetup -setsocksfirewallproxystate "$WIFI_SERVICE" on
-  networksetup -setwebproxy "$USB_SERVICE" 127.0.0.1 7890
-  networksetup -setsecurewebproxy "$USB_SERVICE" 127.0.0.1 7890
-  networksetup -setsocksfirewallproxy "$USB_SERVICE" 127.0.0.1 7890
+  networksetup -setwebproxy "$USB_SERVICE" "$PROXY_HOST" "$PROXY_PORT"
+  networksetup -setsecurewebproxy "$USB_SERVICE" "$PROXY_HOST" "$PROXY_PORT"
+  networksetup -setsocksfirewallproxy "$USB_SERVICE" "$PROXY_HOST" "$PROXY_PORT"
   networksetup -setwebproxystate "$USB_SERVICE" on
   networksetup -setsecurewebproxystate "$USB_SERVICE" on
   networksetup -setsocksfirewallproxystate "$USB_SERVICE" on
-  /opt/homebrew/bin/hs -c 'hs.alert("Proxy on(7890)")'
+  /opt/homebrew/bin/hs -c "hs.alert(\"Proxy on($PROXY_HOST:$PROXY_PORT)\")"
 
 fi
-

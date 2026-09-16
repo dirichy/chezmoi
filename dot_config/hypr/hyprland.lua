@@ -6,6 +6,7 @@ print = function(str)
 end
 local im = require("fcitx")
 local SHELL = require("wmux.shell")
+local proxy = require("generated_proxy")
 -- local monitor = require("monitor")
 require("monitor").setup()
 -- hl.monitor({
@@ -101,7 +102,10 @@ local function has_nvidia()
 end
 
 local function has_proxy()
-	return command_ok("timeout 1 bash -c '</dev/tcp/127.0.0.1/7890' >/dev/null 2>&1")
+	if not proxy.enabled then
+		return false
+	end
+	return command_ok(("timeout 1 bash -c '</dev/tcp/%s/%s' >/dev/null 2>&1"):format(proxy.host, proxy.port))
 end
 
 local env_table = {
@@ -123,9 +127,9 @@ if has_nvidia() then
 	env_table["GBM_BACKEND"] = "nvidia-drm"
 end
 if has_proxy() then
-	env_table["http_proxy"] = "http://127.0.0.1:7890"
-	env_table["https_proxy"] = "http://127.0.0.1:7890"
-	env_table["all_proxy"] = "socks5://127.0.0.1:7890"
+	env_table["http_proxy"] = "http://" .. proxy.address
+	env_table["https_proxy"] = "http://" .. proxy.address
+	env_table["all_proxy"] = "socks5://" .. proxy.address
 end
 for key, value in pairs(env_table) do
 	hl.env(key, value)

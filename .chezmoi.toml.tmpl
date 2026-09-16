@@ -37,6 +37,18 @@
 {{- $hasProxy := or $isDesktop $isCustomProxy -}}
 {{- $hasApps := or $isDesktop $isCustomApps -}}
 {{- $hasSystemServices := and $adminUser (or $isHeadless $isMinimal $isDesktop $isDevbox $isFull $isEverything $isCustomSystem) -}}
+{{- $proxyDefault := "" -}}
+{{- if $hasProxy -}}
+{{- $proxyDefault = "127.0.0.1:7890" -}}
+{{- end -}}
+{{- $proxyAddress := promptStringOnce . "proxy.address" "proxy address host:port" $proxyDefault -}}
+{{- $proxyHost := "" -}}
+{{- $proxyPort := "" -}}
+{{- if contains ":" $proxyAddress -}}
+{{- $proxyParts := splitList ":" $proxyAddress -}}
+{{- $proxyHost = index $proxyParts 0 -}}
+{{- $proxyPort = index $proxyParts 1 -}}
+{{- end -}}
 {{- $inputMethodChoices := list "tiger" "flypy" -}}
 {{- $inputMethod := promptChoiceOnce . "inputMethod" "input method profile" $inputMethodChoices "tiger" -}}
 {{- $fduConnect := promptBoolOnce . "fduConnect" "enable fdu-connect" false -}}
@@ -49,6 +61,11 @@ email = {{ ( promptStringOnce . "email" "email" ) | quote }}
 inputMethod = {{ $inputMethod | quote }}
 fduConnect = {{ $fduConnect }}
 phoneBluetoothMac = {{ ( promptStringOnce . "phoneBluetoothMac" "Your mobile BluetoothMac, only used in hypridle to judge if you are home" )|quote }}
+
+[data.proxy]
+address = {{ $proxyAddress | quote }}
+host = {{ $proxyHost | quote }}
+port = {{ $proxyPort | quote }}
 
 [data.install]
 # Host profile drives both dependency installation and which config groups are enabled.

@@ -1,0 +1,6 @@
+return {
+	enabled = {{ if .proxy.address }}true{{ else }}false{{ end }},
+	address = {{ .proxy.address | quote }},
+	host = {{ .proxy.host | quote }},
+	port = {{ .proxy.port | quote }},
+}

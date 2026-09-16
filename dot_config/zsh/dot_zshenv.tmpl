@@ -30,7 +30,9 @@ path=(
     $path
 )
 export EDITOR=nvim
-export https_proxy=http://127.0.0.1:7890 http_proxy=http://127.0.0.1:7890 #all_proxy=socks5://127.0.0.1:7890
+{{- if .proxy.address }}
+export https_proxy=http://{{ .proxy.address }} http_proxy=http://{{ .proxy.address }} #all_proxy=socks5://{{ .proxy.address }}
+{{- end }}
 {{- if eq .chezmoi.os "darwin"}}
 path=({{$brewPrefix}}/bin /Users/Shared/opt/bin $path $HOME/Library/Python/3.9/bin)
 {{- end}}
