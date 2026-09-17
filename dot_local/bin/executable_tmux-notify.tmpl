@@ -1,0 +1,135 @@
+#!/bin/sh
+set -u
+
+usage() {
+    echo "usage: tmux-notify KEY TITLE BODY" >&2
+    echo "       tmux-notify --clear KEY [KEY ...]" >&2
+    exit 2
+}
+
+mode=notify
+if [ "${1:-}" = "--clear" ]; then
+    [ "$#" -ge 2 ] || usage
+    mode=clear
+    shift
+else
+    [ "$#" -eq 3 ] || usage
+    key=$1
+    title=$2
+    body=$3
+fi
+recipient=${TMUX_NOTIFY_EMAIL:-{{ .email | quote }}}
+interval=${TMUX_NOTIFY_INTERVAL:-1800}
+retry_interval=${TMUX_NOTIFY_RETRY_INTERVAL:-300}
+max_attempts=${TMUX_NOTIFY_MAX_ATTEMPTS:-3}
+
+for value_name in interval retry_interval max_attempts; do
+    eval "value=\$$value_name"
+    case "$value" in
+        ''|*[!0-9]*)
+            echo "tmux-notify: $value_name must be a non-negative integer" >&2
+            exit 2
+            ;;
+    esac
+done
+
+case "$max_attempts" in
+    0)
+        echo "tmux-notify: max_attempts must be greater than zero" >&2
+        exit 2
+        ;;
+esac
+
+runtime_root=${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}
+state_dir=$runtime_root/tmux-notify-${UID:-$(id -u)}
+log_dir=${XDG_STATE_HOME:-${HOME:-$runtime_root}/.local/state}
+log_file=$log_dir/tmux-notify.log
+umask 077
+mkdir -p "$state_dir" || exit 1
+mkdir -p "$log_dir" || exit 1
+
+log() {
+    printf '%s %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >> "$log_file"
+}
+
+if [ "$mode" = clear ]; then
+    for clear_key do
+        state_key=$(printf '%s\n' "$clear_key" | cksum | awk '{print $1 "-" $2}')
+        rm -f "$state_dir/$state_key"
+        log "email cooldown cleared key=$clear_key"
+    done
+    exit 0
+fi
+
+if command -v notify-send >/dev/null 2>&1; then
+    if notify-send --app-name=tmux "$title" "$body"; then
+        log "desktop delivered key=$key"
+    else
+        log "desktop failed key=$key"
+    fi
+else
+    log "desktop skipped: notify-send not found key=$key"
+fi
+
+if [ -z "$recipient" ]; then
+    log "email skipped: recipient is empty key=$key"
+    exit 0
+fi
+
+# cksum is portable and keeps arbitrary tmux names out of file names.
+state_key=$(printf '%s\n' "$key" | cksum | awk '{print $1 "-" $2}')
+stamp=$state_dir/$state_key
+lock=$stamp.lock
+
+# Serialize simultaneous hooks for the same event without making tmux wait.
+if ! mkdir "$lock" 2>/dev/null; then
+    log "email skipped: delivery already in progress key=$key"
+    exit 0
+fi
+trap 'rmdir "$lock" 2>/dev/null || true' EXIT HUP INT TERM
+
+now=$(date +%s)
+last=0
+if [ -f "$stamp" ]; then
+    IFS= read -r last < "$stamp" || last=0
+fi
+case "$last" in
+    ''|*[!0-9]*) last=0 ;;
+esac
+
+if [ "$interval" -gt 0 ] && [ $((now - last)) -lt "$interval" ]; then
+    log "email debounced key=$key"
+    exit 0
+fi
+
+# Claim the interval before delivery so concurrent hooks cannot fan out.
+printf '%s\n' "$now" > "$stamp" || exit 1
+
+if ! command -v msmtp >/dev/null 2>&1; then
+    log "email failed: msmtp not found key=$key"
+    echo "tmux-notify: msmtp not found" >&2
+    exit 1
+fi
+
+safe_title=$(printf '%s' "$title" | tr '\r\n' '  ')
+attempt=1
+while [ "$attempt" -le "$max_attempts" ]; do
+    if {
+        printf 'To: %s\n' "$recipient"
+        printf 'Subject: %s\n' "$safe_title"
+        printf 'Content-Type: text/plain; charset=UTF-8\n'
+        printf '\n%s\n' "$body"
+    } | msmtp -t; then
+        log "email delivered attempt=$attempt key=$key"
+        exit 0
+    fi
+
+    log "email failed attempt=$attempt/$max_attempts key=$key"
+    if [ "$attempt" -ge "$max_attempts" ]; then
+        echo "tmux-notify: email delivery failed after $max_attempts attempts" >&2
+        exit 1
+    fi
+
+    sleep "$retry_interval"
+    attempt=$((attempt + 1))
+done

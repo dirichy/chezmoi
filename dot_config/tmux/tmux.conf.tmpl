@@ -159,20 +159,52 @@ bind C-s if -F '#{s/off//:status}' 'set status off' 'set status on'
 # ==================================================
 # === Window monitoring for activity and silence ===
 # ==================================================
-# TODO: I think a floating window may be better
-# bind m setw monitor-activity \; display-message 'Monitor window activity [#{?monitor-activity,ON,OFF}]'
-bind M if -F '#{monitor-silence}' \
-    'setw monitor-silence 0 ; display-message "Monitor window silence [OFF]" \; set status off' \
-    'command-prompt -b -p "Monitor silence: interval (s)" "setw monitor-silence %%" \; set status off'
+# `m` is already used by move-pane, so use `A` for activity monitoring.
+bind C-a if -F '#{monitor-activity}' {
+    setw monitor-activity off
+    display-message 'Monitor window activity [OFF]'
+    set status off
+} {
+    setw monitor-activity on
+    display-message 'Monitor window activity [ON]'
+    set status off
+}
+
+bind C-s if -F '#{monitor-silence}' {
+    setw monitor-silence 0
+    display-message 'Monitor window silence [OFF]'
+    set status off
+} {
+    command-prompt -b -p 'Monitor silence: interval (s)' "setw monitor-silence '%%' \; set status off"
+}
 
 # Activity bell and whistles
 set -g visual-activity both
+set -g activity-action any
+set -g silence-action any
+# Entering a target may mean that a different program will be started there.
+# Forget the previous program's email cooldown while keeping desktop alerts live.
+set-hook -g after-select-window {
+    run-shell -b 'tmux-notify --clear "silence:#{session_name}:#{window_index}" "activity:#{session_name}:#{window_index}.#{pane_index}"'
+}
+set-hook -g after-select-pane {
+    run-shell -b 'tmux-notify --clear "silence:#{session_name}:#{window_index}" "activity:#{session_name}:#{window_index}.#{pane_index}"'
+}
+set-hook -g client-attached {
+    run-shell -b 'tmux-notify --clear "silence:#{session_name}:#{window_index}" "activity:#{session_name}:#{window_index}.#{pane_index}"'
+}
 # set-hook -g alert-activity \
 #   "run-shell 'notify-send --action 'default=Jump to pane' '#{session_name}:#{window_index}.#{pane_index}'"
-#TODO: rewrite this to work with gui(mako) and cli
-# may be we can add email as notify-send method
-set-hook -g alert-activity \
-  "run-shell \"notify-send --action 'default=Jump to pane' 'Alert in tmux #{session_name}:#{window_index}.#{pane_index}'\""
+set-hook -g alert-silence {
+    if -F '#{||:#{==:#{session_attached},0},#{==:#{window_active},0}}' {
+        run-shell -b 'tmux-notify "silence:#{session_name}:#{window_index}" "tmux silence" "#{session_name}:#{window_index} has gone quiet"'
+    }
+}
+set-hook -g alert-activity {
+    if -F '#{||:#{==:#{session_attached},0},#{==:#{window_active},0}}' {
+        run-shell -b 'tmux-notify "activity:#{session_name}:#{window_index}.#{pane_index}" "tmux activity" "Activity in #{session_name}:#{window_index}.#{pane_index}"'
+    }
+}
 
 # TODO: Does not work as well, check on newer versions
 # set -g visual-silence on
