@@ -55,26 +55,26 @@ function t() {
     fi
     __tmux_ls=$(tmux ls | awk -F ':' '{print $1}' | nl)
     __tmux_ls_count=$(echo "$__tmux_ls" | grep -c .)
-    if [ $__tmux_ls_count -eq 1 ]; then
-        if [[ -z $TMUX ]]; then
-            tmux attach
-        else
-            echo "There is no other session, input a name to create a session!"
-            read __session_name
-            if [ -z $__session_name ]; then
-                __session_name="default"
-            fi
-            tmux new-session -s "$__session_name" -d
-            tmux switch-client -t "$__session_name"
-            return $?
-        fi
-        return 0
-    fi
-    echo "There is mutiple sessions, input number to choose"
+    echo "Choose a session or create a new one"
     echo "$__tmux_ls" | column -t
-    read __number
+    echo "or press [a] to create a new session"
+    read -k 1 __number
+    echo
     if [[ -z $__number ]]; then
         __number=1
+    fi
+    if [[ $__number == a ]]; then
+        echo "Input a name to create a session!"
+        read __session_name
+        if [[ -z $__session_name ]]; then
+            __session_name="default"
+        fi
+        if [[ -z $TMUX ]]; then
+            tmux new-session -s "$__session_name"
+        else
+            tmux new-session -s "$__session_name" -d && tmux switch-client -t "$__session_name"
+        fi
+        return $?
     fi
     if [[ -z $TMUX ]]; then
         tmux attach-session -t "$(echo "$__tmux_ls" | grep "^\s*$__number\s" | awk -F '	' '{print $2}')"
