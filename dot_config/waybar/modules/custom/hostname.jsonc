@@ -1,0 +1,8 @@
+{
+	"custom/hostname": {
+		"exec": "hostname",
+		"interval": "once",
+		"on-click": "pkill -SIGUSR2 waybar",
+		"tooltip-format": "Click to reload Waybar"
+	}
+}
