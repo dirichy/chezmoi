@@ -7,8 +7,8 @@ end
 local im = require("fcitx")
 local SHELL = require("wmux.shell")
 local proxy = require("generated_proxy")
--- local monitor = require("monitor")
-require("monitor").setup()
+local monitor = require("monitor")
+monitor.setup()
 -- hl.monitor({
 -- 	output = "",
 -- 	-- mode = "3840x2160@60",
@@ -144,7 +144,6 @@ hl.on("hyprland.start", function()
 	hl.exec_cmd("sleep 1;systemctl --user restart udisken")
 	hl.exec_cmd("sleep 1;systemctl --user restart waybar")
 	hl.exec_cmd("sleep 1;systemctl --user restart hypridle")
-	hl.exec_cmd("xrdb -merge ~/.Xresources")
 	hl.exec_cmd("mkdir -p ~/Pictures/Screenshots")
 	hl.exec_cmd(terminal)
 	hl.exec_cmd(browser)

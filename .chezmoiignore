@@ -67,7 +67,6 @@ Library/LaunchAgents/mihomo.plist
 # Linux-only files.
 {{ if ne .chezmoi.os "linux" }}
 run_onchange_after_install-packages-linux.sh
-.Xresources
 .cache/rsync_to_root
 .config/hypr
 .config/mako
@@ -95,7 +94,6 @@ run_onchange_after_install-packages-linux.sh
 
 # Linux desktop files.
 {{ if and (eq .chezmoi.os "linux") (not .features.linuxDesktop) }}
-.Xresources
 .cache/rsync_to_root
 .config/hypr
 .config/mako
