@@ -19,6 +19,8 @@ else
     body=$3
 fi
 recipient=${TMUX_NOTIFY_EMAIL:-{{ .email | quote }}}
+webhook_url=${TMUX_NOTIFY_URL:-https://{{secret "serverIP"}}:8443/send}
+webhook_token=${TMUX_NOTIFY_TOKEN:-{{ secret "tmuxNotifyToken" "" | quote }}}
 interval=${TMUX_NOTIFY_INTERVAL:-1800}
 retry_interval=${TMUX_NOTIFY_RETRY_INTERVAL:-300}
 max_attempts=${TMUX_NOTIFY_MAX_ATTEMPTS:-3}
@@ -56,7 +58,7 @@ if [ "$mode" = clear ]; then
     for clear_key do
         state_key=$(printf '%s\n' "$clear_key" | cksum | awk '{print $1 "-" $2}')
         rm -f "$state_dir/$state_key"
-        log "email cooldown cleared key=$clear_key"
+        log "remote cooldown cleared key=$clear_key"
     done
     exit 0
 fi
@@ -71,11 +73,6 @@ else
     log "desktop skipped: notify-send not found key=$key"
 fi
 
-if [ -z "$recipient" ]; then
-    log "email skipped: recipient is empty key=$key"
-    exit 0
-fi
-
 # cksum is portable and keeps arbitrary tmux names out of file names.
 state_key=$(printf '%s\n' "$key" | cksum | awk '{print $1 "-" $2}')
 stamp=$state_dir/$state_key
@@ -83,7 +80,7 @@ lock=$stamp.lock
 
 # Serialize simultaneous hooks for the same event without making tmux wait.
 if ! mkdir "$lock" 2>/dev/null; then
-    log "email skipped: delivery already in progress key=$key"
+    log "remote skipped: delivery already in progress key=$key"
     exit 0
 fi
 trap 'rmdir "$lock" 2>/dev/null || true' EXIT HUP INT TERM
@@ -98,35 +95,92 @@ case "$last" in
 esac
 
 if [ "$interval" -gt 0 ] && [ $((now - last)) -lt "$interval" ]; then
-    log "email debounced key=$key"
+    log "remote debounced key=$key"
     exit 0
 fi
 
 # Claim the interval before delivery so concurrent hooks cannot fan out.
 printf '%s\n' "$now" > "$stamp" || exit 1
 
-if ! command -v msmtp >/dev/null 2>&1; then
-    log "email failed: msmtp not found key=$key"
-    echo "tmux-notify: msmtp not found" >&2
-    exit 1
-fi
+json_string() {
+    awk '
+        BEGIN {
+            printf "\""
+        }
+        {
+            gsub(/\\/, "\\\\")
+            gsub(/"/, "\\\"")
+            gsub(/\t/, "\\t")
+            gsub(/\r/, "\\r")
+            if (NR > 1) {
+                printf "\\n"
+            }
+            printf "%s", $0
+        }
+        END {
+            printf "\""
+        }
+    '
+}
 
-safe_title=$(printf '%s' "$title" | tr '\r\n' '  ')
-attempt=1
-while [ "$attempt" -le "$max_attempts" ]; do
-    if {
+send_email() {
+    if [ -z "$recipient" ]; then
+        log "email skipped: recipient is empty key=$key"
+        return 1
+    fi
+
+    if ! command -v msmtp >/dev/null 2>&1; then
+        log "email skipped: msmtp not found key=$key"
+        return 1
+    fi
+
+    safe_title=$(printf '%s' "$title" | tr '\r\n' '  ')
+    {
         printf 'To: %s\n' "$recipient"
         printf 'Subject: %s\n' "$safe_title"
         printf 'Content-Type: text/plain; charset=UTF-8\n'
         printf '\n%s\n' "$body"
-    } | msmtp -t; then
+    } | msmtp -t
+}
+
+send_webhook() {
+    if [ -z "$webhook_token" ]; then
+        log "webhook skipped: TMUX_NOTIFY_TOKEN is empty key=$key"
+        return 1
+    fi
+
+    if ! command -v curl >/dev/null 2>&1; then
+        log "webhook skipped: curl not found key=$key"
+        return 1
+    fi
+
+    json_subject=$(printf '%s' "$title" | json_string)
+    json_body=$(printf '%s' "$body" | json_string)
+    payload=$(printf '{"subject":%s,"body":%s}' "$json_subject" "$json_body")
+
+    curl -fsS -k "$webhook_url" \
+        -H "Authorization: Bearer $webhook_token" \
+        -H 'Content-Type: application/json' \
+        -d "$payload" >/dev/null
+}
+
+attempt=1
+while [ "$attempt" -le "$max_attempts" ]; do
+    if send_email; then
         log "email delivered attempt=$attempt key=$key"
         exit 0
     fi
 
     log "email failed attempt=$attempt/$max_attempts key=$key"
+
+    if send_webhook; then
+        log "webhook delivered attempt=$attempt key=$key"
+        exit 0
+    fi
+
+    log "webhook failed attempt=$attempt/$max_attempts key=$key"
     if [ "$attempt" -ge "$max_attempts" ]; then
-        echo "tmux-notify: email delivery failed after $max_attempts attempts" >&2
+        echo "tmux-notify: remote delivery failed after $max_attempts attempts" >&2
         exit 1
     fi
 

@@ -192,7 +192,7 @@ set -g visual-activity both
 set -g activity-action any
 set -g silence-action any
 # Entering a target may mean that a different program will be started there.
-# Forget the previous program's email cooldown while keeping desktop alerts live.
+# Forget the previous program's remote-notification cooldown while keeping desktop alerts live.
 set-hook -g after-select-window {
     run-shell -b 'tmux-notify --clear "silence:#{session_name}:#{window_index}" "activity:#{session_name}:#{window_index}.#{pane_index}"'
 }
