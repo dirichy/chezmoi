@@ -6,6 +6,8 @@
 {{- end -}}
 
 
+Include ~/.ssh/config.d/*.conf
+
 Host *
     ControlMaster auto
     ControlPath ~/.ssh/control-%r@%h:%p
