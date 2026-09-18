@@ -1,0 +1,23 @@
+#!/bin/zsh
+
+if [[ -f $1 ]]; then
+    case $1 in
+        *.pdf) sioyek -- "$1" ;;
+        *.tex|*.txt) nvim -- "$1" ;;
+        *)
+            if (( $+commands[open] )); then
+                command open "$1"
+            elif (( $+commands[xdg-open] )); then
+                command xdg-open "$1"
+            else
+                echo "No file opener is installed"
+                return 1
+            fi
+            ;;
+    esac
+elif [[ -d $1 ]]; then
+    yazi -- "$1"
+else
+    echo "Unknown file or directory: $1"
+    return 1
+fi

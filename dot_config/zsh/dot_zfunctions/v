@@ -1,0 +1,65 @@
+#!/bin/zsh
+
+if (( ! $+commands[nvim] )); then
+    echo "Neovim not installed!"
+    return 1
+fi
+
+if (( $# < 2 )); then
+    if (( $# == 0 )); then
+        nvim
+        return $?
+    fi
+    if [[ -f $1 ]]; then
+        nvim -- "$1"
+        return $?
+    fi
+    if [[ -d $1 ]]; then
+        if (( $+commands[zoxide] )); then
+            zoxide add -- "$1"
+            builtin cd -- "$1"
+        fi
+        nvim .
+        return $?
+    fi
+    if (( $+commands[zoxide] )); then
+        local knownpath
+        for knownpath in ${(f)"$(zoxide query -l)"}; do
+            if [[ -f $knownpath/$1 ]] && [[ $(file -- "$knownpath/$1") == *text* ]]; then
+                zoxide add -- "$knownpath"
+                nvim -- "$knownpath/$1"
+                return $?
+            fi
+        done
+    fi
+    if [[ -f $HOME/$1 ]] && [[ $(file -- "$HOME/$1") == *text* ]]; then
+        nvim -- "$HOME/$1"
+        return $?
+    fi
+fi
+
+if (( $+commands[zoxide] )); then
+    local filepath
+    filepath=$(zoxide query -- "$@")
+    if (( $? == 0 )); then
+        zoxide add -- "$filepath"
+        builtin cd -- "$filepath"
+        nvim .
+        return $?
+    fi
+fi
+
+if (( $+commands[fzf] )); then
+    local filename
+    filename=$(fzf --filter="$*")
+    if [[ -n $filename ]]; then
+        filename=$(fzf --query="$*")
+        if [[ -n $filename ]]; then
+            [[ -f $filename ]] && zoxide add -- "$(dirname -- "$filename")"
+            [[ -d $filename ]] && zoxide add -- "$filename"
+            nvim -- "$filename"
+            return $?
+        fi
+    fi
+fi
+return 1

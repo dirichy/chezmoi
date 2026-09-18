@@ -1,0 +1,25 @@
+#!/bin/zsh
+
+if (( ! $+commands[lazygit] )); then
+    echo "lazygit not installed!"
+    return 1
+fi
+
+if (( $# < 2 )); then
+    if (( $# == 0 )); then
+        lazygit
+        return $?
+    fi
+    if [[ -d $1 ]]; then
+        lazygit -p "$1"
+        return $?
+    fi
+fi
+
+if (( $+commands[zoxide] )); then
+    local path_to_git
+    path_to_git=$(zoxide query -- "$@") || return 1
+    lazygit -p "$path_to_git"
+    return $?
+fi
+return 1

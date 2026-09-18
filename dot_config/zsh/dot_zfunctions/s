@@ -1,0 +1,6 @@
+#!/bin/zsh
+
+autossh -M 0 \
+    -o "ServerAliveInterval=10" \
+    -o "ServerAliveCountMax=3" \
+    "$@"
