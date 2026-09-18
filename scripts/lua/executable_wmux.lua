@@ -88,6 +88,9 @@ if kmap.feature and kmap.feature.createmod then
 		kmap.bind("v", ESC, { "v", moonlight_exit_mod }, moonlight)
 	end
 end
+if arg and arg[1] == "karabiner" then
+	require("wmux.keymap.macos")
+end
 if kmap.print then
 	kmap.print()
 end
