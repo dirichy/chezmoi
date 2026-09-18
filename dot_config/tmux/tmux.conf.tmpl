@@ -13,6 +13,15 @@ set -g display-time 1500
 set -g remain-on-exit off
 set -g repeat-time 300
 setw -g automatic-rename off
+
+# Keep tmux terminal-only even when its server was started from a desktop
+# session. This makes pinentry select a terminal backend for local and remote
+# clients alike. Do not let a later client attachment restore these variables.
+set -g update-environment "SSH_AUTH_SOCK SSH_CONNECTION SSH_CLIENT SSH_TTY"
+set-environment -gu DISPLAY
+set-environment -gu WAYLAND_DISPLAY
+set-environment -gu XDG_SESSION_TYPE
+
 # Let tmux-wrapped terminal escapes such as OSC 1337 reach kitty.
 set -gq allow-passthrough on
 #TODO:need to test
