@@ -52,6 +52,7 @@
 {{- $inputMethodChoices := list "tiger" "flypy" -}}
 {{- $inputMethod := promptChoiceOnce . "inputMethod" "input method profile" $inputMethodChoices "tiger" -}}
 {{- $fduConnect := promptBoolOnce . "fduConnect" "enable fdu-connect" false -}}
+{{- $waybarHostnameSymbol := promptStringOnce . "waybar.hostnameSymbol" "Waybar hostname symbol" .chezmoi.hostname -}}
 [merge]
 command = "nvim"
 args = ["-d", "{{ "{{ .Destination }}" }}", "{{"{{ .Source }}"}}"]
@@ -61,6 +62,9 @@ email = {{ ( promptStringOnce . "email" "email" ) | quote }}
 inputMethod = {{ $inputMethod | quote }}
 fduConnect = {{ $fduConnect }}
 phoneBluetoothMac = {{ ( promptStringOnce . "phoneBluetoothMac" "Your mobile BluetoothMac, only used in hypridle to judge if you are home" )|quote }}
+
+[data.waybar]
+hostnameSymbol = {{ $waybarHostnameSymbol | quote }}
 
 [data.proxy]
 address = {{ $proxyAddress | quote }}

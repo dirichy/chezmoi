@@ -1,0 +1,12 @@
+{{- $hostname := .chezmoi.hostname -}}
+{{- $symbol := $hostname -}}
+{{- if hasKey . "waybar" -}}
+{{- $symbol = default $hostname .waybar.hostnameSymbol -}}
+{{- end -}}
+{
+	"custom/hostname": {
+		"format": {{ $symbol | toJson }},
+		"on-click": "pkill -SIGUSR2 waybar",
+		"tooltip-format": {{ printf "%s · Click to reload Waybar" $hostname | toJson }}
+	}
+}
