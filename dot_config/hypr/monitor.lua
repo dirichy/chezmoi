@@ -49,13 +49,13 @@ local scale_tbl = {
 }
 ---@param monitor HL.Monitor
 local function get_scale(monitor)
-	if monitor.scale and monitor.scale > 0 then
-		return monitor.scale
-	end
 	local width = monitor.width
 	local height = monitor.height
 	if scale_tbl[width] and scale_tbl[width][height] then
 		return scale_tbl[width][height]
+	end
+	if monitor.scale and monitor.scale > 0 then
+		return monitor.scale
 	end
 	return height / 1000
 end
