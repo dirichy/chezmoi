@@ -6,7 +6,16 @@ if [[ -f $1 ]]; then
         *.tar.gz) tar xzf -- "$1" ;;
         *.tar.xz) tar xf -- "$1" ;;
         *.bz2) bunzip2 -- "$1" ;;
-        *.rar) rar x -- "$1" ;;
+        *.rar)
+            if (( $+commands[unrar] )); then
+                unrar x -- "$1"
+            elif (( $+commands[rar] )); then
+                rar x -- "$1"
+            else
+                echo "Neither unrar nor rar is installed" >&2
+                return 1
+            fi
+            ;;
         *.gz) gunzip -- "$1" ;;
         *.tar) tar xf -- "$1" ;;
         *.tbz2) tar xjf -- "$1" ;;
