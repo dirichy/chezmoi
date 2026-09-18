@@ -1,4 +1,2 @@
 #!/usr/bin/env bash
-export QT_QPA_PLATFORM=xcb
-exec /usr/bin/sioyek "$@"
-# flatpak run --env=QT_SCALE_FACTOR=1 --env=GDK_SCALE=1 --filesystem=host com.github.ahrm.sioyek "$@"
+env QT_QPA_PLATFORM=xcb /usr/bin/sioyek "$@" || flatpak run com.github.ahrm.sioyek "$@"
