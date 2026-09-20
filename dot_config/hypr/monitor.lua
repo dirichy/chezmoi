@@ -16,7 +16,9 @@ function M.get_physic_monitor(callback, max_try)
 	max_try = max_try or 30
 	for _, monitor in ipairs(hl.get_monitors()) do
 		if valid_monitor(monitor) then
-			return callback(monitor)
+			callback(monitor)
+			hl.sunshine = require("sunshine")
+			return
 		end
 	end
 	local timer
@@ -32,9 +34,9 @@ function M.get_physic_monitor(callback, max_try)
 			if valid_monitor(monitor) then
 				timer:set_enabled(false)
 				timer = nil
-				hl.exec_cmd("systemctl --user restart app-dev.lizardbyte.app.Sunshine")
+				callback(monitor)
 				hl.sunshine = require("sunshine")
-				return callback(monitor)
+				return
 			end
 		end
 		try = try + 1
@@ -83,19 +85,19 @@ function M.setup(opts)
 		M.config[key] = value
 	end
 	hl.exec_cmd("xrdb -merge ~/.Xresources")
-	if not M.config.scale then
-		---@param monitor HL.Monitor
-		local function setup_monitor(monitor)
-			M.config.scale = M.get_scale(monitor.width, monitor.height)
-			M.config.output = monitor.name
-			M.default_monitor = monitor
-			write_xresources(M.config.scale)
-			hl.monitor(M.config)
-		end
-		M.get_physic_monitor(setup_monitor)
-	else
+	-- if not M.config.scale then
+	---@param monitor HL.Monitor
+	local function setup_monitor(monitor)
+		M.config.scale = M.get_scale(monitor.width, monitor.height)
+		M.config.output = monitor.name
+		M.default_monitor = monitor
 		write_xresources(M.config.scale)
 		hl.monitor(M.config)
 	end
+	M.get_physic_monitor(setup_monitor)
+	-- else
+	-- 	write_xresources(M.config.scale)
+	-- 	hl.monitor(M.config)
+	-- end
 end
 return M

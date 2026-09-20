@@ -1,23 +1,38 @@
 #!/usr/bin/env bash
+state_file="${XDG_RUNTIME_DIR}/hypr-sunshine-command"
+
+run() {
+  local command="$1"
+  printf '%s\n' "$command" > "${state_file}.tmp"
+  mv "${state_file}.tmp" "$state_file"
+  hyprctl eval "$command"
+}
+
 case "$1" in
   expand)
-    hyprctl eval "hl.sunshine.expand(${SUNSHINE_CLIENT_WIDTH},${SUNSHINE_CLIENT_HEIGHT},${SUNSHINE_CLIENT_FPS})"
+    run "hl.sunshine.expand(${SUNSHINE_CLIENT_WIDTH},${SUNSHINE_CLIENT_HEIGHT},${SUNSHINE_CLIENT_FPS})"
     sleep 5
     ;;
   mirror)
-    hyprctl eval "hl.sunshine.mirror(${SUNSHINE_CLIENT_WIDTH},${SUNSHINE_CLIENT_HEIGHT},${SUNSHINE_CLIENT_FPS})"
+    run "hl.sunshine.mirror(${SUNSHINE_CLIENT_WIDTH},${SUNSHINE_CLIENT_HEIGHT},${SUNSHINE_CLIENT_FPS})"
     sleep 5
     ;;
   reverse-mirror)
-    hyprctl eval "hl.sunshine.reverse_mirror(${SUNSHINE_CLIENT_WIDTH},${SUNSHINE_CLIENT_HEIGHT},${SUNSHINE_CLIENT_FPS})"
+    run "hl.sunshine.reverse_mirror(${SUNSHINE_CLIENT_WIDTH},${SUNSHINE_CLIENT_HEIGHT},${SUNSHINE_CLIENT_FPS})"
     sleep 5
     ;;
   only)
-    hyprctl eval "hl.sunshine.only(${SUNSHINE_CLIENT_WIDTH},${SUNSHINE_CLIENT_HEIGHT},${SUNSHINE_CLIENT_FPS})"
+    run "hl.sunshine.only(${SUNSHINE_CLIENT_WIDTH},${SUNSHINE_CLIENT_HEIGHT},${SUNSHINE_CLIENT_FPS})"
     sleep 5
     ;;
   reset)
-    hyprctl eval "hl.sunshine.reset()"
+    run "hl.sunshine.reset()"
+    ;;
+  restore)
+    if [[ -s "$state_file" ]]; then
+      IFS= read -r command < "$state_file"
+      hyprctl eval "$command"
+    fi
     ;;
 esac
 exit 0
