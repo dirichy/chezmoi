@@ -3,7 +3,7 @@ return {
 	{
 		vim.fn.isdirectory(vim.env.HOME .. "/nvimtex.nvim/") == 0 and "dirichy/nvimtex.nvim",
 		dir = vim.fn.isdirectory(vim.env.HOME .. "/nvimtex.nvim/") == 1 and vim.env.HOME .. "/nvimtex.nvim",
-		ft = { "tex", "latex" },
+		ft = { "tex", "latex", "markdown" },
 		dependencies = {
 			"nvim-treesitter/nvim-treesitter",
 			"m00qek/baleia.nvim",

@@ -231,5 +231,6 @@ return {
 			pattern = "LuasnipPreExpand",
 			command = "let &undolevels = &undolevels",
 		})
+		require("luasnip").filetype_extend("markdown_inline", { "markdown" })
 	end,
 }
