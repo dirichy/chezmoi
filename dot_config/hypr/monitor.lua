@@ -3,7 +3,8 @@ local HOME = os.getenv("HOME")
 M.config = {
 	output = "",
 	mode = "preferred",
-	-- position = "0x0",
+	position = "0x0",
+	disabled = false,
 	scale = nil,
 }
 ---@param m HL.Monitor?
@@ -35,29 +36,27 @@ function M.get_active_monitor_safe(callback, max_try)
 		try = try + 1
 	end, { timeout = 500, type = "repeat" })
 end
-local scale_tbl = {
-	[3840] = {
-		[2160] = 2.4,
-	},
-	[2388] = {
-		[1668] = 1.5,
-	},
-	[2560] = {
-		[1440] = 2,
-		[1600] = 2,
-	},
-}
----@param monitor HL.Monitor
-local function get_scale(monitor)
-	local width = monitor.width
-	local height = monitor.height
-	if scale_tbl[width] and scale_tbl[width][height] then
-		return scale_tbl[width][height]
+---@param width integer
+---@param height integer
+---@return number
+function M.get_scale(width, height)
+	local target_logical_height = 960
+	local scale_denominator = 120
+	local best_scale
+	local best_distance
+
+	for scale_units = scale_denominator, scale_denominator * 3 do
+		if width * scale_denominator % scale_units == 0 and height * scale_denominator % scale_units == 0 then
+			local logical_height = height * scale_denominator / scale_units
+			local distance = math.abs(logical_height - target_logical_height)
+			if not best_distance or distance < best_distance then
+				best_scale = scale_units / scale_denominator
+				best_distance = distance
+			end
+		end
 	end
-	if monitor.scale and monitor.scale > 0 then
-		return monitor.scale
-	end
-	return height / 1000
+
+	return best_scale
 end
 
 local function write_xresources(scale)
@@ -84,7 +83,9 @@ function M.setup(opts)
 		M.get_active_monitor_safe(
 			---@param monitor HL.Monitor
 			function(monitor)
-				M.config.scale = get_scale(monitor)
+				M.config.scale = M.get_scale(monitor.width, monitor.height)
+				M.config.output = monitor.name
+				M.default_monitor = monitor
 				write_xresources(M.config.scale)
 				hl.monitor(M.config)
 			end

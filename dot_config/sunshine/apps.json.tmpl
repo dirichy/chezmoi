@@ -26,6 +26,12 @@
             "image-path": "{{.chezmoi.homeDir}}/.config/sunshine/misc/mirror.png",
             "name": "mirror",
             "output": "",
+            "prep-cmd": [
+                {
+                    "do": "sunshine_pre mirror",
+                    "undo": "sunshine_pre reset"
+                }
+            ],
             "wait-all": true
         },
         {

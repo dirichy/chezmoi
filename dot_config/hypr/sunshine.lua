@@ -1,101 +1,142 @@
 local M = {}
-M.default_monitor = nil
-local function valid_monitor(m)
-	return m and m.id ~= -1
-end
-local function get_default_monitor()
-	M.default_monitor = hl.get_active_monitor()
-	if not valid_monitor(M.default_monitor) then
-		M.default_monitor = nil
-		hl.timer(get_default_monitor, { type = "oneshot", timeout = 1000 })
-	end
-end
-get_default_monitor()
-local function get_scale(width, height)
-	local scale_tbl = {
-		[3840] = {
-			[2160] = 2.4,
-		},
-		[2388] = {
-			[1668] = 1.5,
-		},
-		[2560] = {
-			[1440] = 2,
-			[1600] = 2,
-		},
-	}
-	local a = scale_tbl[width]
-	if not a then
+
+local monitor = require("monitor")
+local OUTPUT = "SUNSHINE"
+local CACHE_PATH = os.getenv("XDG_RUNTIME_DIR") .. "/hypr-sunshine-state.lua"
+
+local function load_cache()
+	local chunk = loadfile(CACHE_PATH)
+	if not chunk then
 		return
 	end
-	return a[height]
+	local ok, saved = pcall(chunk)
+	return ok and saved or nil
 end
--- local monitors = {
--- 	ipad = { width = 2338, height = 1668, rate = 60, scale = 2 },
--- 	macbook = { width = 2560, height = 1600, rate = 60, scale = 1.5 },
--- }
-function M.create_headless(width, height, rate, scale, direct)
-	-- default = hl.get_active_monitor()
-	direct = direct or "down"
-	scale = scale or get_scale(width, height) or 1
-	rate = rate or 60
-	hl.exec_cmd(table.concat({ "hyprctl", "output", "create", "headless", "SUNSHINE" }, " "))
-	hl.monitor({
-		scale = scale,
-		mode = width .. "x" .. height .. "@" .. rate,
-		output = "SUNSHINE",
-		position = "auto",
-	})
-end
-function M.disable_default()
-	if M.default_monitor then
-		hl.monitor({
-			output = M.default_monitor.name,
-			disabled = true,
-		})
+
+local cache = load_cache()
+
+local function write_cache()
+	local temporary_path = CACHE_PATH .. ".tmp"
+	local file = io.open(temporary_path, "w")
+	if not file then
+		return
 	end
-	-- hl.dispatch(hl.dsp.dpms({ action = "off", monitor = default or "DP-3" }))
+	local contents = ("return { spec = { output = %q, disabled = %s, mode = %q, position = %q, scale = %.17g, mirror = %q }, only = %s, physical = { output = %q, mode = %q, position = %q, disabled = %s, scale = %.17g } }\n"):format(
+		cache.spec.output,
+		tostring(cache.spec.disabled),
+		cache.spec.mode or "",
+		cache.spec.position or "",
+		cache.spec.scale or 1,
+		cache.spec.mirror or "",
+		tostring(cache.only),
+		cache.physical.output,
+		cache.physical.mode,
+		cache.physical.position,
+		tostring(cache.physical.disabled),
+		cache.physical.scale
+	)
+	file:write(contents)
+	file:close()
+	os.rename(temporary_path, CACHE_PATH)
 end
-function M.expand(a, ...)
-	-- if type(a) == "string" then
-	-- 	local b = monitors[a]
-	-- 	M.create_headless(b.width, b.height, b.rate, b.scale)
-	-- else
-	hl.dispatch(hl.dsp.dpms({ action = "on" }))
-	M.create_headless(a, ...)
-	-- end
+
+local function cache_state(spec, only)
+	cache = {
+		spec = spec,
+		only = only or false,
+		physical = {
+			output = monitor.default_monitor.name,
+			mode = "preferred",
+			position = ("%dx%d"):format(monitor.default_monitor.x, monitor.default_monitor.y),
+			disabled = false,
+			scale = monitor.config.scale,
+		},
+	}
+	write_cache()
 end
-function M.only(...)
-	M.expand(...)
-	M.disable_default()
+
+local function enable_default()
+	hl.monitor(monitor.config)
 end
-function M.enable_default()
-	hl.monitor({ output = M.default_monitor and M.default_monitor.name or "", disabled = false })
-	hl.monitor({
-		output = M.default_monitor and M.default_monitor.name or "",
-		-- mode = "3840x2160@60",
-		mode = "preferred",
-		position = "auto-up",
-		scale = M.default_monitor and M.default_monitor.height == 2160 and 2.5 or 2,
-	})
-	hl.dsp.dpms({ action = "on" })
+
+local function enable_sunshine(width, height, rate, mirror)
+	local scale = monitor.get_scale(width, height)
+	local physical_width = monitor.default_monitor.width / monitor.config.scale
+	local physical_height = monitor.default_monitor.height / monitor.config.scale
+	local logical_width = width / scale
+	local x = math.floor(monitor.default_monitor.x + (physical_width - logical_width) / 2 + 0.5)
+	local y = math.floor(monitor.default_monitor.y + physical_height + 0.5)
+	local spec = {
+		output = OUTPUT,
+		disabled = false,
+		mode = ("%dx%d@%s"):format(width, height, rate),
+		position = ("%dx%d"):format(x, y),
+		-- position = "auto-down",
+		scale = scale,
+		mirror = mirror and monitor.default_monitor.name or "",
+	}
+	hl.monitor(spec)
+	cache_state(spec)
 end
-function M.only_then_expand(...)
-	M.only(...)
-	hl.timer(M.enable_default, { type = "oneshot", timeout = 1000 })
+local function disable_sunshine()
+	local spec = {
+		output = OUTPUT,
+		disabled = false,
+		mode = ("%dx%d@%s"):format(
+			monitor.default_monitor.width,
+			monitor.default_monitor.height,
+			monitor.default_monitor.refresh_rate
+		),
+		position = ("%dx%d"):format(monitor.default_monitor.x, monitor.default_monitor.y),
+		scale = monitor.config.scale,
+		mirror = monitor.default_monitor.name,
+	}
+	hl.monitor(spec)
+	cache_state(spec)
 end
+
+function M.expand(width, height, rate)
+	enable_sunshine(width, height, rate)
+	enable_default()
+end
+
+function M.mirror(width, height, rate)
+	enable_default()
+	enable_sunshine(width, height, rate, true)
+end
+
+function M.only(width, height, rate)
+	enable_sunshine(width, height, rate)
+	hl.monitor({ output = monitor.default_monitor.name, disabled = true })
+	cache.only = true
+	write_cache()
+end
+
 function M.reset()
-	-- hl.monitor({ output = M.default_monitor and M.default_monitor.name or "", disabled = false })
-	-- hl.monitor({
-	-- 	output = M.default_monitor and M.default_monitor.name or "",
-	-- 	-- mode = "3840x2160@60",
-	-- 	mode = "preferred",
-	-- 	-- position = "0x0",
-	-- 	scale = M.default_monitor and M.default_monitor.height == 2160 and 2.5 or 2,
-	-- })
-	hl.exec_cmd(table.concat({ "hyprctl", "output", "remove", "SUNSHINE" }, " "))
-	hl.exec_cmd("systemctl --user restart app-dev.lizardbyte.app.Sunshine; hyprctl reload")
-	-- hl.dsp.dpms({ action = "on" })
-	-- hl.timer(get_default_monitor, { type = "oneshot", timeout = 1000 })
+	enable_default()
+	disable_sunshine()
 end
+
+local function restore_cache()
+	if not cache then
+		return
+	end
+
+	hl.monitor(cache.spec)
+	for key, value in pairs(cache.physical) do
+		monitor.config[key] = value
+	end
+	monitor.default_monitor = hl.get_monitor(cache.physical.output)
+	if cache.only then
+		hl.monitor({ output = cache.physical.output, disabled = true })
+	end
+end
+
+hl.on("hyprland.start", function()
+	hl.exec_cmd("hyprctl output create headless " .. OUTPUT)
+	disable_sunshine()
+end)
+
+restore_cache()
+
 return M
