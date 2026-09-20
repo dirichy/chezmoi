@@ -80,16 +80,20 @@ function M.setup(opts)
 	end
 	hl.exec_cmd("xrdb -merge ~/.Xresources")
 	if not M.config.scale then
-		M.get_active_monitor_safe(
-			---@param monitor HL.Monitor
-			function(monitor)
-				M.config.scale = M.get_scale(monitor.width, monitor.height)
-				M.config.output = monitor.name
-				M.default_monitor = monitor
-				write_xresources(M.config.scale)
-				hl.monitor(M.config)
+		---@param monitor HL.Monitor
+		local function setup_monitor(monitor)
+			M.config.scale = M.get_scale(monitor.width, monitor.height)
+			M.config.output = monitor.name
+			M.default_monitor = monitor
+			write_xresources(M.config.scale)
+			hl.monitor(M.config)
+		end
+		for _, monitor in ipairs(hl.get_monitors()) do
+			if valid_monitor(monitor) then
+				return setup_monitor(monitor)
 			end
-		)
+		end
+		M.get_active_monitor_safe(setup_monitor)
 	else
 		write_xresources(M.config.scale)
 		hl.monitor(M.config)
