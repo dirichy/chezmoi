@@ -106,13 +106,14 @@ function M.reset()
 	mirror_sunshine_to_default()
 end
 
-hl.on("hyprland.start", function()
+if hl.g.is_start then
+	hl.exec_cmd("systemctl --user start app-dev.lizardbyte.app.Sunshine")
 	hl.exec_cmd("hyprctl output create headless " .. OUTPUT)
 	hl.timer(function()
 		mirror_sunshine_to_default()
-		hl.exec_cmd("sunshine_pre restore")
-	end, { timeout = 500, type = "oneshot" })
-end)
-hl.exec_cmd("~/.local/bin/sunshine_pre restore")
+	end, { timeout = 10000, type = "oneshot" })
+else
+	hl.exec_cmd("~/.local/bin/sunshine_pre restore")
+end
 
 return M

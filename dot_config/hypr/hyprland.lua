@@ -135,6 +135,7 @@ for key, value in pairs(env_table) do
 	hl.env(key, value)
 end
 
+hl.g = {}
 hl.on("hyprland.start", function()
 	hl.exec_cmd("dbus-update-activation-environment --systemd --all")
 	hl.exec_cmd("fcitx5-remote")
@@ -146,6 +147,7 @@ hl.on("hyprland.start", function()
 	hl.exec_cmd("mkdir -p ~/Pictures/Screenshots")
 	hl.exec_cmd(terminal)
 	hl.exec_cmd(browser)
+	hl.g.is_start = true
 end)
 hl.on("config.reloaded", function()
 	hl.exec_cmd('gsettings set org.gnome.desktop.interface color-scheme "prefer-dark"')
