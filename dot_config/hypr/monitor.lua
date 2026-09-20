@@ -12,11 +12,12 @@ local function valid_monitor(m)
 	-- Some monitor will give wrong information after dpms on, meanwhile give an empty description.
 	return m and m.id ~= -1 and #m.description > 0
 end
-function M.get_active_monitor_safe(callback, max_try)
+function M.get_physic_monitor(callback, max_try)
 	max_try = max_try or 30
-	local monitor = hl.get_active_monitor()
-	if valid_monitor(monitor) then
-		return callback(monitor)
+	for _, monitor in ipairs(hl.get_monitors()) do
+		if valid_monitor(monitor) then
+			return callback(monitor)
+		end
 	end
 	local timer
 	local try = 0
@@ -27,11 +28,14 @@ function M.get_active_monitor_safe(callback, max_try)
 			timer = nil
 			return
 		end
-		local m = hl.get_active_monitor()
-		if valid_monitor(m) then
-			timer:set_enabled(false)
-			timer = nil
-			return callback(m)
+		for _, monitor in ipairs(hl.get_monitors()) do
+			if valid_monitor(monitor) then
+				timer:set_enabled(false)
+				timer = nil
+				hl.exec_cmd("systemctl --user restart app-dev.lizardbyte.app.Sunshine")
+				hl.sunshine = require("sunshine")
+				return callback(monitor)
+			end
 		end
 		try = try + 1
 	end, { timeout = 500, type = "repeat" })
@@ -88,12 +92,7 @@ function M.setup(opts)
 			write_xresources(M.config.scale)
 			hl.monitor(M.config)
 		end
-		for _, monitor in ipairs(hl.get_monitors()) do
-			if valid_monitor(monitor) then
-				return setup_monitor(monitor)
-			end
-		end
-		M.get_active_monitor_safe(setup_monitor)
+		M.get_physic_monitor(setup_monitor)
 	else
 		write_xresources(M.config.scale)
 		hl.monitor(M.config)

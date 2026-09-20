@@ -14,6 +14,7 @@ local function load_cache()
 end
 
 local cache = load_cache()
+local mirror_timer
 
 local function write_cache()
 	local temporary_path = CACHE_PATH .. ".tmp"
@@ -21,7 +22,7 @@ local function write_cache()
 	if not file then
 		return
 	end
-	local contents = ("return { spec = { output = %q, disabled = %s, mode = %q, position = %q, scale = %.17g, mirror = %q }, only = %s, physical = { output = %q, mode = %q, position = %q, disabled = %s, scale = %.17g } }\n"):format(
+	local contents = ("return { spec = { output = %q, disabled = %s, mode = %q, position = %q, scale = %.17g, mirror = %q }, only = %s, physical = { output = %q, mode = %q, position = %q, disabled = %s, scale = %.17g, mirror = %q } }\n"):format(
 		cache.spec.output,
 		tostring(cache.spec.disabled),
 		cache.spec.mode or "",
@@ -33,7 +34,8 @@ local function write_cache()
 		cache.physical.mode,
 		cache.physical.position,
 		tostring(cache.physical.disabled),
-		cache.physical.scale
+		cache.physical.scale,
+		cache.physical.mirror or ""
 	)
 	file:write(contents)
 	file:close()
@@ -50,13 +52,29 @@ local function cache_state(spec, only)
 			position = ("%dx%d"):format(monitor.default_monitor.x, monitor.default_monitor.y),
 			disabled = false,
 			scale = monitor.config.scale,
+			mirror = "",
 		},
 	}
 	write_cache()
 end
 
 local function enable_default()
+	if mirror_timer then
+		mirror_timer:set_enabled(false)
+		mirror_timer = nil
+	end
+	monitor.config.mirror = ""
 	hl.monitor(monitor.config)
+end
+
+local function mirror_physical()
+	if mirror_timer then
+		mirror_timer:set_enabled(false)
+	end
+	mirror_timer = hl.timer(function()
+		hl.monitor({ output = "DP-5", mirror = "SUNSHINE" })
+		mirror_timer = nil
+	end, { timeout = 500, type = "oneshot" })
 end
 
 local function enable_sunshine(width, height, rate, mirror)
@@ -105,6 +123,13 @@ function M.mirror(width, height, rate)
 	enable_sunshine(width, height, rate, true)
 end
 
+function M.reverse_mirror(width, height, rate)
+	enable_sunshine(width, height, rate)
+	cache.physical.mirror = OUTPUT
+	write_cache()
+	mirror_physical()
+end
+
 function M.only(width, height, rate)
 	enable_sunshine(width, height, rate)
 	hl.monitor({ output = monitor.default_monitor.name, disabled = true })
@@ -124,18 +149,20 @@ local function restore_cache()
 
 	hl.monitor(cache.spec)
 	for key, value in pairs(cache.physical) do
-		monitor.config[key] = value
+		if key ~= "mirror" then
+			monitor.config[key] = value
+		end
 	end
 	monitor.default_monitor = hl.get_monitor(cache.physical.output)
 	if cache.only then
 		hl.monitor({ output = cache.physical.output, disabled = true })
+	elseif cache.physical.mirror and cache.physical.mirror ~= "" then
+		mirror_physical()
 	end
 end
 
-hl.on("hyprland.start", function()
-	hl.exec_cmd("hyprctl output create headless " .. OUTPUT)
-	disable_sunshine()
-end)
+hl.exec_cmd("hyprctl output create headless " .. OUTPUT)
+disable_sunshine()
 
 restore_cache()
 

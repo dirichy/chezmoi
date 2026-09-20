@@ -36,6 +36,23 @@
         },
         {
             "auto-detach": true,
+            "cmd": "",
+            "elevated": false,
+            "exclude-global-prep-cmd": false,
+            "exit-timeout": 5,
+            "image-path": "{{.chezmoi.homeDir}}/.config/sunshine/misc/mirror.png",
+            "name": "reverse-mirror",
+            "output": "",
+            "prep-cmd": [
+                {
+                    "do": "sunshine_pre reverse-mirror",
+                    "undo": "sunshine_pre reset"
+                }
+            ],
+            "wait-all": true
+        },
+        {
+            "auto-detach": true,
             "exclude-global-prep-cmd": false,
             "exit-timeout": 5,
             "image-path": "{{.chezmoi.homeDir}}/.config/sunshine/misc/only.png",

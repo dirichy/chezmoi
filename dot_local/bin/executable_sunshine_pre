@@ -8,6 +8,10 @@ case "$1" in
     hyprctl eval "hl.sunshine.mirror(${SUNSHINE_CLIENT_WIDTH},${SUNSHINE_CLIENT_HEIGHT},${SUNSHINE_CLIENT_FPS})"
     sleep 5
     ;;
+  reverse-mirror)
+    hyprctl eval "hl.sunshine.reverse_mirror(${SUNSHINE_CLIENT_WIDTH},${SUNSHINE_CLIENT_HEIGHT},${SUNSHINE_CLIENT_FPS})"
+    sleep 5
+    ;;
   only)
     hyprctl eval "hl.sunshine.only(${SUNSHINE_CLIENT_WIDTH},${SUNSHINE_CLIENT_HEIGHT},${SUNSHINE_CLIENT_FPS})"
     sleep 5

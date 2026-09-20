@@ -140,7 +140,6 @@ hl.on("hyprland.start", function()
 	hl.exec_cmd("fcitx5-remote")
 	hl.exec_cmd("nm-applet")
 	hl.exec_cmd("~/.config/hypr/scripts/randomize_wallpaper_links; sleep 1; systemctl --user restart hyprpaper")
-	hl.exec_cmd("sleep 1;systemctl --user restart app-dev.lizardbyte.app.Sunshine")
 	hl.exec_cmd("sleep 1;systemctl --user restart udisken")
 	hl.exec_cmd("sleep 1;systemctl --user restart waybar")
 	hl.exec_cmd("sleep 1;systemctl --user restart hypridle")
@@ -304,7 +303,6 @@ hl.on(
 		hl.exec_cmd("hyprctl hyprpaper wallpaper ,~/wallpaper/wallpaper" .. tostring(id) .. ".JPG")
 	end, 200, true)
 )
-hl.sunshine = require("sunshine")
 require("window_focus_guard")
 -- example: foot --app-id=window-bg -o colors.alpha=0.0 [path-to-script]
 -- example: kitty --class=window-bg -o background_opacity=0.0 [path-to-script]
