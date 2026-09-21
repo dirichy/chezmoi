@@ -21,3 +21,4 @@ if [ "$n" -gt 0 ]; then
     yabai -m space --create
   done
 fi
+$HOME/.config/yabai/randomize_wallpaper.zsh
