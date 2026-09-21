@@ -32,7 +32,7 @@ for ((i = ${#wallpapers}; i > 1; i--)); do
     wallpapers[j]="$tmp"
 done
 
-for ((i = 1; i <= count; i++)); do
+for ((i = count; i >= 1; i--)); do
     wallpaper="${wallpapers[((i - 1) % ${#wallpapers} + 1)]}"
 
     yabai -m space --focus $i
