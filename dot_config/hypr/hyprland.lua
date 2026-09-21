@@ -4,6 +4,7 @@ local util = require("util")
 print = function(str)
 	hl.notification.create({ text = tostring(str), timeout = 5000 })
 end
+hl.g = {}
 local im = require("fcitx")
 local SHELL = require("wmux.shell")
 local proxy = require("generated_proxy")
@@ -135,7 +136,6 @@ for key, value in pairs(env_table) do
 	hl.env(key, value)
 end
 
-hl.g = {}
 hl.on("hyprland.start", function()
 	hl.exec_cmd("dbus-update-activation-environment --systemd --all")
 	hl.exec_cmd("fcitx5-remote")
