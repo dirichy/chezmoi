@@ -250,6 +250,7 @@ local sys_keymap = {
 	d = function()
 		hl.timer(function()
 			hl.exec_cmd("ddcutil setvcp 62 75")
+			hl.exec_cmd("openrgb -p off")
 			hl.dispatch(hl.dsp.dpms({ action = "off" }))
 		end, { timeout = 1000, type = "oneshot" })
 	end,
