@@ -1,0 +1,8 @@
+{{ $hideTabBar := "remote_control load-config --override tab_bar_min_tabs=999" -}}
+{{ $leaderImScript := joinPath .chezmoi.homeDir ".config" "kitty" "leader-im.sh" -}}
+{{ $leaderImTempAscii := printf "launch --type=background --keep-focus %s temp_ascii" $leaderImScript -}}
+{{ $leaderImRestore := printf "launch --type=background --keep-focus %s restore" $leaderImScript -}}
+{{ $leaderDisabledConfig := joinPath .chezmoi.homeDir ".config" "kitty" "leader-disabled.conf" -}}
+
+map ctrl+f combine : {{ $leaderImTempAscii }} : remote_control load-config --override tab_bar_min_tabs=1 : push_keyboard_mode kitty_leader
+map ctrl+alt+shift+f combine : {{ $leaderImRestore }} : remote_control load-config {{ $leaderDisabledConfig }} : {{ $hideTabBar }}

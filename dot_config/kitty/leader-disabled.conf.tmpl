@@ -1,0 +1,6 @@
+{{ $hideTabBar := "remote_control load-config --override tab_bar_min_tabs=999" -}}
+{{ $leaderImRestore := printf "launch --type=background --keep-focus %s restore" (joinPath .chezmoi.homeDir ".config" "kitty" "leader-im.sh") -}}
+{{ $leaderEnabledConfig := joinPath .chezmoi.homeDir ".config" "kitty" "leader-enabled.conf" -}}
+
+map ctrl+f send_key ctrl+f
+map ctrl+alt+shift+f combine : {{ $leaderImRestore }} : remote_control load-config {{ $leaderEnabledConfig }} : {{ $hideTabBar }}
