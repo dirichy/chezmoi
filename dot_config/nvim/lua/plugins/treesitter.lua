@@ -35,6 +35,10 @@ return {
 			vim.api.nvim_create_autocmd("FileType", {
 				group = vim.api.nvim_create_augroup("user_treesitter", { clear = true }),
 				callback = function(event)
+					if vim.bo[event.buf].filetype == "bigfile" or vim.b[event.buf].bigfile then
+						return
+					end
+
 					local ok = pcall(vim.treesitter.start, event.buf)
 					if not ok then
 						return
@@ -42,6 +46,7 @@ return {
 
 					vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()"
 					vim.wo.foldmethod = "expr"
+					vim.wo.foldlevel = 99
 					vim.bo[event.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
 				end,
 			})

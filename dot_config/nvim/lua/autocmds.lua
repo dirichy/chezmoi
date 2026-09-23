@@ -41,6 +41,21 @@ vim.api.nvim_create_autocmd({ "BufWritePre" }, {
 local delayed_clipboard_group = vim.api.nvim_create_augroup("DelayedClipboardSync", { clear = true })
 local pending_clipboard = nil
 
+-- Persistent undo hashes/reads the whole buffer while opening a file. Disable
+-- it before reading large files; Snacks' FileType-based bigfile detection runs
+-- too late to avoid that cost.
+vim.api.nvim_create_autocmd("BufReadPre", {
+	group = vim.api.nvim_create_augroup("LargeFilePreflight", { clear = true }),
+	callback = function(event)
+		local stat = vim.uv.fs_stat(event.match)
+		if stat and stat.size > 1024 * 1024 then
+			vim.b[event.buf].bigfile = true
+			vim.bo[event.buf].undofile = false
+			vim.bo[event.buf].swapfile = false
+		end
+	end,
+})
+
 vim.api.nvim_create_autocmd("TextYankPost", {
 	group = delayed_clipboard_group,
 	callback = function()

@@ -55,7 +55,10 @@ return {
 
 			vim.api.nvim_create_autocmd({ "BufReadPost", "BufWritePost", "InsertLeave" }, {
 				group = vim.api.nvim_create_augroup("user_nvim_lint", { clear = true }),
-				callback = function()
+				callback = function(event)
+					if vim.bo[event.buf].filetype == "bigfile" or vim.b[event.buf].bigfile then
+						return
+					end
 					require("lint").try_lint()
 				end,
 			})

@@ -40,7 +40,7 @@ return {
 				dashboard_enabled = false
 			end
 			local Snacks = require("snacks")
-			Snacks.setup({
+			local snacks_opts = {
 				dashboard = {
 					enabled = dashboard_enabled,
 					width = 60,
@@ -150,20 +150,38 @@ return {
 				bigfile = {
 					enabled = true,
 					notify = true, -- show notification when big file detected
-					size = 1 * 1024 * 1024, -- 1.5MB
+					size = 1 * 1024 * 1024, -- 1MB
 					line_length = 10000,
 					-- Enable or disable features when big file detected
 					---@param ctx {buf: number, ft:string}
 					setup = function(ctx)
-						vim.g.latex_concealer_disabled = true
-						vim.g.matchparen_disable = 1
-						-- vim.cmd([[NoMatchParen]])
+						-- Keep a stable marker for plugins whose autocmds run after FileType.
+						vim.b[ctx.buf].bigfile = true
+						vim.b[ctx.buf].completion = false
+						vim.b[ctx.buf].snacks_indent = false
+						vim.b[ctx.buf].snacks_words = false
+						vim.b[ctx.buf].minianimate_disable = true
+						vim.b[ctx.buf].minihipatterns_disable = true
+
+						-- Syntax highlighting (especially one very long JSON line) is the
+						-- expensive part. Snacks' default setup restores it asynchronously;
+						-- intentionally leave it disabled for big files instead.
 						vim.bo[ctx.buf].syntax = "off"
-						require("snacks").util.wo(0, { foldmethod = "manual", statuscolumn = "", conceallevel = 0 })
-						vim.b.minianimate_disable = true
-						vim.schedule(function()
-							vim.bo[ctx.buf].syntax = ctx.ft
-						end)
+						if vim.bo[ctx.buf].swapfile then
+							vim.bo[ctx.buf].swapfile = false
+						end
+						if vim.bo[ctx.buf].undofile then
+							vim.bo[ctx.buf].undofile = false
+						end
+						local window_options = {
+							statuscolumn = "",
+							conceallevel = 0,
+							cursorline = false,
+						}
+						if vim.wo.foldmethod ~= "manual" then
+							window_options.foldmethod = "manual"
+						end
+						require("snacks").util.wo(0, window_options)
 					end,
 				},
 				notifier = { enabled = true },
@@ -780,7 +798,8 @@ return {
 				-- 		},
 				-- 	},
 				-- },
-			})
+			}
+			Snacks.setup(snacks_opts)
 			Snacks.toggle.profiler():map("<leader>pp")
 			-- Toggle the profiler highlights
 			Snacks.toggle.profiler_highlights():map("<leader>ph")
