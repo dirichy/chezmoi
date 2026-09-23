@@ -5,18 +5,11 @@ if (( ! $+commands[tmux] )); then
     return 1
 fi
 
-local tmux_ls session_name number target first_char name_rest
+local tmux_ls session_name number target session_count
 tmux_ls=$(tmux ls 2>/dev/null)
 if [[ -z $tmux_ls ]]; then
-    print -P "There is no %F{green}tmux%f session. Input a name to create one, or press %B%F{yellow}[Esc]%f%b to quit:"
-    read -k 1 first_char || return 0
-    [[ $first_char == $'\e' ]] && { echo; return 0; }
-    if [[ $first_char == $'\n' ]]; then
-        session_name=""
-    else
-        read name_rest
-        session_name=$first_char$name_rest
-    fi
+    print -P "There is no %F{green}tmux%f session. Input a name to create one (default: %Bdefault%b):"
+    read session_name || return 0
     [[ -z $session_name ]] && session_name="default"
     if [[ -z $TMUX ]]; then
         exec tmux new-session -s "$session_name"
@@ -26,37 +19,39 @@ if [[ -z $tmux_ls ]]; then
 fi
 
 tmux_ls=$(tmux ls | awk -F ':' '{print $1}' | nl)
-print -P "Choose a session (%B%F{cyan}[Enter]%f%b selects %B1%b), press %B%F{green}[a]%f%b to create one, or %B%F{yellow}[q]%f%b to quit"
-echo "$tmux_ls" | column -t
-read -k 1 number
-echo
+session_count=$(echo "$tmux_ls" | grep -c .)
+while true; do
+    print -P "Choose a session (%B%F{cyan}[Enter]%f%b selects %B1%b), press %B%F{green}[a]%f%b to create one, or %B%F{yellow}[q]%f%b to quit"
+    echo "$tmux_ls" | column -t
+    read -k 1 number
+    echo
 
-[[ $number == q ]] && return 0
-[[ -z $number || $number == $'\n' || $number == $'\r' ]] && number=1
-if [[ $number == a ]]; then
-    print -P "Input a name for the new %F{green}tmux%f session, or press %B%F{yellow}[Esc]%f%b to cancel:"
-    read -k 1 first_char || return 0
-    [[ $first_char == $'\e' ]] && { echo; return 0; }
-    if [[ $first_char == $'\n' ]]; then
-        session_name=""
-    else
-        read name_rest
-        session_name=$first_char$name_rest
+    [[ $number == q ]] && return 0
+    [[ -z $number || $number == $'\n' || $number == $'\r' ]] && number=1
+    if [[ $number == a || $number == $((session_count + 1)) ]]; then
+        while true; do
+            print -P "Input a name for the new %F{green}tmux%f session (default: %Bdefault%b):"
+            read session_name || break
+            [[ -z $session_name ]] && session_name="default"
+            if tmux has-session -t "=$session_name" 2>/dev/null; then
+                print -P "%F{red}Session already exists:%f $session_name" >&2
+                continue
+            fi
+            if [[ -z $TMUX ]]; then
+                exec tmux new-session -s "$session_name"
+            else
+                tmux new-session -s "$session_name" -d && tmux switch-client -t "$session_name"
+            fi
+            return $?
+        done
+        continue
     fi
-    [[ -z $session_name ]] && session_name="default"
-    if [[ -z $TMUX ]]; then
-        exec tmux new-session -s "$session_name"
-    else
-        tmux new-session -s "$session_name" -d && tmux switch-client -t "$session_name"
-    fi
-    return $?
-fi
 
-target=$(echo "$tmux_ls" | awk -v number="$number" '$1 == number { print $2 }')
-if [[ -z $target ]]; then
+    target=$(echo "$tmux_ls" | awk -v number="$number" '$1 == number { print $2 }')
+    [[ -n $target ]] && break
     print -P "%F{red}Invalid selection:%f $number" >&2
-    return 1
-fi
+done
+
 if [[ -z $TMUX ]]; then
     exec tmux attach-session -t "$target"
 else
