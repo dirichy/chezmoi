@@ -32,7 +32,7 @@ read -k 1 number
 echo
 
 [[ $number == q ]] && return 0
-[[ -z $number ]] && number=1
+[[ -z $number || $number == $'\n' || $number == $'\r' ]] && number=1
 if [[ $number == a ]]; then
     print -P "Input a name for the new %F{green}tmux%f session, or press %B%F{yellow}[Esc]%f%b to cancel:"
     read -k 1 first_char || return 0
