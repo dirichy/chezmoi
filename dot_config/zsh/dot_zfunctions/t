@@ -5,11 +5,25 @@ if (( ! $+commands[tmux] )); then
     return 1
 fi
 
-local tmux_ls session_name number target session_count
+local tmux_ls session_name number target session_count input_char
 tmux_ls=$(tmux ls 2>/dev/null)
 if [[ -z $tmux_ls ]]; then
-    print -P "There is no %F{green}tmux%f session. Input a name to create one (default: %Bdefault%b):"
-    read session_name || return 0
+    print -nP "There is no %F{green}tmux%f session. Input a name to create one (default: %Bdefault%b, %B%F{yellow}[Esc]%f%b to quit): "
+    session_name=""
+    while true; do
+        read -s -k 1 input_char || { echo; return 0; }
+        case $input_char in
+            $'\e') echo; return 0 ;;
+            $'\n'|$'\r') echo; break ;;
+            $'\x7f'|$'\b')
+                if [[ -n $session_name ]]; then
+                    session_name=${session_name[1,-2]}
+                    print -n $'\b \b'
+                fi
+                ;;
+            *) session_name+=$input_char; print -n -- "$input_char" ;;
+        esac
+    done
     [[ -z $session_name ]] && session_name="default"
     if [[ -z $TMUX ]]; then
         exec tmux new-session -s "$session_name"
@@ -30,8 +44,22 @@ while true; do
     [[ -z $number || $number == $'\n' || $number == $'\r' ]] && number=1
     if [[ $number == a || $number == $((session_count + 1)) ]]; then
         while true; do
-            print -P "Input a name for the new %F{green}tmux%f session (default: %Bdefault%b):"
-            read session_name || break
+            print -nP "Input a name for the new %F{green}tmux%f session (default: %Bdefault%b, %B%F{yellow}[Esc]%f%b to cancel): "
+            session_name=""
+            while true; do
+                read -s -k 1 input_char || { echo; break 2; }
+                case $input_char in
+                    $'\e') echo; break 2 ;;
+                    $'\n'|$'\r') echo; break ;;
+                    $'\x7f'|$'\b')
+                        if [[ -n $session_name ]]; then
+                            session_name=${session_name[1,-2]}
+                            print -n $'\b \b'
+                        fi
+                        ;;
+                    *) session_name+=$input_char; print -n -- "$input_char" ;;
+                esac
+            done
             [[ -z $session_name ]] && session_name="default"
             if tmux has-session -t "=$session_name" 2>/dev/null; then
                 print -P "%F{red}Session already exists:%f $session_name" >&2
