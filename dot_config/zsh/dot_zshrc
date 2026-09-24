@@ -12,6 +12,11 @@ ZFUNCDIR=${ZDOTDIR:-$HOME}/.zfunctions
 fpath=($ZFUNCDIR $fpath)
 autoload -Uz $ZFUNCDIR/*(.:t)
 
+# for gopass
+if [[ -n $SSH_TTY ]]; then
+    export XDG_SESSION_TYPE=tty
+fi
+
 if [[ -n $SSH_TTY && -z $TMUX && -t 0 && -t 1 ]] && (( $+commands[tmux] )); then
     print -P "%F{cyan}SSH%f session detected. Choose a %F{green}tmux%f session, or press %B%F{yellow}[q]%f%b to stay in this shell."
     t
