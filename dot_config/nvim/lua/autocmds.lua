@@ -38,8 +38,8 @@ vim.api.nvim_create_autocmd({ "BufWritePre" }, {
 	end,
 })
 
-local delayed_clipboard_group = vim.api.nvim_create_augroup("DelayedClipboardSync", { clear = true })
-local pending_clipboard = nil
+-- local delayed_clipboard_group = vim.api.nvim_create_augroup("DelayedClipboardSync", { clear = true })
+-- local pending_clipboard = nil
 
 -- Persistent undo hashes/reads the whole buffer while opening a file. Disable
 -- it before reading large files; Snacks' FileType-based bigfile detection runs
@@ -56,37 +56,37 @@ vim.api.nvim_create_autocmd("BufReadPre", {
 	end,
 })
 
-vim.api.nvim_create_autocmd("TextYankPost", {
-	group = delayed_clipboard_group,
-	callback = function()
-		if not vim.g.delayed_clipboard_sync then
-			return
-		end
+-- vim.api.nvim_create_autocmd("TextYankPost", {
+-- 	group = delayed_clipboard_group,
+-- 	callback = function()
+-- 		if not vim.g.delayed_clipboard_sync then
+-- 			return
+-- 		end
+--
+-- 		local event = vim.v.event
+-- 		if event.operator ~= "y" or event.regname == "_" then
+-- 			return
+-- 		end
+--
+-- 		pending_clipboard = {
+-- 			contents = event.regcontents,
+-- 			regtype = event.regtype,
+-- 		}
+-- 	end,
+-- })
 
-		local event = vim.v.event
-		if event.operator ~= "y" or event.regname == "_" then
-			return
-		end
-
-		pending_clipboard = {
-			contents = event.regcontents,
-			regtype = event.regtype,
-		}
-	end,
-})
-
-vim.api.nvim_create_autocmd("FocusLost", {
-	group = delayed_clipboard_group,
-	callback = function()
-		if not vim.g.delayed_clipboard_sync then
-			return
-		end
-
-		if not pending_clipboard then
-			return
-		end
-
-		vim.fn.setreg("+", pending_clipboard.contents, pending_clipboard.regtype)
-		pending_clipboard = nil
-	end,
-})
+-- vim.api.nvim_create_autocmd("FocusLost", {
+-- 	group = delayed_clipboard_group,
+-- 	callback = function()
+-- 		if not vim.g.delayed_clipboard_sync then
+-- 			return
+-- 		end
+--
+-- 		if not pending_clipboard then
+-- 			return
+-- 		end
+--
+-- 		vim.fn.setreg("+", pending_clipboard.contents, pending_clipboard.regtype)
+-- 		pending_clipboard = nil
+-- 	end,
+-- })

@@ -51,9 +51,10 @@ local function my_paste(reg)
 end
 
 if vim.env.SSH_TTY == nil then
+	vim.opt.clipboard = "unnamedplus"
 	-- Keep normal yanks local; FocusLost syncs the last yank to the system clipboard.
-	option.clipboard:remove({ "unnamed", "unnamedplus" })
-	global.delayed_clipboard_sync = true
+	-- option.clipboard:remove({ "unnamed", "unnamedplus" })
+	-- global.delayed_clipboard_sync = true
 else
 	option.clipboard:remove({ "unnamed", "unnamedplus" })
 	global.delayed_clipboard_sync = false
