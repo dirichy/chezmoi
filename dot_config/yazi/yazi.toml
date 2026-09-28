@@ -23,11 +23,8 @@ ueberzug_offset = [ 0, 0, 0, 0 ]
 
 
 [plugin]
-prepend_preloaders = [
-  { mime = "{audio,video,image}/*", run = "fs-guard" },
-]
 prepend_previewers = [
-  { mime = "{audio,video,image}/*", run = "fs-guard" },
+  { mime = "{audio,video,image}/*", run = "mediainfo --no-preview" },
   { mime = "application/subrip", run = "mediainfo" },
   { mime = "application/postscript", run = "mediainfo" },
   { url = "*/", run = "folder" },
