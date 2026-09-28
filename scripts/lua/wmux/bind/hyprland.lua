@@ -1,11 +1,16 @@
 local M = {}
 local SHELL = require("wmux.shell")
+local keycode = require("wmux.keycode")
 local log = require("wmux.log")
 local function always()
 	return true
 end
 local function warn(message)
 	log.warn("hyprland", message)
+end
+
+local function normalize_key(key)
+	return keycode.to("hyprland", key)
 end
 M.modifier = {
 	SHIFT = 1,
@@ -109,6 +114,7 @@ function M.int2mods(mod)
 end
 
 function M.send_key(key, mods)
+	key = normalize_key(key)
 	hl.dispatch(hl.dsp.send_key_state({ mods = mod2string(mods), key = key, state = "down" }))
 	hl.dispatch(hl.dsp.send_key_state({ mods = mod2string(mods), key = key, state = "up" }))
 end
@@ -162,6 +168,7 @@ local function opts_key(opts)
 end
 
 local function bind_key(key, mod, opts)
+	key = normalize_key(key)
 	local string_key = mod2string(mod)
 	if not string_key then
 		return nil

@@ -1,11 +1,16 @@
 ---@type keybinder
 local karabiner = {}
 local SHELL = require("wmux.shell")
+local keycode = require("wmux.keycode")
 local log = require("wmux.log")
 local INVALID = {}
 local ALWAYS = {}
 local function warn(message)
 	log.warn("karabiner", message)
+end
+
+local function normalize_key(key)
+	return keycode.to("karabiner", key)
 end
 ---@class Karabiner.json.to
 ---@field shell_command string?
@@ -156,6 +161,7 @@ function karabiner.convert_to(to)
 		return
 	end
 	if type(to) == "string" then
+		to = normalize_key(to)
 		if to == "fn" then
 			return {
 				apple_vendor_top_case_key_code = "keyboard_fn",
@@ -170,13 +176,14 @@ function karabiner.convert_to(to)
 		return nil
 	else
 		local modifiers = karabiner.int2mods(to[2])
-		if to[1] == "fn" then
+		local key = normalize_key(to[1])
+		if key == "fn" then
 			return {
 				apple_vendor_top_case_key_code = "keyboard_fn",
 				modifiers = modifiers,
 			}
 		else
-			return { key_code = to[1], modifiers = modifiers }
+			return { key_code = key, modifiers = modifiers }
 		end
 	end
 end
@@ -236,6 +243,7 @@ end
 ---@param priority integer?
 ---@param opts table? Accepted for API compatibility; Karabiner has no bind flags here.
 karabiner.bind = function(key, mod, fn, conditions, priority, opts)
+	key = normalize_key(key)
 	local to = karabiner.convert_to(fn)
 	mod = karabiner.mod2int(mod)
 	if not mod or not to then
@@ -257,6 +265,7 @@ end
 ---@param overload string|table|SHELL|nil if has any value, this modifier will be lazy, i.e., when press with other key, it will be mod; when pressed alone, it will trig `overload`
 ---@param conditions condition?
 function karabiner.createmod(key, name, overload, conditions, fallback)
+	key = normalize_key(key)
 	local explicit_conditions = conditions ~= nil
 	if explicit_conditions then
 		conditions = normalize_conditions(conditions)
