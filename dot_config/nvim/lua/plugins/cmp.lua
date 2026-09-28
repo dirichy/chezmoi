@@ -34,14 +34,7 @@ return {
 			},
 			["<tab>"] = {
 				function()
-					if require("luasnip").expandable() then
-						local ok, tex = pcall(require, "nvimtex.conditions.luasnip")
-						if ok and tex.in_math() then
-							vim.schedule(function()
-								require("luasnip").expand()
-							end)
-						end
-					end
+					vim.schedule(require("nvimtex.snip.input").commit)
 					if require("luasnip").jumpable(1) then
 						vim.schedule(function()
 							require("luasnip").jump(1)
@@ -51,6 +44,24 @@ return {
 						return
 					end
 				end,
+				-- function()
+				-- 	if require("luasnip").expandable() then
+				-- 		local ok, tex = pcall(require, "nvimtex.conditions.luasnip")
+				-- 		if ok and tex.in_math() then
+				-- 			vim.schedule(function()
+				-- 				require("luasnip").expand()
+				-- 			end)
+				-- 		end
+				-- 	end
+				-- 	if require("luasnip").jumpable(1) then
+				-- 		vim.schedule(function()
+				-- 			require("luasnip").jump(1)
+				-- 		end)
+				-- 		return true
+				-- 	else
+				-- 		return
+				-- 	end
+				-- end,
 				"fallback_to_mappings",
 			},
 		},
