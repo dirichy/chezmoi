@@ -34,9 +34,8 @@ Library/LaunchAgents/fdu-connect.plist
 .config/sioyek
 .config/wezterm
 .config/zathura
-.local/bin/kitty-im
+.local/bin/osc1337-im
 .local/bin/sioyek
-.local/bin/wezterm-im
 .local/share/applications/sioyek.desktop
 {{ end }}
 

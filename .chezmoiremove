@@ -89,6 +89,8 @@
 .hammerspoon/vlc.lua
 .local/bin/hyprlua
 .local/bin/hyprmonitor
+.local/bin/kitty-im
 .local/bin/lua_keymapper
 .local/bin/tencentqq
+.local/bin/wezterm-im
 .zshrc

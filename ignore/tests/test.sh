@@ -112,6 +112,7 @@ pass 'all fixture profiles evaluate .chezmoiignore'
 assert_managed "$desktop_list" '.config/waybar/config.jsonc' 'desktop includes Waybar'
 assert_managed "$desktop_list" '.config/hypr/hyprland.lua' 'desktop includes Hyprland'
 assert_managed "$desktop_list" '.config/fcitx5/profile' 'desktop includes input method files'
+assert_managed "$desktop_list" '.local/bin/osc1337-im' 'desktop includes OSC 1337 input method helper'
 assert_ignored "$desktop_list" '.hammerspoon/init.lua' 'Linux excludes Hammerspoon'
 assert_ignored "$desktop_list" '.config/fdu-connect/config.toml' 'disabled fdu-connect is excluded'
 
@@ -119,6 +120,7 @@ assert_managed "$headless_list" '.config/nvim/init.lua' 'headless retains Neovim
 assert_ignored "$headless_list" '.config/waybar/config.jsonc' 'headless excludes Waybar'
 assert_ignored "$headless_list" '.config/hypr/hyprland.lua' 'headless excludes Hyprland'
 assert_ignored "$headless_list" '.config/fcitx5/profile' 'headless excludes input method files'
+assert_ignored "$headless_list" '.local/bin/osc1337-im' 'headless excludes OSC 1337 input method helper'
 
 assert_ignored "$skip_list" '.config/nvim/init.lua' 'skip excludes Neovim'
 assert_ignored "$skip_list" '.config/mihomo/config.yaml' 'skip excludes mihomo'
