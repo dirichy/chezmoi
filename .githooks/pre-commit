@@ -1,0 +1,78 @@
+#!/bin/sh
+
+set -eu
+
+# Turn staged removals of chezmoi source files into removal tombstones.  Chezmoi
+# cannot infer these after the source file has disappeared, so reconstruct the
+# pre-commit source tree from HEAD and ask chezmoi for the old target path.
+
+command -v chezmoi >/dev/null 2>&1 || {
+	printf '%s\n' 'pre-commit: chezmoi is required to record removed targets' >&2
+	exit 1
+}
+
+repo=$(git rev-parse --show-toplevel)
+git rev-parse --verify HEAD >/dev/null 2>&1 || exit 0
+
+tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/chezmoi-pre-commit.XXXXXX")
+trap 'rm -rf "$tmp_dir"' EXIT HUP INT TERM
+
+old_source=$tmp_dir/source
+mkdir -p "$old_source"
+git archive HEAD | tar -x -C "$old_source"
+
+target_root=$(chezmoi --source "$repo" target-path)
+managed_now=$tmp_dir/managed-now
+chezmoi --source "$repo" managed --path-style=relative --nul-path-separator \
+	--refresh-externals=never | tr '\0' '\n' >"$managed_now"
+
+removed_sources=$tmp_dir/removed-sources
+git diff --cached --name-status --find-renames >"$tmp_dir/name-status"
+: >"$removed_sources"
+
+tab=$(printf '\t')
+while IFS="$tab" read -r status old_path new_path; do
+	case $status in
+	D*) printf '%s\n' "$old_path" >>"$removed_sources" ;;
+	R*) printf '%s\n' "$old_path" >>"$removed_sources" ;;
+	esac
+done <"$tmp_dir/name-status"
+
+[ -s "$removed_sources" ] || exit 0
+
+remove_file=$repo/.chezmoiremove
+changed=false
+
+while IFS= read -r source_path; do
+	case $source_path in
+		.*|ignore/*|README.md|AGENTS.md|REVIEW.md|*_PLAN.md|*_REVIEW.md|run_*|*/run_*) continue ;;
+	esac
+
+	old_path=$old_source/$source_path
+	[ -e "$old_path" ] || [ -L "$old_path" ] || continue
+
+	target_path=$(chezmoi --source "$old_source" --refresh-externals=never \
+		target-path -- "$old_path")
+	case $target_path in
+		"$target_root"/*) target_path=${target_path#"$target_root"/} ;;
+		*)
+			printf 'pre-commit: refusing target outside destination: %s\n' "$target_path" >&2
+			exit 1
+			;;
+	esac
+
+	# Attribute-only renames (for example dot_foo -> executable_dot_foo)
+	# still manage the same target and must not create a removal tombstone.
+	grep -Fqx -- "$target_path" "$managed_now" && continue
+	[ -f "$remove_file" ] && grep -Fqx -- "$target_path" "$remove_file" && continue
+
+	touch "$remove_file"
+	printf '%s\n' "$target_path" >>"$remove_file"
+	printf 'pre-commit: added %s to .chezmoiremove\n' "$target_path"
+	changed=true
+done <"$removed_sources"
+
+if [ "$changed" = true ]; then
+	LC_ALL=C sort -u -o "$remove_file" "$remove_file"
+	git add -- .chezmoiremove
+fi
