@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+if (( $# == 0 )); then
+    exit 0
+fi
+
+fallback=${!#}
+set -- "${@:1:$#-1}"
+
+if ! command -v hyprctl >/dev/null 2>&1; then
+    printf '%s' "$fallback"
+    exit 0
+fi
+
+if [[ -z ${HYPRLAND_INSTANCE_SIGNATURE:-} ]]; then
+    output=$(hyprctl -i 0 "$@" 2>/dev/null)
+    status=$?
+else
+    output=$(hyprctl "$@" 2>/dev/null)
+    status=$?
+fi
+
+if (( status == 0 )) && [[ -n $output ]]; then
+    printf '%s' "$output"
+else
+    printf '%s' "$fallback"
+fi
+
+exit 0
