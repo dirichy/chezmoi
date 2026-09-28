@@ -75,6 +75,10 @@ font_size 15.0
 # === Local appearance       ===
 # ==============================
 
+# Let the compositor manage the initial tiled state. Kitty 0.49+ also remembers
+# maximized state when this is enabled, which conflicts with Hyprland tiling.
+remember_window_size no
+
 # Tab/status line colors, matching the main tmux theme.
 active_tab_foreground #1d202f
 active_tab_background #7aa2f7
