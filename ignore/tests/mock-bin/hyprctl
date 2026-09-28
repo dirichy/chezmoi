@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+case "$*" in
+    '-i 0 monitors -j'|'monitors -j')
+        printf '%s\n' '[{"name":"TEST-1","height":2160,"scale":2,"focused":true}]'
+        ;;
+    *)
+        printf 'unexpected hyprctl arguments: %s\n' "$*" >&2
+        exit 64
+        ;;
+esac

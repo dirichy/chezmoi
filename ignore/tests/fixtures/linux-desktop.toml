@@ -1,0 +1,65 @@
+[data]
+name = "Test User"
+email = "test@example.invalid"
+inputMethod = "tiger"
+fduConnect = false
+phoneBluetoothMac = ""
+
+[data.waybar]
+hostnameSymbol = "test-host"
+
+[data.proxy]
+address = "127.0.0.1:7890"
+host = "127.0.0.1"
+port = "7890"
+
+[data.install]
+profile = "desktop"
+modules = ""
+command = "true"
+admin = false
+
+[data.features]
+cli = true
+systemServices = false
+desktop = true
+dev = false
+extraApps = false
+inputMethod = true
+proxy = true
+fduConnect = false
+linuxDesktop = true
+macDesktop = false
+
+[data.apps.neovim]
+enabled = true
+profile = "full"
+
+[data.apps.fcitx5]
+# External archives are deliberately disabled in the offline test fixture.
+# .chezmoiignore uses features.inputMethod for the managed file set.
+enabled = false
+profile = "desktop"
+
+[data.apps.hyprland]
+enabled = true
+profile = "desktop"
+
+[data.apps.mihomo]
+enabled = true
+profile = "gui"
+
+[data.apps.sunshine]
+enabled = true
+profile = "streaming"
+
+[data.apps.hammerspoon]
+enabled = false
+profile = "desktop"
+
+[data.apps.karabiner]
+enabled = false
+profile = "desktop"
+
+[secret]
+command = "echo"

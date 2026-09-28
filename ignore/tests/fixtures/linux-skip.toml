@@ -1,0 +1,63 @@
+[data]
+name = "Test User"
+email = "test@example.invalid"
+inputMethod = "tiger"
+fduConnect = false
+phoneBluetoothMac = ""
+
+[data.waybar]
+hostnameSymbol = "test-host"
+
+[data.proxy]
+address = ""
+host = ""
+port = ""
+
+[data.install]
+profile = "skip"
+modules = ""
+command = "true"
+admin = false
+
+[data.features]
+cli = false
+systemServices = false
+desktop = false
+dev = false
+extraApps = false
+inputMethod = false
+proxy = false
+fduConnect = false
+linuxDesktop = false
+macDesktop = false
+
+[data.apps.neovim]
+enabled = false
+profile = "core"
+
+[data.apps.fcitx5]
+enabled = false
+profile = "rime-only"
+
+[data.apps.hyprland]
+enabled = false
+profile = "desktop"
+
+[data.apps.mihomo]
+enabled = false
+profile = "headless"
+
+[data.apps.sunshine]
+enabled = false
+profile = "streaming"
+
+[data.apps.hammerspoon]
+enabled = false
+profile = "desktop"
+
+[data.apps.karabiner]
+enabled = false
+profile = "desktop"
+
+[secret]
+command = "echo"
