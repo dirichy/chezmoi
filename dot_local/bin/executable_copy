@@ -2,31 +2,42 @@
 
 set -euo pipefail
 
+input_files=("$@")
+
 command_exists() {
 	command -v "$1" >/dev/null 2>&1
 }
 
-input=$(mktemp "${TMPDIR:-/tmp}/copy.XXXXXX")
-trap 'rm -f -- "$input"' EXIT
-cat -- "$@" >"$input"
+copy_to() {
+	if [ "${#input_files[@]}" -gt 0 ]; then
+		cat -- "${input_files[@]}" | "$@"
+	else
+		"$@"
+	fi
+}
 
 if command_exists pbcopy; then
-	pbcopy <"$input"
+	copy_to pbcopy
 	exit
 fi
 
 if [ -n "${WAYLAND_DISPLAY:-}" ] && command_exists wl-copy; then
-	wl-copy <"$input"
-	exit
+	# wl-copy forks a clipboard owner but leaves stderr open. Detach it from the
+	# terminal so the background process does not keep the PTY alive after exit.
+	if copy_to wl-copy --type text/plain 2>/dev/null; then
+		exit
+	fi
+	printf 'copy: wl-copy failed\n' >&2
+	exit 1
 fi
 
 if [ -n "${DISPLAY:-}" ] && command_exists xclip; then
-	xclip -selection clipboard <"$input"
+	copy_to xclip -selection clipboard
 	exit
 fi
 
 if [ -n "${DISPLAY:-}" ] && command_exists xsel; then
-	xsel --input --clipboard <"$input"
+	copy_to xsel --input --clipboard
 	exit
 fi
 
@@ -36,13 +47,21 @@ if [ -z "$remote_tunnel_port" ] && [ -n "${TMUX:-}" ] && command_exists tmux; th
 fi
 
 if [ -n "$remote_tunnel_port" ] && command_exists nc; then
-	nc localhost "$remote_tunnel_port" <"$input"
+	copy_to nc localhost "$remote_tunnel_port"
 	exit
 fi
 
 if [ -n "${TMUX:-}" ] && command_exists tmux; then
 	use_osc52=$(tmux show-option -gvq '@copy_use_osc52_fallback' 2>/dev/null || true)
 	[ "$use_osc52" != off ] || exit 1
+fi
+
+input=$(mktemp "${TMPDIR:-/tmp}/copy.XXXXXX")
+trap 'rm -f -- "$input"' EXIT
+if [ "${#input_files[@]}" -gt 0 ]; then
+	cat -- "${input_files[@]}" >"$input"
+else
+	cat >"$input"
 fi
 
 max_bytes=74994
