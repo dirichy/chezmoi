@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+command_exists() {
+	command -v "$1" >/dev/null 2>&1
+}
+
+input=$(mktemp "${TMPDIR:-/tmp}/copy.XXXXXX")
+trap 'rm -f -- "$input"' EXIT
+cat -- "$@" >"$input"
+
+if command_exists pbcopy; then
+	pbcopy <"$input"
+	exit
+fi
+
+if [ -n "${WAYLAND_DISPLAY:-}" ] && command_exists wl-copy; then
+	wl-copy <"$input"
+	exit
+fi
+
+if [ -n "${DISPLAY:-}" ] && command_exists xclip; then
+	xclip -selection clipboard <"$input"
+	exit
+fi
+
+if [ -n "${DISPLAY:-}" ] && command_exists xsel; then
+	xsel --input --clipboard <"$input"
+	exit
+fi
+
+remote_tunnel_port=${COPY_REMOTE_TUNNEL_PORT:-}
+if [ -z "$remote_tunnel_port" ] && [ -n "${TMUX:-}" ] && command_exists tmux; then
+	remote_tunnel_port=$(tmux show-option -gvq '@copy_backend_remote_tunnel_port' 2>/dev/null || true)
+fi
+
+if [ -n "$remote_tunnel_port" ] && command_exists nc; then
+	nc localhost "$remote_tunnel_port" <"$input"
+	exit
+fi
+
+if [ -n "${TMUX:-}" ] && command_exists tmux; then
+	use_osc52=$(tmux show-option -gvq '@copy_use_osc52_fallback' 2>/dev/null || true)
+	[ "$use_osc52" != off ] || exit 1
+fi
+
+max_bytes=74994
+input_bytes=$(wc -c <"$input")
+if [ "$input_bytes" -gt "$max_bytes" ]; then
+	printf 'copy: input truncated by %d bytes for OSC 52\n' "$((input_bytes - max_bytes))" >&2
+fi
+
+payload=$(head -c "$max_bytes" "$input" | base64 | tr -d '\r\n')
+osc=$(printf '\033]52;c;%s\a' "$payload")
+
+if [ -n "${TMUX:-}" ]; then
+	esc=$'\033'
+	tmux_payload=${osc//$esc/$esc$esc}
+	osc=$(printf '\033Ptmux;%s\033\\' "$tmux_payload")
+fi
+
+target_tty=${SSH_TTY:-}
+if [ -z "$target_tty" ] && [ -n "${TMUX_PANE:-}" ] && command_exists tmux; then
+	target_tty=$(tmux display-message -p -t "$TMUX_PANE" '#{pane_tty}' 2>/dev/null || true)
+fi
+if [ -z "$target_tty" ] && [ -t 2 ]; then
+	target_tty=/dev/tty
+fi
+
+if [ -n "$target_tty" ] && [ -w "$target_tty" ]; then
+	printf '%s' "$osc" >"$target_tty"
+else
+	printf '%s' "$osc"
+fi

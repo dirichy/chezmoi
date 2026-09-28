@@ -49,6 +49,7 @@
 .config/systemd/user/autossh@.service
 .config/systemd/user/hyprlua.service
 .config/tmux/debounce.sh
+.config/tmux/yank.sh
 .config/waybar/install.sh
 .config/waybar/modules/backlight.jsonc
 .config/waybar/modules/custom/brightness.jsonc
