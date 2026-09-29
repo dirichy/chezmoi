@@ -27,6 +27,7 @@ else:
     RESTORE_CMD = (FCITX5_REMOTE, "-o")
 DEBUG = False
 DEBUG_LOG = Path("/tmp/kitty-im-control.log")
+STATE_SETTLE_SECONDS = 0.15
 
 PERM_ASCII = 0
 TEMP_ASCII = 1

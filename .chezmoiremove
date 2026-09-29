@@ -28,6 +28,8 @@
 .config/hypr/monitor.conf
 .config/hypr/resulotion.conf
 .config/hypr/touch.conf
+.config/kitty/leader-disabled.conf
+.config/kitty/leader-enabled.conf
 .config/nvim/.luarc.json
 .config/nvim/LuaSnip/all.luaa
 .config/nvim/lua/hypr/init.lua

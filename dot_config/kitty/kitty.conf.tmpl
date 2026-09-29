@@ -140,14 +140,12 @@ watcher {{ joinPath .chezmoi.homeDir ".config" "kitty" "im-control.py" }}
 
 # C-f is the tmux prefix in ~/.config/tmux/tmux.conf. In kitty, use it as a
 # multi-key leader: press Ctrl+f, release, then press the second key.
-# Toggle this whole leader layer with Ctrl+Alt+Shift+F. In disabled mode, keys
-# pass through to programs such as tmux until Ctrl+Alt+Shift+F is pressed again.
+# Toggle this whole leader layer with Ctrl+Shift+F. In disabled mode, keys
+# pass through to programs such as tmux until Ctrl+Shift+F is pressed again.
 {{ $hideTabBar := "remote_control load-config --override tab_bar_min_tabs=999" -}}
 {{ $leaderImScript := joinPath .chezmoi.homeDir ".config" "kitty" "leader-im.sh" -}}
 {{ $leaderImTempAscii := printf "launch --type=background --keep-focus %s temp_ascii" $leaderImScript -}}
 {{ $leaderImRestore := printf "launch --type=background --keep-focus %s restore" $leaderImScript -}}
-{{ $leaderEnabledConfig := joinPath .chezmoi.homeDir ".config" "kitty" "leader-enabled.conf" -}}
-{{ $leaderDisabledConfig := joinPath .chezmoi.homeDir ".config" "kitty" "leader-disabled.conf" -}}
 {{ $leaderBinds := list
   (dict "key" "ctrl+g" "cmd" "pop_keyboard_mode")
   (dict "key" "ctrl+f" "cmd" "send_key ctrl+f")
@@ -203,7 +201,8 @@ watcher {{ joinPath .chezmoi.homeDir ".config" "kitty" "im-control.py" }}
 -}}
 map --new-mode kitty_leader --on-action=end --on-unknown=end f13 noop
 map ctrl+f combine : {{ $leaderImTempAscii }} : remote_control load-config --override tab_bar_min_tabs=1 : push_keyboard_mode kitty_leader
-map ctrl+alt+shift+f combine : {{ $leaderImRestore }} : remote_control load-config {{ $leaderDisabledConfig }} : {{ $hideTabBar }}
+map --when-focus-on var:kitty_prefix_disabled ctrl+f send_key ctrl+f
+map ctrl+shift+f combine : {{ $leaderImRestore }} : kitten toggle-prefix.py : {{ $hideTabBar }}
 {{- range $leaderBinds }}
 map --mode kitty_leader {{ .key }} combine : {{ .cmd }} : {{ $leaderImRestore }} : {{ $hideTabBar }}
 {{- end }}
