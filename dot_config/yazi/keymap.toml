@@ -170,6 +170,7 @@ prepend_keymap = [
   { on = "<C-Up>", run = "seek -5", desc = "预览向上跳转5个单位" },
   { on = "<C-Down>", run = "seek 5",  desc = "预览向下跳转5个单位" },
   { on = [ ",", "p" ], run = "plugin mediainfo -- --toggle-preview --toggle-metadata", desc = "切换图片预览" },
+  { on = [ ",", "i" ], run = ["plugin toggle-pane max-preview", "plugin mediainfo -- --show-preview --hide-metadata"], desc = "切换看图模式" },
   { on = "<Tab>", run = "spot", desc = "聚焦悬浮文件" },
 
 
