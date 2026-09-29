@@ -168,7 +168,7 @@ Waybar 配置在 `dot_config/waybar`。
 - Disk 单击打开 `duf`，右键打开 `bashmount`
 - Tailscale 状态模块，点击优先打开 `tsui`/`tailtui`，否则 fallback 到 `tailscale status`
 - Backlight 支持 `ddcutil`、`brightnessctl` 自动 fallback
-- Clock 折叠显示日期，点击打开 `calcurse`
+- Clock 两行显示日期和时间，点击打开 `calcurse`
 - Arch logo 打开 power menu
 
 脚本约定：

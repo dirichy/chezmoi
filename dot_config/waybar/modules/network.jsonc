@@ -19,7 +19,7 @@
   },
   "network#right": {
     "interval": 1,
-    "format-wifi": "↓ {bandwidthDownBytes:>iu}\n↑ {bandwidthUpBytes:>iu}",
+    "format-wifi": "↓ {bandwidthDownBytes}\n↑ {bandwidthUpBytes}",
     "format-ethernet": "↓ {bandwidthDownBytes:>3}\n↑ {bandwidthUpBytes:>3}",
     "format-disconnected": "",
     "format-disabled": "",
