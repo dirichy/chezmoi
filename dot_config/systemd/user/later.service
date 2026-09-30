@@ -3,7 +3,7 @@ Description=Synchronize and run one-off scheduled tasks
 
 [Service]
 Type=oneshot
-ExecStart=%h/.local/bin/once-cron
+ExecStart=%h/.local/bin/later
 
 [Install]
 WantedBy=default.target

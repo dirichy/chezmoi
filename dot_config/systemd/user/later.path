@@ -2,8 +2,8 @@
 Description=Watch the one-off task file
 
 [Path]
-PathChanged=%h/.local/state/once-cron/tasks
-Unit=once-cron.service
+PathChanged=%h/.local/state/later/tasks
+Unit=later.service
 
 [Install]
 WantedBy=default.target

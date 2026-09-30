@@ -317,19 +317,26 @@ SSH 配置在 `dot_ssh/config.tmpl`：
 
 ### One-off scheduled tasks (Linux)
 
-`once-cron.path` 监控 `~/.local/state/once-cron/tasks`（或 `$XDG_STATE_HOME/once-cron/tasks`），用于管理支持重启和过期时间的一次性任务。首次应用时，`run_once_after_create-once-cron-tasks.sh` 会创建带注释的空任务文件。开机、任务文件变化或定时唤醒时，脚本会批量解析所有时间，并且只为最近的未来任务创建一个 transient systemd timer。格式为：
+`later.path` 监控 `~/.local/state/later/tasks`（或 `$XDG_STATE_HOME/later/tasks`），用于管理支持重启和过期时间的一次性任务。首次应用时，`run_once_after_create-later-tasks.sh` 会创建带注释的空任务文件。开机、任务文件变化或定时唤醒时，Python 脚本只为最近的未来任务创建一个 transient systemd timer。编译缓存位于 `later/cache/compiled.json`；未修改的任务复用已解析时间，只有新增或修改行才会重新解析。格式为：
 
 ```text
-# status   date         time   expiry  command
-pending    2026-10-01   23:00  10m     ~/.local/bin/backup
-pending    2026-10-03   09:30  2h      notify-send '记得提交报告'
+# date         time   expiry  command
+2026-10-01     23:00  10m     ~/.local/bin/backup
+2026-10-03     09:30  2h      notify-send '记得提交报告'
 ```
 
-过期时间支持 `s`、`m`、`h`、`d`。任务运行前会标记为 `running`；成功后移除，失败后标记为 `failed`，过期后标记为 `expired`。把状态手动改回 `pending` 即可重试。命令以当前用户权限运行，关机等操作仍需另行配置权限。查看日志和启用 timer：
+编辑或查看任务文件：
 
 ```bash
-journalctl --user -u 'once-cron*'
-systemctl --user enable --now once-cron.path once-cron.service
+later -e
+later -l
+```
+
+过期时间支持 `s`、`m`、`h`、`d`。每个未注释行都是待执行任务。运行中的任务会改成 `# [running]`；成功后移除，失败后改成 `# [failed:退出码]`，过期后改成 `# [expired]`。删除状态标记和行首 `#` 即可重试。命令以当前用户权限运行，关机等操作仍需另行配置权限。查看日志和启用 timer：
+
+```bash
+journalctl --user -u 'later*'
+systemctl --user enable --now later.path later.service
 ```
 
 ## Apply And Reload

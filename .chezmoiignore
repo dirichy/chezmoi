@@ -6,6 +6,12 @@ tools
 .config/fcitx5/conf/cached_layouts
 
 # Config groups controlled by host data.
+{{ if not .features.cli }}
+.local/bin/later
+.config/systemd/user/later.path
+.config/systemd/user/later.service
+create-later-tasks.sh
+{{ end }}
 {{ if not .apps.neovim.enabled }}
 .config/nvim
 {{ end }}
@@ -42,7 +48,6 @@ Library/LaunchAgents/fdu-connect.plist
 # macOS-only files.
 {{ if ne .chezmoi.os "darwin" }}
 run_onchange_after_install-packages-macos.sh
-run_once_after_create-once-cron-tasks.sh
 .gnupg/gpg-agent.conf
 .hammerspoon
 .config/karabiner
@@ -67,6 +72,7 @@ Library/LaunchAgents/mihomo.plist
 # Linux-only files.
 {{ if ne .chezmoi.os "linux" }}
 run_onchange_after_install-packages-linux.sh
+create-later-tasks.sh
 .cache/rsync_to_root
 .config/hypr
 .config/mako
@@ -77,7 +83,7 @@ run_onchange_after_install-packages-linux.sh
 .config/wireplumber
 .config/wofi
 .local/bin/qq
-.local/bin/once-cron
+.local/bin/later
 .local/bin/sioyek
 .local/bin/sunshine_pre
 .local/bin/tencentqq

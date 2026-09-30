@@ -1,0 +1,407 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import fcntl
+import json
+import os
+import re
+import shlex
+import stat
+import subprocess
+import sys
+import tempfile
+import time
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+
+
+CACHE_VERSION = 2
+EXPIRY_RE = re.compile(r"^(\d+)([smhd])$")
+EXPIRY_MULTIPLIERS = {"s": 1, "m": 60, "h": 3600, "d": 86400}
+TASK_TEMPLATE = """# One-off tasks. Fields: date time expiry command
+#
+# Every uncommented line is pending. Successful tasks are removed; running,
+# expired, and failed tasks are commented out with a status marker. Remove the
+# marker and leading "#" to retry one.
+#
+# Expiry units: s (seconds), m (minutes), h (hours), d (days).
+# 2026-10-01 23:00 10m ~/.local/bin/backup
+"""
+
+
+@dataclass(frozen=True)
+class Task:
+    date: str
+    clock: str
+    expiry: str
+    command: str
+
+    def line(self) -> str:
+        return f"{self.date} {self.clock} {self.expiry} {self.command}"
+
+
+@dataclass(frozen=True)
+class CompiledTask:
+    task: Task
+    scheduled: int
+    deadline: int
+
+
+class ConcurrentEdit(RuntimeError):
+    pass
+
+
+def log(message: str) -> None:
+    print(f"later: {message}", flush=True)
+
+
+def file_identity(path: Path) -> tuple[int, int, int, int]:
+    info = path.stat()
+    return info.st_dev, info.st_ino, info.st_mtime_ns, info.st_size
+
+
+def atomic_write(path: Path, text: str, mode: int = 0o600) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temporary = Path(temporary_name)
+    try:
+        os.fchmod(descriptor, mode)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as output:
+            output.write(text)
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(temporary, path)
+    finally:
+        try:
+            temporary.unlink()
+        except FileNotFoundError:
+            pass
+
+
+def parse_task(line: str, line_number: int, *, report_errors: bool = True) -> Task | None:
+    stripped = line.lstrip()
+    if not stripped or stripped.startswith("#"):
+        return None
+
+    fields = stripped.split(maxsplit=3)
+    if len(fields) != 4:
+        if report_errors:
+            log(f"line {line_number} is invalid; excluding it from scheduling")
+        return None
+
+    task = Task(*fields)
+    return task
+
+
+def expiry_seconds(value: str) -> int:
+    match = EXPIRY_RE.fullmatch(value)
+    if not match:
+        raise ValueError(f"invalid expiry: {value}")
+    return int(match.group(1)) * EXPIRY_MULTIPLIERS[match.group(2)]
+
+
+def scheduled_epoch(task: Task) -> int:
+    parsed = datetime.fromisoformat(f"{task.date}T{task.clock}")
+    if parsed.tzinfo is None:
+        parsed = parsed.astimezone()
+    return int(parsed.timestamp())
+
+
+def current_epoch(value: str) -> int:
+    if value == "now":
+        return int(time.time())
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is None:
+        parsed = parsed.astimezone()
+    return int(parsed.timestamp())
+
+
+def read_cache(path: Path) -> dict[str, dict[str, int]]:
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"))
+        if document.get("version") != CACHE_VERSION or not isinstance(document.get("tasks"), dict):
+            return {}
+        return document["tasks"]
+    except (FileNotFoundError, json.JSONDecodeError, OSError, AttributeError):
+        return {}
+
+
+def write_cache(path: Path, tasks: dict[str, dict[str, int]]) -> None:
+    document = {"version": CACHE_VERSION, "tasks": tasks}
+    rendered = json.dumps(document, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    try:
+        if path.read_text(encoding="utf-8") == rendered:
+            return
+    except (FileNotFoundError, OSError):
+        pass
+    atomic_write(path, rendered)
+
+
+def compile_pending(
+    lines: list[str], cached: dict[str, dict[str, int]]
+) -> tuple[list[CompiledTask], dict[str, dict[str, int]], int, int]:
+    compiled: list[CompiledTask] = []
+    new_cache: dict[str, dict[str, int]] = {}
+    hits = 0
+    misses = 0
+
+    for line_number, line in enumerate(lines, 1):
+        task = parse_task(line, line_number)
+        if task is None:
+            continue
+
+        key = task.line()
+        cached_value = cached.get(key)
+        if (
+            isinstance(cached_value, dict)
+            and isinstance(cached_value.get("scheduled"), int)
+            and isinstance(cached_value.get("deadline"), int)
+        ):
+            scheduled = cached_value["scheduled"]
+            deadline = cached_value["deadline"]
+            hits += 1
+        else:
+            try:
+                scheduled = scheduled_epoch(task)
+                deadline = scheduled + expiry_seconds(task.expiry)
+            except (ValueError, OverflowError) as error:
+                log(f"line {line_number} is invalid; excluding it from scheduling: {error}")
+                continue
+            misses += 1
+
+        value = {"scheduled": scheduled, "deadline": deadline}
+        new_cache[key] = value
+        compiled.append(CompiledTask(task, scheduled, deadline))
+
+    compiled.sort(key=lambda item: item.scheduled)
+    return compiled, new_cache, hits, misses
+
+
+def run_command(command: list[str], *, capture: bool = False) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        command,
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE if capture else subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+    )
+
+
+def schedule_next(next_epoch: int | None, self_path: Path) -> bool:
+    systemctl = os.environ.get("LATER_SYSTEMCTL", "systemctl")
+    systemd_run = os.environ.get("LATER_SYSTEMD_RUN", "systemd-run")
+    result = run_command(
+        [
+            systemctl,
+            "--user",
+            "list-units",
+            "--all",
+            "--plain",
+            "--no-legend",
+            "later-wakeup-*.timer",
+        ],
+        capture=True,
+    )
+    existing = {
+        line.split(maxsplit=1)[0]
+        for line in result.stdout.splitlines()
+        if line.split(maxsplit=1) and line.split(maxsplit=1)[0].startswith("later-wakeup-")
+    }
+    desired = f"later-wakeup-{next_epoch}.timer" if next_epoch is not None else None
+
+    for unit in existing - ({desired} if desired else set()):
+        run_command([systemctl, "--user", "stop", unit])
+
+    if desired is None:
+        log("no pending tasks remain")
+        return True
+    if desired in existing:
+        log(f"next wakeup is already scheduled for @{next_epoch}")
+        return True
+
+    base = desired.removesuffix(".timer")
+    run_command([systemctl, "--user", "stop", f"{base}.timer", f"{base}.service"])
+    result = run_command(
+        [
+            systemd_run,
+            "--user",
+            "--quiet",
+            "--collect",
+            f"--unit={base}",
+            f"--on-calendar=@{next_epoch}",
+            "--timer-property=AccuracySec=1s",
+            str(self_path),
+        ]
+    )
+    if result.returncode == 0:
+        log(f"scheduled next wakeup for @{next_epoch}")
+        return True
+    detail = result.stderr.strip()
+    suffix = f": {detail}" if detail else ""
+    log(f"failed to schedule next wakeup for @{next_epoch}{suffix}")
+    return False
+
+
+def rewrite_claimed_tasks(
+    path: Path,
+    lines: list[str],
+    identity: tuple[int, int, int, int],
+    due: dict[str, str],
+) -> tuple[list[str], list[tuple[str, Task]]]:
+    if file_identity(path) != identity:
+        raise ConcurrentEdit
+
+    rewritten: list[str] = []
+    running: list[tuple[str, Task]] = []
+    for line_number, line in enumerate(lines, 1):
+        task = parse_task(line, line_number, report_errors=False)
+        key = task.line() if task is not None else ""
+        status = due.get(key)
+        if task is None or status is None:
+            rewritten.append(line)
+        elif status == "running":
+            running_line = f"# [running] {task.line()}"
+            rewritten.append(running_line)
+            running.append((running_line, task))
+        else:
+            rewritten.append(f"# [expired] {task.line()}")
+            log(f"skipped expired task: {task.date} {task.clock} {task.expiry} {task.command}")
+
+    mode = stat.S_IMODE(path.stat().st_mode)
+    atomic_write(path, "\n".join(rewritten) + "\n", mode)
+    return rewritten, running
+
+
+def finish_task(path: Path, lock_path: Path, expected: str, replacement: str | None) -> bool:
+    with lock_path.open("a", encoding="utf-8") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        lines = path.read_text(encoding="utf-8").splitlines()
+        try:
+            index = lines.index(expected)
+        except ValueError:
+            log("task state changed while it was running; leaving it untouched")
+            return False
+        if replacement is None:
+            lines.pop(index)
+        else:
+            lines[index] = replacement
+        mode = stat.S_IMODE(path.stat().st_mode)
+        atomic_write(path, "\n".join(lines) + "\n", mode)
+        return True
+
+
+def schedule_path() -> Path:
+    state_home = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
+    return Path(os.environ.get("LATER_FILE", state_home / "later/tasks"))
+
+
+def ensure_schedule_file(path: Path) -> None:
+    if path.exists():
+        return
+    atomic_write(path, TASK_TEMPLATE)
+
+
+def run_scheduler() -> int:
+    schedule_file = schedule_path()
+    state_dir = schedule_file.parent
+    cache_dir = Path(os.environ.get("LATER_CACHE_DIR", state_dir / "cache"))
+    cache_file = cache_dir / "compiled.json"
+    runtime_dir = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp"))
+    lock_file = runtime_dir / f"later-{os.getuid()}.lock"
+    self_path = Path(os.path.realpath(sys.argv[0]))
+
+    if not schedule_file.is_file():
+        return 0
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        now = current_epoch(os.environ.get("LATER_NOW", "now"))
+    except (ValueError, OverflowError) as error:
+        log(f"invalid current time: {error}")
+        return 1
+
+    running: list[tuple[str, Task]] = []
+    next_epoch: int | None = None
+    with lock_file.open("a", encoding="utf-8") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        for attempt in range(3):
+            identity = file_identity(schedule_file)
+            lines = schedule_file.read_text(encoding="utf-8").splitlines()
+            cached = read_cache(cache_file)
+            compiled, new_cache, hits, misses = compile_pending(lines, cached)
+            log(f"compiled schedule: {hits} cached, {misses} changed")
+
+            due: dict[str, str] = {}
+            next_epoch = None
+            for item in compiled:
+                if item.scheduled > now:
+                    next_epoch = item.scheduled
+                    break
+                due[item.task.line()] = "running" if now <= item.deadline else "expired"
+
+            try:
+                if due:
+                    _, running = rewrite_claimed_tasks(schedule_file, lines, identity, due)
+                    for key in due:
+                        new_cache.pop(key, None)
+                elif file_identity(schedule_file) != identity:
+                    raise ConcurrentEdit
+                write_cache(cache_file, new_cache)
+                break
+            except ConcurrentEdit:
+                if attempt == 2:
+                    log("schedule kept changing while it was being read; giving up")
+                    return 1
+
+    # Schedule first, so long-running commands cannot delay later tasks.
+    status = 0 if schedule_next(next_epoch, self_path) else 1
+    for running_line, task in running:
+        log(f"running task from {task.date} {task.clock}: {task.command}")
+        result = subprocess.run(["bash", "-lc", task.command], check=False)
+        if result.returncode == 0:
+            log(f"task succeeded: {task.command}")
+            if not finish_task(schedule_file, lock_file, running_line, None):
+                status = 1
+        else:
+            log(f"task failed with status {result.returncode}: {task.command}")
+            failed_line = f"# [failed:{result.returncode}] {task.line()}"
+            finish_task(schedule_file, lock_file, running_line, failed_line)
+            status = 1
+    return status
+
+
+def main() -> int:
+    os.umask(0o077)
+    parser = argparse.ArgumentParser(
+        prog="later",
+        description="Edit and run persistent one-off scheduled tasks.",
+    )
+    actions = parser.add_mutually_exclusive_group()
+    actions.add_argument("-e", "--edit", action="store_true", help="edit the task file")
+    actions.add_argument("-l", "--list", action="store_true", help="print the task file")
+    arguments = parser.parse_args()
+
+    schedule_file = schedule_path()
+    if arguments.list:
+        ensure_schedule_file(schedule_file)
+        sys.stdout.write(schedule_file.read_text(encoding="utf-8"))
+        return 0
+    if arguments.edit:
+        ensure_schedule_file(schedule_file)
+        editor = os.environ.get("VISUAL") or os.environ.get("EDITOR") or "vi"
+        try:
+            result = subprocess.run([*shlex.split(editor), str(schedule_file)], check=False)
+        except (OSError, ValueError) as error:
+            log(f"failed to start editor: {error}")
+            return 1
+        if result.returncode != 0:
+            return result.returncode
+        return run_scheduler()
+    return run_scheduler()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

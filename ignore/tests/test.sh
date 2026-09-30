@@ -114,18 +114,18 @@ assert_managed "$desktop_list" '.config/hypr/hyprland.lua' 'desktop includes Hyp
 assert_managed "$desktop_list" '.config/fcitx5/profile' 'desktop includes input method files'
 assert_managed "$desktop_list" '.local/bin/copy' 'desktop includes clipboard helper'
 assert_managed "$desktop_list" '.local/bin/osc1337-im' 'desktop includes OSC 1337 input method helper'
-assert_managed "$desktop_list" '.local/bin/once-cron' 'desktop includes one-off task runner'
-assert_managed "$desktop_list" '.config/systemd/user/once-cron.path' 'desktop includes one-off task watcher'
-assert_managed "$desktop_list" '.config/systemd/user/once-cron.service' 'desktop includes one-off task service'
-assert_managed "$desktop_list" 'create-once-cron-tasks.sh' 'desktop includes one-off task initializer'
+assert_managed "$desktop_list" '.local/bin/later' 'desktop includes one-off task runner'
+assert_managed "$desktop_list" '.config/systemd/user/later.path' 'desktop includes one-off task watcher'
+assert_managed "$desktop_list" '.config/systemd/user/later.service' 'desktop includes one-off task service'
+assert_managed "$desktop_list" 'create-later-tasks.sh' 'desktop includes one-off task initializer'
 assert_ignored "$desktop_list" '.hammerspoon/init.lua' 'Linux excludes Hammerspoon'
 assert_ignored "$desktop_list" '.config/fdu-connect/config.toml' 'disabled fdu-connect is excluded'
 
 assert_managed "$headless_list" '.config/nvim/init.lua' 'headless retains Neovim'
-assert_managed "$headless_list" '.local/bin/once-cron' 'headless includes one-off task runner'
-assert_managed "$headless_list" '.config/systemd/user/once-cron.path' 'headless includes one-off task watcher'
-assert_managed "$headless_list" '.config/systemd/user/once-cron.service' 'headless includes one-off task service'
-assert_managed "$headless_list" 'create-once-cron-tasks.sh' 'headless includes one-off task initializer'
+assert_managed "$headless_list" '.local/bin/later' 'headless includes one-off task runner'
+assert_managed "$headless_list" '.config/systemd/user/later.path' 'headless includes one-off task watcher'
+assert_managed "$headless_list" '.config/systemd/user/later.service' 'headless includes one-off task service'
+assert_managed "$headless_list" 'create-later-tasks.sh' 'headless includes one-off task initializer'
 assert_ignored "$headless_list" '.config/waybar/config.jsonc' 'headless excludes Waybar'
 assert_ignored "$headless_list" '.config/hypr/hyprland.lua' 'headless excludes Hyprland'
 assert_ignored "$headless_list" '.config/fcitx5/profile' 'headless excludes input method files'
@@ -134,6 +134,9 @@ assert_ignored "$headless_list" '.local/bin/osc1337-im' 'headless excludes OSC 1
 assert_ignored "$skip_list" '.config/nvim/init.lua' 'skip excludes Neovim'
 assert_ignored "$skip_list" '.config/mihomo/config.yaml' 'skip excludes mihomo'
 assert_ignored "$skip_list" '.config/kitty/kitty.conf' 'skip excludes desktop applications'
+assert_ignored "$skip_list" '.local/bin/later' 'skip excludes one-off task runner'
+assert_ignored "$skip_list" '.config/systemd/user/later.path' 'skip excludes one-off task watcher'
+assert_ignored "$skip_list" 'create-later-tasks.sh' 'skip excludes one-off task initializer'
 
 render_managed_templates desktop "$desktop_list"
 render_managed_templates headless "$headless_list"
@@ -145,21 +148,25 @@ grep -Fq '"height": 32' \
     || fail 'Waybar uses the mocked focused monitor dimensions'
 pass 'Waybar uses the mocked focused monitor dimensions'
 
-once_cron_state="$tmp_dir/once-cron-init-state"
-XDG_STATE_HOME=$once_cron_state \
-    bash "$tmp_dir/rendered-desktop/create-once-cron-tasks.sh"
-grep -Fq '# One-off tasks.' "$once_cron_state/once-cron/tasks" \
-    || fail 'once-cron initializer creates the documented task file'
-printf '%s\n' '# preserve me' >>"$once_cron_state/once-cron/tasks"
-XDG_STATE_HOME=$once_cron_state \
-    bash "$tmp_dir/rendered-desktop/create-once-cron-tasks.sh"
-grep -Fq '# preserve me' "$once_cron_state/once-cron/tasks" \
-    || fail 'once-cron initializer must not overwrite existing state'
-pass 'once-cron initializer creates state once without overwriting it'
+later_state="$tmp_dir/later-init-state"
+XDG_STATE_HOME=$later_state \
+    bash "$tmp_dir/rendered-desktop/create-later-tasks.sh"
+grep -Fq '# One-off tasks.' "$later_state/later/tasks" \
+    || fail 'later initializer creates the documented task file'
+printf '%s\n' '# preserve me' >>"$later_state/later/tasks"
+XDG_STATE_HOME=$later_state \
+    bash "$tmp_dir/rendered-desktop/create-later-tasks.sh"
+grep -Fq '# preserve me' "$later_state/later/tasks" \
+    || fail 'later initializer must not overwrite existing state'
+pass 'later initializer creates state once without overwriting it'
 
 syntax_checks
 
-"$tests_dir/test-once-cron.sh" "$repo_dir" "$tmp_dir"
-pass 'once-cron behavior'
+PYTHONPYCACHEPREFIX="$tmp_dir/pycache" \
+    python3 -m py_compile "$repo_dir/dot_local/bin/executable_later"
+pass 'later Python source compiles'
+
+"$tests_dir/test-later.sh" "$repo_dir" "$tmp_dir"
+pass 'later behavior'
 
 printf '1..%d\n' "$pass_count"

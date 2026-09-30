@@ -50,6 +50,8 @@
 .config/sunshine/mac/only/stop.sh
 .config/systemd/user/autossh@.service
 .config/systemd/user/hyprlua.service
+.config/systemd/user/once-cron.path
+.config/systemd/user/once-cron.service
 .config/systemd/user/once-cron.timer
 .config/tmux/debounce.sh
 .config/tmux/yank.sh
@@ -95,6 +97,7 @@
 .local/bin/hyprmonitor
 .local/bin/kitty-im
 .local/bin/lua_keymapper
+.local/bin/once-cron
 .local/bin/tencentqq
 .local/bin/wezterm-im
 .zshrc

@@ -2,14 +2,14 @@
 set -euo pipefail
 
 if [[ ${1:-} == --user && ${2:-} == list-units ]]; then
-    if [[ -n ${ONCE_CRON_UNIT_LIST:-} && -f ${ONCE_CRON_UNIT_LIST:-} ]]; then
-        cat -- "$ONCE_CRON_UNIT_LIST"
+    if [[ -n ${LATER_UNIT_LIST:-} && -f ${LATER_UNIT_LIST:-} ]]; then
+        cat -- "$LATER_UNIT_LIST"
     fi
     exit 0
 fi
 
-if [[ -n ${ONCE_CRON_CALLS:-} ]]; then
-    printf 'systemctl' >>"$ONCE_CRON_CALLS"
-    printf ' <%s>' "$@" >>"$ONCE_CRON_CALLS"
-    printf '\n' >>"$ONCE_CRON_CALLS"
+if [[ -n ${LATER_CALLS:-} ]]; then
+    printf 'systemctl' >>"$LATER_CALLS"
+    printf ' <%s>' "$@" >>"$LATER_CALLS"
+    printf '\n' >>"$LATER_CALLS"
 fi
