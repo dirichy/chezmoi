@@ -3,43 +3,53 @@ from __future__ import annotations
 
 import argparse
 import fcntl
+import hashlib
 import json
 import os
 import re
 import shlex
+import shutil
 import stat
 import subprocess
 import sys
 import tempfile
 import time
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 
-CACHE_VERSION = 2
-EXPIRY_RE = re.compile(r"^(\d+)([smhd])$")
+CACHE_VERSION = 3
+DURATION_RE = re.compile(r"(?:\d+[smhd])+")
+DURATION_PART_RE = re.compile(r"(\d+)([smhd])")
+FULL_TIME_RE = re.compile(
+    r"^(\d{2}|\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$"
+)
+MONTH_DAY_RE = re.compile(r"^(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$")
+CLOCK_RE = re.compile(r"^(\d{2}):(\d{2})(?::(\d{2}))?$")
+CANONICAL_RANGE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})-(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})$")
+ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 EXPIRY_MULTIPLIERS = {"s": 1, "m": 60, "h": 3600, "d": 86400}
-TASK_TEMPLATE = """# One-off tasks. Fields: date time expiry command
+TASK_TEMPLATE = """# One-off tasks. Fields: time-range command
 #
 # Every uncommented line is pending. Successful tasks are removed; running,
 # expired, and failed tasks are commented out with a status marker. Remove the
 # marker and leading "#" to retry one.
 #
-# Expiry units: s (seconds), m (minutes), h (hours), d (days).
-# 2026-10-01 23:00 10m ~/.local/bin/backup
+# Input may use 09:30, 10-03T09:30, 26-10-03T09:30, a full local time,
+# or a relative time such as +2d3h. Append +20m for allowed lateness.
+# Valid input is normalized to an absolute start-deadline range.
+# 2026-10-01T23:00:00-2026-10-01T23:10:00 ~/.local/bin/backup
 """
 
 
 @dataclass(frozen=True)
 class Task:
-    date: str
-    clock: str
-    expiry: str
+    range: str
     command: str
 
     def line(self) -> str:
-        return f"{self.date} {self.clock} {self.expiry} {self.command}"
+        return f"{self.range} {self.command}"
 
 
 @dataclass(frozen=True)
@@ -55,6 +65,73 @@ class ConcurrentEdit(RuntimeError):
 
 def log(message: str) -> None:
     print(f"later: {message}", flush=True)
+
+
+def task_id(task: Task) -> str:
+    return hashlib.sha256(task.line().encode("utf-8")).hexdigest()[:8]
+
+
+def color_enabled() -> bool:
+    return (
+        sys.stdout.isatty()
+        and "NO_COLOR" not in os.environ
+        and os.environ.get("TERM") != "dumb"
+    )
+
+
+def colorize(text: str, code: str, enabled: bool) -> str:
+    return f"\033[{code}m{text}\033[0m" if enabled else text
+
+
+def format_task(task: Task, *, with_id: bool = True, color: bool | None = None) -> str:
+    enabled = color_enabled() if color is None else color
+    identifier = colorize(f"[{task_id(task)}]", "35;1", enabled)
+    match = CANONICAL_RANGE_RE.fullmatch(task.range)
+    if match:
+        start = colorize(match.group(1), "36;1", enabled)
+        arrow = colorize(" → ", "2", enabled)
+        deadline = colorize(match.group(2), "33;1", enabled)
+        schedule = f"{start}{arrow}{deadline}"
+    else:
+        schedule = colorize(task.range, "36;1", enabled)
+    command = colorize(task.command, "1", enabled)
+    prefix = f"{identifier} " if with_id else ""
+    return f"{prefix}{schedule}  {command}"
+
+
+def task_log_path(task: Task, schedule_file: Path) -> Path:
+    return schedule_file.parent / "logs" / f"{task_id(task)}.log"
+
+
+def append_task_log(task: Task, schedule_file: Path, message: str) -> None:
+    path = task_log_path(task, schedule_file)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as output:
+        output.write(f"{message}\n")
+
+
+def execute_task(task: Task, schedule_file: Path) -> int:
+    path = task_log_path(task, schedule_file)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    started = datetime.now().astimezone().isoformat(timespec="seconds")
+    with path.open("ab") as output:
+        output.write(f"=== {started} start ===\ntask: {task.line()}\n".encode())
+        output.flush()
+        process = subprocess.Popen(
+            ["bash", "-lc", task.command],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        assert process.stdout is not None
+        while chunk := process.stdout.read(65536):
+            output.write(chunk)
+            output.flush()
+            sys.stdout.buffer.write(chunk)
+            sys.stdout.buffer.flush()
+        status = process.wait()
+        finished = datetime.now().astimezone().isoformat(timespec="seconds")
+        output.write(f"\n=== {finished} exit {status} ===\n".encode())
+    return status
 
 
 def file_identity(path: Path) -> tuple[int, int, int, int]:
@@ -85,8 +162,8 @@ def parse_task(line: str, line_number: int, *, report_errors: bool = True) -> Ta
     if not stripped or stripped.startswith("#"):
         return None
 
-    fields = stripped.split(maxsplit=3)
-    if len(fields) != 4:
+    fields = stripped.split(maxsplit=1)
+    if len(fields) != 2:
         if report_errors:
             log(f"line {line_number} is invalid; excluding it from scheduling")
         return None
@@ -96,17 +173,93 @@ def parse_task(line: str, line_number: int, *, report_errors: bool = True) -> Ta
 
 
 def expiry_seconds(value: str) -> int:
-    match = EXPIRY_RE.fullmatch(value)
-    if not match:
+    if not DURATION_RE.fullmatch(value):
         raise ValueError(f"invalid expiry: {value}")
-    return int(match.group(1)) * EXPIRY_MULTIPLIERS[match.group(2)]
+    return sum(
+        int(match.group(1)) * EXPIRY_MULTIPLIERS[match.group(2)]
+        for match in DURATION_PART_RE.finditer(value)
+    )
 
 
-def scheduled_epoch(task: Task) -> int:
-    parsed = datetime.fromisoformat(f"{task.date}T{task.clock}")
-    if parsed.tzinfo is None:
-        parsed = parsed.astimezone()
-    return int(parsed.timestamp())
+def local_datetime(parts: tuple[int, ...]) -> datetime:
+    return datetime(*parts).astimezone()
+
+
+def resolve_local_time(value: str, reference: datetime, *, allow_past: bool) -> datetime:
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        pass
+    else:
+        if parsed.tzinfo is not None:
+            raise ValueError("absolute times must use local time without a timezone")
+
+    match = FULL_TIME_RE.fullmatch(value)
+    if match:
+        year_text, month, day, hour, minute, second = match.groups()
+        year = int(year_text) if len(year_text) == 4 else 2000 + int(year_text)
+        return local_datetime(
+            (year, int(month), int(day), int(hour), int(minute), int(second or 0))
+        )
+
+    match = MONTH_DAY_RE.fullmatch(value)
+    if match:
+        month, day, hour, minute, second = map(int, (part or 0 for part in match.groups()))
+        candidate = local_datetime((reference.year, month, day, hour, minute, second))
+        if candidate < reference:
+            candidate = local_datetime((reference.year + 1, month, day, hour, minute, second))
+        return candidate
+
+    match = CLOCK_RE.fullmatch(value)
+    if match:
+        hour, minute, second = map(int, (part or 0 for part in match.groups()))
+        candidate = reference.replace(hour=hour, minute=minute, second=second, microsecond=0)
+        if candidate < reference:
+            candidate += timedelta(days=1)
+        return candidate
+
+    raise ValueError(f"invalid local time: {value}")
+
+
+def format_time(value: datetime) -> str:
+    return value.strftime("%Y-%m-%dT%H:%M:%S")
+
+
+def compile_range(value: str, now: datetime) -> tuple[str, int, int]:
+    if value.startswith("+"):
+        relative, separator, expiry = value[1:].partition("+")
+        if not DURATION_RE.fullmatch(relative):
+            raise ValueError(f"invalid relative time: {value}")
+        expiry = expiry if separator else "1h"
+        scheduled = now + timedelta(seconds=expiry_seconds(relative))
+        deadline = scheduled + timedelta(seconds=expiry_seconds(expiry))
+    else:
+        scheduled_text, separator, expiry = value.rpartition("+")
+        if separator and DURATION_RE.fullmatch(expiry):
+            scheduled = resolve_local_time(scheduled_text, now, allow_past=True)
+            deadline = scheduled + timedelta(seconds=expiry_seconds(expiry))
+        else:
+            try:
+                scheduled = resolve_local_time(value, now, allow_past=True)
+                deadline = scheduled + timedelta(hours=1)
+            except ValueError as original_error:
+                matches: list[tuple[datetime, datetime]] = []
+                for index, character in enumerate(value):
+                    if character != "-":
+                        continue
+                    try:
+                        start = resolve_local_time(value[:index], now, allow_past=True)
+                        end = resolve_local_time(value[index + 1 :], start, allow_past=False)
+                    except ValueError:
+                        continue
+                    if end >= start:
+                        matches.append((start, end))
+                if len(matches) != 1:
+                    raise original_error
+                scheduled, deadline = matches[0]
+
+    canonical = f"{format_time(scheduled)}-{format_time(deadline)}"
+    return canonical, int(scheduled.timestamp()), int(deadline.timestamp())
 
 
 def current_epoch(value: str) -> int:
@@ -140,18 +293,31 @@ def write_cache(path: Path, tasks: dict[str, dict[str, int]]) -> None:
 
 
 def compile_pending(
-    lines: list[str], cached: dict[str, dict[str, int]]
-) -> tuple[list[CompiledTask], dict[str, dict[str, int]], int, int]:
+    lines: list[str], cached: dict[str, dict[str, int]], now: datetime
+) -> tuple[list[CompiledTask], dict[str, dict[str, int]], list[str], int, int, int]:
     compiled: list[CompiledTask] = []
     new_cache: dict[str, dict[str, int]] = {}
+    normalized_lines = lines.copy()
     hits = 0
     misses = 0
+    errors = 0
 
     for line_number, line in enumerate(lines, 1):
         task = parse_task(line, line_number)
         if task is None:
+            if line.strip() and not line.lstrip().startswith("#"):
+                errors += 1
             continue
 
+        try:
+            canonical_range, parsed_scheduled, parsed_deadline = compile_range(task.range, now)
+        except (ValueError, OverflowError) as error:
+            log(f"line {line_number} is invalid: {error}")
+            errors += 1
+            continue
+
+        task = Task(canonical_range, task.command)
+        normalized_lines[line_number - 1] = task.line()
         key = task.line()
         cached_value = cached.get(key)
         if (
@@ -163,12 +329,8 @@ def compile_pending(
             deadline = cached_value["deadline"]
             hits += 1
         else:
-            try:
-                scheduled = scheduled_epoch(task)
-                deadline = scheduled + expiry_seconds(task.expiry)
-            except (ValueError, OverflowError) as error:
-                log(f"line {line_number} is invalid; excluding it from scheduling: {error}")
-                continue
+            scheduled = parsed_scheduled
+            deadline = parsed_deadline
             misses += 1
 
         value = {"scheduled": scheduled, "deadline": deadline}
@@ -176,7 +338,7 @@ def compile_pending(
         compiled.append(CompiledTask(task, scheduled, deadline))
 
     compiled.sort(key=lambda item: item.scheduled)
-    return compiled, new_cache, hits, misses
+    return compiled, new_cache, normalized_lines, hits, misses, errors
 
 
 def run_command(command: list[str], *, capture: bool = False) -> subprocess.CompletedProcess[str]:
@@ -233,6 +395,7 @@ def schedule_next(next_epoch: int | None, self_path: Path) -> bool:
             f"--on-calendar=@{next_epoch}",
             "--timer-property=AccuracySec=1s",
             str(self_path),
+            "--run",
         ]
     )
     if result.returncode == 0:
@@ -267,7 +430,13 @@ def rewrite_claimed_tasks(
             running.append((running_line, task))
         else:
             rewritten.append(f"# [expired] {task.line()}")
-            log(f"skipped expired task: {task.date} {task.clock} {task.expiry} {task.command}")
+            log(f"skipped expired task: {task.line()}")
+            timestamp = datetime.now().astimezone().isoformat(timespec="seconds")
+            append_task_log(
+                task,
+                path,
+                f"=== {timestamp} expired without running ===\ntask: {task.line()}",
+            )
 
     mode = stat.S_IMODE(path.stat().st_mode)
     atomic_write(path, "\n".join(rewritten) + "\n", mode)
@@ -303,6 +472,124 @@ def ensure_schedule_file(path: Path) -> None:
     atomic_write(path, TASK_TEMPLATE)
 
 
+def add_task(path: Path, schedule: str, command: list[str]) -> int:
+    if command[:1] == ["--"]:
+        command = command[1:]
+    if not command:
+        log("a command is required after the schedule")
+        return 2
+    try:
+        now = datetime.fromtimestamp(
+            current_epoch(os.environ.get("LATER_NOW", "now"))
+        ).astimezone()
+        canonical_range, _, _ = compile_range(schedule, now)
+    except (ValueError, OverflowError) as error:
+        log(f"invalid schedule: {error}")
+        return 2
+
+    ensure_schedule_file(path)
+    runtime_dir = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp"))
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    lock_path = runtime_dir / f"later-{os.getuid()}.lock"
+    task = Task(canonical_range, command[0] if len(command) == 1 else shlex.join(command))
+    print(f"Task: {format_task(task)}")
+    if sys.stdin.isatty():
+        try:
+            answer = input("Add task? [Y/n] ").strip().lower()
+        except EOFError:
+            return 1
+        if answer not in {"", "y", "yes"}:
+            return 1
+    with lock_path.open("a", encoding="utf-8") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        lines = path.read_text(encoding="utf-8").splitlines()
+        lines.append(task.line())
+        mode = stat.S_IMODE(path.stat().st_mode)
+        atomic_write(path, "\n".join(lines) + "\n", mode)
+    return run_scheduler()
+
+
+def show_status(path: Path) -> None:
+    ensure_schedule_file(path)
+    categories: dict[str, list[str]] = {
+        "Pending": [],
+        "Running": [],
+        "Failed": [],
+        "Expired": [],
+    }
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.startswith("# [running]"):
+            categories["Running"].append(stripped.removeprefix("# [running] "))
+        elif stripped.startswith("# [failed"):
+            categories["Failed"].append(re.sub(r"^# \[failed:\d+\] ", "", stripped))
+        elif stripped.startswith("# [expired]"):
+            categories["Expired"].append(stripped.removeprefix("# [expired] "))
+        elif not stripped.startswith("#"):
+            categories["Pending"].append(stripped)
+
+    status_colors = {"Pending": "36", "Running": "33", "Failed": "31;1", "Expired": "2"}
+    enabled = color_enabled()
+    for name, entries in categories.items():
+        heading = colorize(f"{name} ({len(entries)}):", status_colors[name], enabled)
+        print(heading)
+        for entry in entries:
+            task = parse_task(entry, 0, report_errors=False)
+            rendered = format_task(task, color=enabled) if task else entry
+            print(f"  {rendered}")
+
+
+def log_catalog(path: Path, *, color: bool = False) -> list[str]:
+    log_dir = path.parent / "logs"
+    entries: list[tuple[float, str]] = []
+    for log_file in log_dir.glob("*.log") if log_dir.is_dir() else []:
+        try:
+            lines = log_file.read_text(encoding="utf-8", errors="replace").splitlines()
+            task_line = next(line.removeprefix("task: ") for line in lines if line.startswith("task: "))
+            task = parse_task(task_line, 0, report_errors=False)
+            rendered = format_task(task, color=color) if task else f"[{log_file.stem}] {task_line}"
+            entries.append((log_file.stat().st_mtime, rendered))
+        except (OSError, StopIteration):
+            continue
+    return [entry for _, entry in sorted(entries, reverse=True)]
+
+
+def show_task_log(path: Path, identifier: str | None, follow: bool) -> int:
+    log_dir = path.parent / "logs"
+    if identifier is None:
+        interactive = bool(shutil.which("fzf") and sys.stdin.isatty() and sys.stdout.isatty())
+        catalog = log_catalog(path, color=interactive or color_enabled())
+        if not catalog:
+            log("no task logs")
+            return 1
+        fzf = shutil.which("fzf")
+        if not interactive or not fzf:
+            print("\n".join(catalog))
+            return 0
+        selected = subprocess.run(
+            [fzf, "--ansi", "--prompt=later logs> "],
+            input="\n".join(catalog) + "\n",
+            text=True,
+            stdout=subprocess.PIPE,
+            check=False,
+        )
+        if selected.returncode != 0 or not selected.stdout.strip():
+            return selected.returncode
+        identifier = ANSI_RE.sub("", selected.stdout).split(maxsplit=1)[0].strip("[]")
+
+    matches = sorted(log_dir.glob(f"{identifier}*.log")) if log_dir.is_dir() else []
+    if len(matches) != 1:
+        detail = "not found" if not matches else "ambiguous"
+        log(f"task log {identifier!r} is {detail}")
+        return 1
+    if follow:
+        return subprocess.run(["tail", "-n", "+1", "-f", str(matches[0])], check=False).returncode
+    sys.stdout.write(matches[0].read_text(encoding="utf-8", errors="replace"))
+    return 0
+
+
 def run_scheduler() -> int:
     schedule_file = schedule_path()
     state_dir = schedule_file.parent
@@ -331,8 +618,28 @@ def run_scheduler() -> int:
             identity = file_identity(schedule_file)
             lines = schedule_file.read_text(encoding="utf-8").splitlines()
             cached = read_cache(cache_file)
-            compiled, new_cache, hits, misses = compile_pending(lines, cached)
+            now_local = datetime.fromtimestamp(now).astimezone()
+            compiled, new_cache, normalized, hits, misses, errors = compile_pending(
+                lines, cached, now_local
+            )
             log(f"compiled schedule: {hits} cached, {misses} changed")
+            if errors:
+                log(f"compilation failed with {errors} invalid task(s)")
+                return 1
+            if normalized != lines:
+                if file_identity(schedule_file) != identity:
+                    continue
+                for line_number, (original, canonical) in enumerate(
+                    zip(lines, normalized), 1
+                ):
+                    if original != canonical:
+                        task = parse_task(canonical, line_number, report_errors=False)
+                        rendered = format_task(task) if task else canonical
+                        log(f"line {line_number}: {rendered}")
+                mode = stat.S_IMODE(schedule_file.stat().st_mode)
+                atomic_write(schedule_file, "\n".join(normalized) + "\n", mode)
+                lines = normalized
+                identity = file_identity(schedule_file)
 
             due: dict[str, str] = {}
             next_epoch = None
@@ -359,15 +666,15 @@ def run_scheduler() -> int:
     # Schedule first, so long-running commands cannot delay later tasks.
     status = 0 if schedule_next(next_epoch, self_path) else 1
     for running_line, task in running:
-        log(f"running task from {task.date} {task.clock}: {task.command}")
-        result = subprocess.run(["bash", "-lc", task.command], check=False)
-        if result.returncode == 0:
+        log(f"running task from {task.range}: {task.command}")
+        returncode = execute_task(task, schedule_file)
+        if returncode == 0:
             log(f"task succeeded: {task.command}")
             if not finish_task(schedule_file, lock_file, running_line, None):
                 status = 1
         else:
-            log(f"task failed with status {result.returncode}: {task.command}")
-            failed_line = f"# [failed:{result.returncode}] {task.line()}"
+            log(f"task failed with status {returncode}: {task.command}")
+            failed_line = f"# [failed:{returncode}] {task.line()}"
             finish_task(schedule_file, lock_file, running_line, failed_line)
             status = 1
     return status
@@ -378,13 +685,43 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         prog="later",
         description="Edit and run persistent one-off scheduled tasks.",
+        epilog=(
+            "examples:\n"
+            "  later +2h notify-send 'hello'\n"
+            "  later +2d3h+30m ~/.local/bin/backup\n"
+            "  later 2026-10-03T09:30+2h 'backup | gzip > backup.gz'"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     actions = parser.add_mutually_exclusive_group()
     actions.add_argument("-e", "--edit", action="store_true", help="edit the task file")
     actions.add_argument("-l", "--list", action="store_true", help="print the task file")
+    actions.add_argument(
+        "-j",
+        "--journal",
+        nargs="?",
+        const="",
+        metavar="ID",
+        help="select a task log or show one by ID",
+    )
+    actions.add_argument("--run", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("-f", "--follow", action="store_true", help="follow the selected task log")
+    parser.add_argument(
+        "schedule",
+        nargs="?",
+        metavar="TIME[+EXPIRY|-DEADLINE]",
+        help="local/relative start time and optional deadline",
+    )
+    parser.add_argument("command", nargs=argparse.REMAINDER, help=argparse.SUPPRESS)
     arguments = parser.parse_args()
 
     schedule_file = schedule_path()
+    if arguments.journal is not None:
+        if arguments.schedule or arguments.command:
+            parser.error("task logs cannot be combined with a schedule")
+        return show_task_log(schedule_file, arguments.journal or None, arguments.follow)
+    if arguments.follow:
+        parser.error("--follow requires --journal")
     if arguments.list:
         ensure_schedule_file(schedule_file)
         sys.stdout.write(schedule_file.read_text(encoding="utf-8"))
@@ -400,7 +737,16 @@ def main() -> int:
         if result.returncode != 0:
             return result.returncode
         return run_scheduler()
-    return run_scheduler()
+    if arguments.schedule:
+        if arguments.edit or arguments.list or arguments.run:
+            parser.error("a schedule cannot be combined with another action")
+        return add_task(schedule_file, arguments.schedule, arguments.command)
+    if arguments.run:
+        return run_scheduler()
+    if arguments.command:
+        parser.error("command arguments require a schedule")
+    show_status(schedule_file)
+    return 0
 
 
 if __name__ == "__main__":
