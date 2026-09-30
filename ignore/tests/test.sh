@@ -119,6 +119,8 @@ assert_managed "$desktop_list" '.config/systemd/user/later.path' 'desktop includ
 assert_managed "$desktop_list" '.config/systemd/user/later.service' 'desktop includes one-off task service'
 assert_managed "$desktop_list" 'create-later-tasks.sh' 'desktop includes one-off task initializer'
 assert_ignored "$desktop_list" '.hammerspoon/init.lua' 'Linux excludes Hammerspoon'
+assert_managed "$desktop_list" 'install-packages-linux.sh' 'Linux includes Linux install script'
+assert_ignored "$desktop_list" 'install-packages-macos.sh' 'Linux excludes macOS install script'
 assert_ignored "$desktop_list" '.config/fdu-connect/config.toml' 'disabled fdu-connect is excluded'
 
 assert_managed "$headless_list" '.config/nvim/init.lua' 'headless retains Neovim'

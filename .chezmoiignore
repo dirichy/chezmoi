@@ -47,7 +47,7 @@ Library/LaunchAgents/fdu-connect.plist
 
 # macOS-only files.
 {{ if ne .chezmoi.os "darwin" }}
-run_onchange_after_install-packages-macos.sh
+install-packages-macos.sh
 .gnupg/gpg-agent.conf
 .hammerspoon
 .config/karabiner
@@ -71,7 +71,7 @@ Library/LaunchAgents/mihomo.plist
 
 # Linux-only files.
 {{ if ne .chezmoi.os "linux" }}
-run_onchange_after_install-packages-linux.sh
+install-packages-linux.sh
 create-later-tasks.sh
 .cache/rsync_to_root
 .config/hypr
