@@ -1,0 +1,6 @@
+[Unit]
+Description=Run due one-off cron tasks
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/once-cron

@@ -1,0 +1,23 @@
+#!/bin/sh
+set -eu
+
+default_state_dir={{ joinPath .chezmoi.homeDir ".local/state" | quote }}
+state_dir=${XDG_STATE_HOME:-$default_state_dir}/once-cron
+tasks_file=$state_dir/tasks
+
+if [ -e "$tasks_file" ]; then
+	exit 0
+fi
+
+umask 077
+mkdir -p "$state_dir"
+cat >"$tasks_file" <<'EOF'
+# One-off tasks. Fields: status date time expiry command
+#
+# Only "pending" tasks are considered. Successful tasks are removed; expired
+# and failed tasks remain with their status changed. Change a status back to
+# "pending" to retry it.
+#
+# Expiry units: s (seconds), m (minutes), h (hours), d (days).
+# pending 2026-10-01 23:00 10m ~/.local/bin/backup
+EOF

@@ -1,0 +1,177 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+state_dir=${XDG_STATE_HOME:-$HOME/.local/state}/once-cron
+schedule_file=${ONCE_CRON_FILE:-$state_dir/tasks}
+runtime_dir=${XDG_RUNTIME_DIR:-/tmp}
+lock_file=$runtime_dir/once-cron-$(id -u).lock
+now_value=${ONCE_CRON_NOW:-now}
+
+log() {
+    printf 'once-cron: %s\n' "$*"
+}
+
+parse_expiry() {
+    local value=$1 number unit
+
+    if [[ $value =~ ^([0-9]+)([smhd])$ ]]; then
+        number=${BASH_REMATCH[1]}
+        unit=${BASH_REMATCH[2]}
+        case $unit in
+            s) printf '%s\n' "$number" ;;
+            m) printf '%s\n' "$((number * 60))" ;;
+            h) printf '%s\n' "$((number * 60 * 60))" ;;
+            d) printf '%s\n' "$((number * 24 * 60 * 60))" ;;
+        esac
+        return 0
+    fi
+
+    return 1
+}
+
+[[ -f $schedule_file ]] || exit 0
+
+if ! now_epoch=$(date -d "$now_value" +%s); then
+    log "invalid current time: $now_value"
+    exit 1
+fi
+
+mkdir -p "$runtime_dir"
+exec 9>"$lock_file"
+if ! flock -n 9; then
+    log 'another scan is already running; skipping'
+    exit 0
+fi
+
+schedule_dir=$(dirname -- "$schedule_file")
+pending_file=$(mktemp "$schedule_dir/.once.cron.pending.XXXXXX") || exit 1
+due_file=$(mktemp "$runtime_dir/once-cron-due.XXXXXX") || {
+    rm -f -- "$pending_file"
+    exit 1
+}
+cleanup() {
+    rm -f -- "$pending_file" "$due_file"
+}
+trap cleanup EXIT
+
+original_identity=$(stat -c '%d:%i:%y:%s' -- "$schedule_file") || exit 1
+changed=false
+line_number=0
+
+while IFS= read -r line || [[ -n $line ]]; do
+    line_number=$((line_number + 1))
+    trimmed=${line#"${line%%[![:space:]]*}"}
+
+    if [[ -z $trimmed || $trimmed == \#* ]]; then
+        printf '%s\n' "$line" >>"$pending_file"
+        continue
+    fi
+
+    read -r task_status task_date task_time expiry command <<<"$trimmed"
+    if [[ -z ${task_status:-} || -z ${task_date:-} || -z ${task_time:-} || -z ${expiry:-} || -z ${command:-} ]]; then
+        log "line $line_number is invalid; keeping it unchanged"
+        printf '%s\n' "$line" >>"$pending_file"
+        continue
+    fi
+
+    case $task_status in
+        pending) ;;
+        running | expired | failed)
+            printf '%s\n' "$line" >>"$pending_file"
+            continue
+            ;;
+        *)
+            log "line $line_number has an invalid status; keeping it unchanged"
+            printf '%s\n' "$line" >>"$pending_file"
+            continue
+            ;;
+    esac
+
+    if ! scheduled_epoch=$(date -d "$task_date $task_time" +%s 2>/dev/null); then
+        log "line $line_number has an invalid time; keeping it unchanged"
+        printf '%s\n' "$line" >>"$pending_file"
+        continue
+    fi
+    if ! expiry_seconds=$(parse_expiry "$expiry"); then
+        log "line $line_number has an invalid expiry; keeping it unchanged"
+        printf '%s\n' "$line" >>"$pending_file"
+        continue
+    fi
+
+    if ((now_epoch < scheduled_epoch)); then
+        printf '%s\n' "$line" >>"$pending_file"
+        continue
+    fi
+
+    changed=true
+    if ((now_epoch <= scheduled_epoch + expiry_seconds)); then
+        running_line="running $task_date $task_time $expiry $command"
+        printf '%s\n' "$running_line" >>"$pending_file"
+        printf '%s\n' "$running_line" >>"$due_file"
+    else
+        log "skipped expired task from $task_date $task_time: $command"
+        printf 'expired %s %s %s %s\n' "$task_date" "$task_time" "$expiry" "$command" >>"$pending_file"
+    fi
+done <"$schedule_file"
+
+if [[ $changed == true ]]; then
+    current_identity=$(stat -c '%d:%i:%y:%s' -- "$schedule_file") || exit 1
+    if [[ $current_identity != "$original_identity" ]]; then
+        log 'schedule changed during scan; leaving it untouched'
+        exit 1
+    fi
+    chmod --reference="$schedule_file" "$pending_file"
+    mv -f -- "$pending_file" "$schedule_file"
+fi
+
+# The schedule has been committed. Release the lock before running commands so
+# a long task does not prevent later scans from claiming other due tasks.
+flock -u 9
+
+finish_task() {
+    local expected=$1 replacement=$2 update_file line found=false
+
+    flock 9
+    update_file=$(mktemp "$schedule_dir/.once.cron.update.XXXXXX") || {
+        flock -u 9
+        return 1
+    }
+    while IFS= read -r line || [[ -n $line ]]; do
+        if [[ $found == false && $line == "$expected" ]]; then
+            [[ -z $replacement ]] || printf '%s\n' "$replacement" >>"$update_file"
+            found=true
+        else
+            printf '%s\n' "$line" >>"$update_file"
+        fi
+    done <"$schedule_file"
+
+    if [[ $found == true ]]; then
+        chmod --reference="$schedule_file" "$update_file"
+        mv -f -- "$update_file" "$schedule_file"
+    else
+        rm -f -- "$update_file"
+        log "task state changed while it was running; leaving it untouched"
+    fi
+    flock -u 9
+    [[ $found == true ]]
+}
+
+status=0
+while IFS= read -r running_line; do
+    read -r _ task_date task_time expiry command <<<"$running_line"
+    log "running task from $task_date $task_time: $command"
+    if bash -lc "$command"; then
+        log "task succeeded: $command"
+        if ! finish_task "$running_line" ''; then
+            status=1
+        fi
+    else
+        command_status=$?
+        log "task failed with status $command_status: $command"
+        failed_line="failed $task_date $task_time $expiry $command"
+        finish_task "$running_line" "$failed_line" || true
+        status=1
+    fi
+done <"$due_file"
+
+exit "$status"
