@@ -1,6 +1,9 @@
 [Unit]
-Description=Run due one-off cron tasks
+Description=Synchronize and run one-off scheduled tasks
 
 [Service]
 Type=oneshot
 ExecStart=%h/.local/bin/once-cron
+
+[Install]
+WantedBy=default.target

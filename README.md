@@ -317,7 +317,7 @@ SSH 配置在 `dot_ssh/config.tmpl`：
 
 ### One-off scheduled tasks (Linux)
 
-`once-cron.timer` 每分钟扫描 `~/.local/state/once-cron/tasks`（或 `$XDG_STATE_HOME/once-cron/tasks`），用于管理支持重启和过期时间的一次性任务。首次应用时，`run_once_after_create-once-cron-tasks.sh` 会创建带注释的空任务文件。格式为：
+`once-cron.path` 监控 `~/.local/state/once-cron/tasks`（或 `$XDG_STATE_HOME/once-cron/tasks`），用于管理支持重启和过期时间的一次性任务。首次应用时，`run_once_after_create-once-cron-tasks.sh` 会创建带注释的空任务文件。开机、任务文件变化或定时唤醒时，脚本会批量解析所有时间，并且只为最近的未来任务创建一个 transient systemd timer。格式为：
 
 ```text
 # status   date         time   expiry  command
@@ -328,8 +328,8 @@ pending    2026-10-03   09:30  2h      notify-send '记得提交报告'
 过期时间支持 `s`、`m`、`h`、`d`。任务运行前会标记为 `running`；成功后移除，失败后标记为 `failed`，过期后标记为 `expired`。把状态手动改回 `pending` 即可重试。命令以当前用户权限运行，关机等操作仍需另行配置权限。查看日志和启用 timer：
 
 ```bash
-journalctl --user -u once-cron.service
-systemctl --user enable --now once-cron.timer
+journalctl --user -u 'once-cron*'
+systemctl --user enable --now once-cron.path once-cron.service
 ```
 
 ## Apply And Reload

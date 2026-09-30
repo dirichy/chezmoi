@@ -50,6 +50,7 @@
 .config/sunshine/mac/only/stop.sh
 .config/systemd/user/autossh@.service
 .config/systemd/user/hyprlua.service
+.config/systemd/user/once-cron.timer
 .config/tmux/debounce.sh
 .config/tmux/yank.sh
 .config/waybar/install.sh

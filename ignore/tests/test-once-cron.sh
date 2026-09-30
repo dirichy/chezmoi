@@ -7,6 +7,7 @@ once_cron=$repo_dir/dot_local/bin/executable_once-cron
 schedule_file=$tmp_dir/once.cron
 result_file=$tmp_dir/once-cron-result
 runtime_dir=$tmp_dir/runtime
+calls_file=$tmp_dir/systemd-calls
 mkdir -p "$runtime_dir"
 
 assert_contains() {
@@ -38,7 +39,11 @@ printf '%s\n' \
 
 set +e
 output=$(ONCE_CRON_FILE=$schedule_file \
+    ONCE_CRON_SYSTEMCTL=$repo_dir/ignore/tests/mock-bin/systemctl \
+    ONCE_CRON_SYSTEMD_RUN=$repo_dir/ignore/tests/mock-bin/systemd-run \
+    ONCE_CRON_CALLS=$calls_file \
     ONCE_CRON_NOW='2026-10-01 10:00:00 +08:00' \
+    TZ=Asia/Shanghai \
     XDG_RUNTIME_DIR=$runtime_dir \
     "$once_cron")
 scan_status=$?
@@ -74,12 +79,22 @@ grep -Fq 'skipped expired task' <<<"$output" || {
 }
 
 ONCE_CRON_FILE=$schedule_file \
+    ONCE_CRON_SYSTEMCTL=$repo_dir/ignore/tests/mock-bin/systemctl \
+    ONCE_CRON_SYSTEMD_RUN=$repo_dir/ignore/tests/mock-bin/systemd-run \
+    ONCE_CRON_CALLS=$calls_file \
     ONCE_CRON_NOW='2026-10-01 10:02:00 +08:00' \
+    TZ=Asia/Shanghai \
     XDG_RUNTIME_DIR=$runtime_dir \
     "$once_cron" >/dev/null
 assert_contains "$result_file" future 'future task must execute when it becomes due'
 assert_not_contains "$schedule_file" \
     "pending 2026-10-01 10:01 10m printf '%s\\n' future >> '$result_file'" \
     'newly executed task must be removed'
+
+next_epoch=$(TZ=Asia/Shanghai date -d '2026-10-01 10:01:00' +%s)
+grep -Fq "<--on-calendar=@$next_epoch>" "$calls_file" || {
+    printf 'not ok - only the nearest future wakeup must be scheduled\n' >&2
+    exit 1
+}
 
 printf 'ok - once-cron executes due tasks and marks expired or failed tasks\n'

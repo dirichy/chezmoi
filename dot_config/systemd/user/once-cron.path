@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch the one-off task file
+
+[Path]
+PathChanged=%h/.local/state/once-cron/tasks
+Unit=once-cron.service
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ -n ${ONCE_CRON_CALLS:-} ]]; then
+    printf 'systemd-run' >>"$ONCE_CRON_CALLS"
+    printf ' <%s>' "$@" >>"$ONCE_CRON_CALLS"
+    printf '\n' >>"$ONCE_CRON_CALLS"
+fi
