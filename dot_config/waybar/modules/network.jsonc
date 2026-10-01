@@ -5,8 +5,10 @@
   },
   "network#left": {
     "interval": 1,
+    "format": "󰤭",
     "format-wifi": "󰤨",
     "format-ethernet": "󰈀",
+    "format-linked": "󰤭",
     "format-disconnected": "󰤭",
     "format-disabled": "󰤮",
     "on-click": "kitty --class system_menu --title system_menu -e ~/.config/waybar/scripts/network.sh",
@@ -19,8 +21,10 @@
   },
   "network#right": {
     "interval": 1,
+    "format": "",
     "format-wifi": "↓ {bandwidthDownBytes}\n↑ {bandwidthUpBytes}",
     "format-ethernet": "↓ {bandwidthDownBytes:>3}\n↑ {bandwidthUpBytes:>3}",
+    "format-linked": "",
     "format-disconnected": "",
     "format-disabled": "",
     "on-click": "kitty --class system_menu --title system_menu -e ~/.config/waybar/scripts/network.sh",
