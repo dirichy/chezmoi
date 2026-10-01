@@ -8,8 +8,10 @@ schema_list:
   {{- if eq .inputMethod "tiger" }}
   - schema: tiger
   - schema: rime_ice
+  - schema: rime_ice_full
   {{- else}}
   - schema: rime_ice
+  - schema: rime_ice_full
   - schema: tiger
   {{- end}}
   # - schema: tigress
