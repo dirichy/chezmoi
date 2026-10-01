@@ -49,6 +49,7 @@ switches:
 # 输入引擎
 engine:
   processors:
+    - lua_processor@*schema_switch # /schema 后按 1/2/3 切换方案
     - lua_processor@auto_put
     - lua_processor@*select_character # 以词定字
     - ascii_composer
@@ -69,6 +70,7 @@ engine:
   translators:
     - punct_translator
     - script_translator
+    - lua_translator@*schema_switch_translator # /schema 方案菜单
     - lua_translator@*date_translator # 时间、日期、星期
     - lua_translator@*lunar # 农历
     # - lua_translator@*uuid # UUID

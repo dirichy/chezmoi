@@ -60,6 +60,7 @@ switches: # 0 默认关，1 默认开
 
 engine:
   processors:
+    - lua_processor@*schema_switch # /schema 后按 1/2/3 切换方案
     # - lua_processor@hammerspoon
     - lua_processor@clear_on_missing_code
     # - lua_processor@notify_on_missing_simp
@@ -84,6 +85,7 @@ engine:
     - punct_translator
     - reverse_lookup_translator #拼音反查
     - table_translator
+    - lua_translator@*schema_switch_translator # /schema 方案菜单
     # - table_translator@easy_english #临时英文
     - history_translator@historyDM # 重复上屏 电脑
     - history_translator@historyDM2 # 重复上屏 电脑2
