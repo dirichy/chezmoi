@@ -115,7 +115,7 @@ return {
 					-- end,
 					module = "nvimtex.latex.blink",
 					name = "nvimtex",
-					score_offset = 15, -- Tune by preference
+					score_offset = 1, -- Tune by preference
 					opts = { insert = true }, -- Insert nerdfont icon (default) or complete its name
 				},
 				math = {
@@ -128,7 +128,7 @@ return {
 					-- end,
 					module = "nvimtex.snip.blink",
 					name = "nvimtex_math",
-					score_offset = 15, -- Tune by preference
+					score_offset = 1, -- Tune by preference
 					opts = { insert = true }, -- Insert nerdfont icon (default) or complete its name
 				},
 			},
