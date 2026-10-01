@@ -36,10 +36,16 @@ TASK_TEMPLATE = """# One-off tasks. Fields: time-range command
 # expired, and failed tasks are commented out with a status marker. Remove the
 # marker and leading "#" to retry one.
 #
-# Input may use 09:30, 10-03T09:30, 26-10-03T09:30, a full local time,
-# or a relative time such as +2d3h. Append +20m for allowed lateness.
-# Valid input is normalized to an absolute start-deadline range.
-# 2026-10-01T23:00:00-2026-10-01T23:10:00 ~/.local/bin/backup
+# Accepted input examples:
+# 2026-10-03T09:30+2h command       full local time; deadline is 2h later
+# 26-10-03T09:30+2h command         two-digit year means 2026
+# 10-03T09:30+2h command            next October 3 at 09:30
+# 09:30+20m command                 next 09:30
+# +2d3h+1h command                  2d3h from now; deadline is 1h later
+# 10-03T09:30-10-03T11:00 command  explicit start and deadline
+#
+# Valid input is normalized to a full absolute range like this:
+# 2026-10-03T09:30:00-2026-10-03T11:30:00 command
 """
 
 
@@ -67,13 +73,18 @@ def log(message: str) -> None:
     print(f"later: {message}", flush=True)
 
 
+def error(message: str) -> None:
+    prefix = colorize("later: error:", "31;1", color_enabled(sys.stderr))
+    print(f"{prefix} {message}", file=sys.stderr, flush=True)
+
+
 def task_id(task: Task) -> str:
     return hashlib.sha256(task.line().encode("utf-8")).hexdigest()[:8]
 
 
-def color_enabled() -> bool:
+def color_enabled(stream: object = sys.stdout) -> bool:
     return (
-        sys.stdout.isatty()
+        bool(getattr(stream, "isatty", lambda: False)())
         and "NO_COLOR" not in os.environ
         and os.environ.get("TERM") != "dumb"
     )
@@ -165,7 +176,7 @@ def parse_task(line: str, line_number: int, *, report_errors: bool = True) -> Ta
     fields = stripped.split(maxsplit=1)
     if len(fields) != 2:
         if report_errors:
-            log(f"line {line_number} is invalid; excluding it from scheduling")
+            error(f"line {line_number} is invalid; expected a time range and command")
         return None
 
     task = Task(*fields)
@@ -262,6 +273,15 @@ def compile_range(value: str, now: datetime) -> tuple[str, int, int]:
     return canonical, int(scheduled.timestamp()), int(deadline.timestamp())
 
 
+def compile_task(
+    schedule: str, command: str, now: datetime
+) -> tuple[Task, int, int]:
+    if not command.strip():
+        raise ValueError("a command is required after the schedule")
+    canonical_range, scheduled, deadline = compile_range(schedule, now)
+    return Task(canonical_range, command), scheduled, deadline
+
+
 def current_epoch(value: str) -> int:
     if value == "now":
         return int(time.time())
@@ -310,13 +330,14 @@ def compile_pending(
             continue
 
         try:
-            canonical_range, parsed_scheduled, parsed_deadline = compile_range(task.range, now)
-        except (ValueError, OverflowError) as error:
-            log(f"line {line_number} is invalid: {error}")
+            task, parsed_scheduled, parsed_deadline = compile_task(
+                task.range, task.command, now
+            )
+        except (ValueError, OverflowError) as exception:
+            error(f"line {line_number} is invalid: {exception}")
             errors += 1
             continue
 
-        task = Task(canonical_range, task.command)
         normalized_lines[line_number - 1] = task.line()
         key = task.line()
         cached_value = cached.get(key)
@@ -482,16 +503,16 @@ def add_task(path: Path, schedule: str, command: list[str]) -> int:
         now = datetime.fromtimestamp(
             current_epoch(os.environ.get("LATER_NOW", "now"))
         ).astimezone()
-        canonical_range, _, _ = compile_range(schedule, now)
-    except (ValueError, OverflowError) as error:
-        log(f"invalid schedule: {error}")
+        command_text = command[0] if len(command) == 1 else shlex.join(command)
+        task, _, _ = compile_task(schedule, command_text, now)
+    except (ValueError, OverflowError) as exception:
+        error(f"invalid schedule: {exception}")
         return 2
 
     ensure_schedule_file(path)
     runtime_dir = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp"))
     runtime_dir.mkdir(parents=True, exist_ok=True)
     lock_path = runtime_dir / f"later-{os.getuid()}.lock"
-    task = Task(canonical_range, command[0] if len(command) == 1 else shlex.join(command))
     print(f"Task: {format_task(task)}")
     if sys.stdin.isatty():
         try:
@@ -599,15 +620,14 @@ def run_scheduler() -> int:
     lock_file = runtime_dir / f"later-{os.getuid()}.lock"
     self_path = Path(os.path.realpath(sys.argv[0]))
 
-    if not schedule_file.is_file():
-        return 0
+    ensure_schedule_file(schedule_file)
     runtime_dir.mkdir(parents=True, exist_ok=True)
     cache_dir.mkdir(parents=True, exist_ok=True)
 
     try:
         now = current_epoch(os.environ.get("LATER_NOW", "now"))
-    except (ValueError, OverflowError) as error:
-        log(f"invalid current time: {error}")
+    except (ValueError, OverflowError) as exception:
+        error(f"invalid current time: {exception}")
         return 1
 
     running: list[tuple[str, Task]] = []
@@ -624,7 +644,7 @@ def run_scheduler() -> int:
             )
             log(f"compiled schedule: {hits} cached, {misses} changed")
             if errors:
-                log(f"compilation failed with {errors} invalid task(s)")
+                error(f"compilation failed with {errors} invalid task(s)")
                 return 1
             if normalized != lines:
                 if file_identity(schedule_file) != identity:

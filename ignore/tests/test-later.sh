@@ -11,6 +11,21 @@ cache_dir=$tmp_dir/cache
 calls_file=$tmp_dir/systemd-calls
 mkdir -p "$runtime_dir" "$cache_dir"
 
+auto_file=$tmp_dir/later-auto-created/tasks
+LATER_FILE=$auto_file \
+    LATER_CACHE_DIR=$tmp_dir/later-auto-created/cache \
+    LATER_SYSTEMCTL=$repo_dir/ignore/tests/mock-bin/systemctl \
+    LATER_SYSTEMD_RUN=$repo_dir/ignore/tests/mock-bin/systemd-run \
+    LATER_CALLS=$calls_file \
+    LATER_NOW='2026-10-01T10:00:00+08:00' \
+    TZ=Asia/Shanghai \
+    XDG_RUNTIME_DIR=$runtime_dir \
+    "$later" --run >/dev/null
+grep -Fq '# One-off tasks. Fields: time-range command' "$auto_file" || {
+    printf 'not ok - later must create its documented task file on first run\n' >&2
+    exit 1
+}
+
 assert_contains() {
     local file=$1 text=$2 description=$3
     grep -Fqx -- "$text" "$file" || {

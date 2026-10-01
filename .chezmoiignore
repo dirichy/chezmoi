@@ -10,7 +10,6 @@ tools
 .local/bin/later
 .config/systemd/user/later.path
 .config/systemd/user/later.service
-create-later-tasks.sh
 {{ end }}
 {{ if not .apps.neovim.enabled }}
 .config/nvim
@@ -72,7 +71,6 @@ Library/LaunchAgents/mihomo.plist
 # Linux-only files.
 {{ if ne .chezmoi.os "linux" }}
 install-packages-linux.sh
-create-later-tasks.sh
 .cache/rsync_to_root
 .config/hypr
 .config/mako
