@@ -9,6 +9,23 @@ local function warn(message)
 	log.warn("karabiner", message)
 end
 
+local function spairs(t)
+	local keys = {}
+	for key in pairs(t) do
+		keys[#keys + 1] = key
+	end
+	table.sort(keys)
+
+	local i = 0
+	return function()
+		i = i + 1
+		local key = keys[i]
+		if key ~= nil then
+			return key, t[key]
+		end
+	end
+end
+
 local function normalize_key(key)
 	return keycode.to("karabiner", key)
 end
@@ -130,7 +147,7 @@ function karabiner.int2mods(mod)
 	end
 	local flag = nil
 	local ret = {}
-	for index, value in pairs(karabiner._modifier) do
+	for index, value in spairs(karabiner._modifier) do
 		if mod & value ~= 0 then
 			flag = true
 			ret[#ret + 1] = index
@@ -144,7 +161,7 @@ function karabiner.int2virtualmods(mod)
 	end
 	local flag = nil
 	local ret = {}
-	for index, value in pairs(karabiner.virtualMod) do
+	for index, value in spairs(karabiner.virtualMod) do
 		if mod & value ~= 0 then
 			ret[#ret + 1] = index
 			flag = true
@@ -355,7 +372,7 @@ function karabiner.print()
 	for i = #karabiner.bindlist, 0, -1 do
 		local mod = i
 		local mod_t = karabiner.bindlist[i]
-		for key, key_t in pairs(mod_t) do
+		for key, key_t in spairs(mod_t) do
 			for _, to in ipairs(key_t) do
 				local virtualmods = karabiner.int2virtualmods(mod)
 				local conditions = to.conditions
