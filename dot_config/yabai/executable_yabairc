@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 sudo yabai --load-sa
 yabai -m config layout bsp
 yabai -m config focus_follows_mouse autoraise
@@ -15,7 +16,9 @@ yabai -m rule --add app="^Karabiner-Elements$" manage=off
 yabai -m rule --add app="^Karabiner-EventViewer$" manage=off
 yabai -m rule --add app="^Tailscale$" manage=off
 yabai -m signal --add event=window_created action="$HOME/.config/yabai/autofullscreen.sh"
-
+yabai -m signal --add \
+    event=window_destroyed \
+    action='for i in 1 2 3 4 5 6; do sleep 0.05; yabai -m query --windows --window >/dev/null 2>&1 && break; yabai -m window --focus mouse; done'
 n=$(yabai -m query --spaces | jq '9 - length')
 if [ "$n" -gt 0 ]; then
   for i in $(seq 1 "$n"); do
