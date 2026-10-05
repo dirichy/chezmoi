@@ -19,7 +19,7 @@ return {
 			signs_staged_enable = true,
 
 			-- 不默认显示 blame，避免界面太乱
-			current_line_blame = false,
+			current_line_blame = true,
 
 			on_attach = function(bufnr)
 				local gs = require("gitsigns")
@@ -69,6 +69,12 @@ return {
 
 				-- visual mode：只 stage 选中的几行
 				map("v", "<leader>hs", function()
+					gs.stage_hunk({
+						vim.fn.line("."),
+						vim.fn.line("v"),
+					})
+				end, "Git: stage selected lines")
+				map("v", "<C-S>", function()
 					gs.stage_hunk({
 						vim.fn.line("."),
 						vim.fn.line("v"),
