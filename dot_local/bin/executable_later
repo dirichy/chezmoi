@@ -30,7 +30,9 @@ CLOCK_RE = re.compile(r"^(\d{2}):(\d{2})(?::(\d{2}))?$")
 CANONICAL_RANGE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})-(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})$")
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 EXPIRY_MULTIPLIERS = {"s": 1, "m": 60, "h": 3600, "d": 86400}
-TASK_TEMPLATE = """# One-off tasks. Fields: time-range command
+MODELINE = "# vim: set ft=later :"
+TASK_TEMPLATE = f"""{MODELINE}
+# One-off tasks. Fields: time-range command
 #
 # Every uncommented line is pending. Successful tasks are removed; running,
 # expired, and failed tasks are commented out with a status marker. Remove the
@@ -280,6 +282,49 @@ def compile_task(
         raise ValueError("a command is required after the schedule")
     canonical_range, scheduled, deadline = compile_range(schedule, now)
     return Task(canonical_range, command), scheduled, deadline
+
+
+def check_text(text: str, now: datetime) -> list[dict[str, object]]:
+    diagnostics: list[dict[str, object]] = []
+    for line_number, line in enumerate(text.splitlines(), 1):
+        stripped = line.lstrip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        task = parse_task(line, line_number, report_errors=False)
+        try:
+            if task is None:
+                raise ValueError("expected a time specification followed by a command")
+            compile_task(task.range, task.command, now)
+        except (ValueError, OverflowError) as exception:
+            diagnostics.append(
+                {
+                    "line": line_number,
+                    "column": len(line) - len(stripped) + 1,
+                    "end_column": max(len(line) + 1, 2),
+                    "severity": "error",
+                    "message": str(exception),
+                }
+            )
+    return diagnostics
+
+
+def check_input(source: str, as_json: bool) -> int:
+    if source == "-":
+        text = sys.stdin.read()
+    else:
+        path = schedule_path() if not source else Path(source).expanduser()
+        ensure_schedule_file(path)
+        text = path.read_text(encoding="utf-8")
+    now = datetime.fromtimestamp(
+        current_epoch(os.environ.get("LATER_NOW", "now"))
+    ).astimezone()
+    diagnostics = check_text(text, now)
+    if as_json:
+        print(json.dumps(diagnostics, ensure_ascii=False))
+    else:
+        for diagnostic in diagnostics:
+            error(f"line {diagnostic['line']}: {diagnostic['message']}")
+    return 1 if diagnostics else 0
 
 
 def current_epoch(value: str) -> int:
@@ -724,8 +769,16 @@ def main() -> int:
         metavar="ID",
         help="select a task log or show one by ID",
     )
+    actions.add_argument(
+        "--check",
+        nargs="?",
+        const="",
+        metavar="FILE",
+        help="validate the task file, or use --check=- for stdin",
+    )
     actions.add_argument("--run", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("-f", "--follow", action="store_true", help="follow the selected task log")
+    parser.add_argument("--json", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument(
         "schedule",
         nargs="?",
@@ -736,6 +789,16 @@ def main() -> int:
     arguments = parser.parse_args()
 
     schedule_file = schedule_path()
+    if arguments.check is not None:
+        if arguments.schedule or arguments.command or arguments.follow:
+            parser.error("--check cannot be combined with another action")
+        try:
+            return check_input(arguments.check, arguments.json)
+        except (OSError, ValueError, OverflowError) as exception:
+            error(f"check failed: {exception}")
+            return 2
+    if arguments.json:
+        parser.error("--json requires --check")
     if arguments.journal is not None:
         if arguments.schedule or arguments.command:
             parser.error("task logs cannot be combined with a schedule")
