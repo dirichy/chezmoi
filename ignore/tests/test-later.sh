@@ -21,6 +21,10 @@ LATER_FILE=$auto_file \
     TZ=Asia/Shanghai \
     XDG_RUNTIME_DIR=$runtime_dir \
     "$later" --run >/dev/null
+[[ $(head -n 1 "$auto_file") == '# vim: set ft=later :' ]] || {
+	printf 'not ok - later must put the Neovim modeline first\n' >&2
+	exit 1
+}
 grep -Fq '# One-off tasks. Fields: time-range command' "$auto_file" || {
     printf 'not ok - later must create its documented task file on first run\n' >&2
     exit 1
@@ -277,5 +281,27 @@ grep -Fq 'line 1 is invalid' <<<"$invalid_output" || {
 }
 assert_contains "$invalid_file" 'not-a-time true' \
     'failed compilation must not partially rewrite the task file'
+
+set +e
+check_output=$(printf '%s\n' \
+    '09:30+20m true' \
+    'not-a-time false' \
+    | LATER_NOW='2026-10-01T10:00:00+08:00' \
+        TZ=Asia/Shanghai \
+        "$later" --check=- --json)
+check_status=$?
+set -e
+[[ $check_status == 1 ]] || {
+    printf 'not ok - later --check must fail when stdin contains an invalid task\n' >&2
+    exit 1
+}
+grep -Fq '"line": 2' <<<"$check_output" || {
+    printf 'not ok - later --check JSON must report the invalid line\n' >&2
+    exit 1
+}
+grep -Fq 'invalid local time: not-a-time' <<<"$check_output" || {
+    printf 'not ok - later --check JSON must use the scheduler parser error\n' >&2
+    exit 1
+}
 
 printf 'ok - later executes due tasks and marks expired or failed tasks\n'

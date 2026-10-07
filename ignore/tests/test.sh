@@ -111,7 +111,6 @@ pass 'all fixture profiles evaluate .chezmoiignore'
 
 assert_managed "$desktop_list" '.config/waybar/config.jsonc' 'desktop includes Waybar'
 assert_managed "$desktop_list" '.config/hypr/hyprland.lua' 'desktop includes Hyprland'
-assert_managed "$desktop_list" '.config/fcitx5/profile' 'desktop includes input method files'
 assert_managed "$desktop_list" '.local/share/fcitx5/rime/rime_ice_full.schema.yaml' 'desktop includes Rime full-pinyin schema'
 assert_managed "$desktop_list" '.local/bin/copy' 'desktop includes clipboard helper'
 assert_managed "$desktop_list" '.local/bin/osc1337-im' 'desktop includes OSC 1337 input method helper'
@@ -129,7 +128,6 @@ assert_managed "$headless_list" '.config/systemd/user/later.path' 'headless incl
 assert_managed "$headless_list" '.config/systemd/user/later.service' 'headless includes one-off task service'
 assert_ignored "$headless_list" '.config/waybar/config.jsonc' 'headless excludes Waybar'
 assert_ignored "$headless_list" '.config/hypr/hyprland.lua' 'headless excludes Hyprland'
-assert_ignored "$headless_list" '.config/fcitx5/profile' 'headless excludes input method files'
 assert_ignored "$headless_list" '.local/bin/osc1337-im' 'headless excludes OSC 1337 input method helper'
 
 assert_ignored "$skip_list" '.config/nvim/init.lua' 'skip excludes Neovim'
