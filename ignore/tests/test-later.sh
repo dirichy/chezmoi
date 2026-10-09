@@ -168,6 +168,29 @@ grep -Fq "[$failed_id] 2026-10-01T09:55:00 → 2026-10-01T10:05:00  false" <<<"$
     exit 1
 }
 
+help_output=$("$later" --help)
+grep -Fq 'systemctl --user enable --now later.path later.service' <<<"$help_output" || {
+    printf 'not ok - later help must document first-time service setup\n' >&2
+    exit 1
+}
+
+blocked_file=$tmp_dir/later-blocked-tasks
+set +e
+blocked_output=$(LATER_FILE=$blocked_file \
+    LATER_SYSTEMCTL=$repo_dir/ignore/tests/mock-bin/systemctl \
+    LATER_SERVICES_READY=0 \
+    "$later" +2h true 2>&1)
+blocked_status=$?
+set -e
+[[ $blocked_status == 1 && ! -e $blocked_file ]] || {
+    printf 'not ok - later must reject new tasks before scheduler services are ready\n' >&2
+    exit 1
+}
+grep -Fq 'later.path is not active' <<<"$blocked_output" || {
+    printf 'not ok - missing scheduler services must produce an actionable error\n' >&2
+    exit 1
+}
+
 add_file=$tmp_dir/later-add-tasks
 add_cache=$tmp_dir/later-add-cache
 add_output=$(LATER_FILE=$add_file \

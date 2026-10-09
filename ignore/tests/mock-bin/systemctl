@@ -8,6 +8,14 @@ if [[ ${1:-} == --user && ${2:-} == list-units ]]; then
     exit 0
 fi
 
+if [[ ${LATER_SERVICES_READY:-1} == 0 && ${1:-} == --user ]]; then
+    case ${2:-} in
+        is-enabled|is-active)
+            exit 1
+            ;;
+    esac
+fi
+
 if [[ -n ${LATER_CALLS:-} ]]; then
     printf 'systemctl' >>"$LATER_CALLS"
     printf ' <%s>' "$@" >>"$LATER_CALLS"

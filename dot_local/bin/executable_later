@@ -48,6 +48,9 @@ TASK_TEMPLATE = f"""{MODELINE}
 #
 # Valid input is normalized to a full absolute range like this:
 # 2026-10-03T09:30:00-2026-10-03T11:30:00 command
+#
+# First-time setup:
+# systemctl --user enable --now later.path later.service
 """
 
 
@@ -417,6 +420,34 @@ def run_command(command: list[str], *, capture: bool = False) -> subprocess.Comp
     )
 
 
+def scheduler_services_ready() -> bool:
+    systemctl = os.environ.get("LATER_SYSTEMCTL", "systemctl")
+    checks = [
+        ([systemctl, "--user", "is-enabled", "--quiet", "later.service"], "later.service is not enabled"),
+        ([systemctl, "--user", "is-enabled", "--quiet", "later.path"], "later.path is not enabled"),
+        ([systemctl, "--user", "is-active", "--quiet", "later.path"], "later.path is not active"),
+    ]
+    problems: list[str] = []
+    for command, message in checks:
+        try:
+            result = run_command(command)
+        except OSError as exception:
+            error(f"cannot check scheduler services: {exception}")
+            return False
+        if result.returncode != 0:
+            problems.append(message)
+    if not problems:
+        return True
+    error("scheduler services are not ready:")
+    for problem in problems:
+        print(f"  - {problem}", file=sys.stderr)
+    print(
+        "Run: systemctl --user enable --now later.path later.service",
+        file=sys.stderr,
+    )
+    return False
+
+
 def schedule_next(next_epoch: int | None, self_path: Path) -> bool:
     systemctl = os.environ.get("LATER_SYSTEMCTL", "systemctl")
     systemd_run = os.environ.get("LATER_SYSTEMD_RUN", "systemd-run")
@@ -751,6 +782,8 @@ def main() -> int:
         prog="later",
         description="Edit and run persistent one-off scheduled tasks.",
         epilog=(
+            "first-time setup:\n"
+            "  systemctl --user enable --now later.path later.service\n\n"
             "examples:\n"
             "  later +2h notify-send 'hello'\n"
             "  later +2d3h+30m ~/.local/bin/backup\n"
@@ -810,6 +843,8 @@ def main() -> int:
         sys.stdout.write(schedule_file.read_text(encoding="utf-8"))
         return 0
     if arguments.edit:
+        if not scheduler_services_ready():
+            return 1
         ensure_schedule_file(schedule_file)
         editor = os.environ.get("VISUAL") or os.environ.get("EDITOR") or "vi"
         try:
@@ -823,6 +858,8 @@ def main() -> int:
     if arguments.schedule:
         if arguments.edit or arguments.list or arguments.run:
             parser.error("a schedule cannot be combined with another action")
+        if not scheduler_services_ready():
+            return 1
         return add_task(schedule_file, arguments.schedule, arguments.command)
     if arguments.run:
         return run_scheduler()
