@@ -11,6 +11,7 @@
 ZFUNCDIR=${ZDOTDIR:-$HOME}/.zfunctions
 fpath=($ZFUNCDIR $fpath)
 autoload -Uz $ZFUNCDIR/*(.:t)
+setopt interactivecomments
 
 # for gopass
 if [[ -n $SSH_TTY ]]; then
