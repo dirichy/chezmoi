@@ -7,6 +7,13 @@ tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-test.XXXXXX")
 trap 'rm -rf "$tmp_dir"' EXIT
 export PATH="$tests_dir/mock-bin:$PATH"
 
+case $(uname -s) in
+    Linux) fixture_os=linux ;;
+    Darwin) fixture_os=macos ;;
+    *) printf 'Unsupported test platform\n' >&2; exit 1 ;;
+esac
+
+
 pass_count=0
 
 pass() {
@@ -27,9 +34,9 @@ managed_list() {
     local profile=$1
     mkdir -p "$tmp_dir/home-$profile"
     chezmoi \
-        --source "$repo_dir" \
+        --source "$source_dir" \
         --destination "$tmp_dir/home-$profile" \
-        --config "$tests_dir/fixtures/linux-$profile.toml" \
+        --config "$tests_dir/fixtures/$fixture_os-$profile.toml" \
         --cache "$tmp_dir/cache-$profile" \
         --persistent-state "$tmp_dir/state-$profile.boltdb" \
         --refresh-externals=never \
@@ -56,9 +63,9 @@ render_managed_templates() {
         output="$tmp_dir/rendered-$profile/${target#/}"
         mkdir -p "$(dirname -- "$output")"
         chezmoi \
-            --source "$repo_dir" \
+            --source "$source_dir" \
             --destination "$tmp_dir/home-$profile" \
-            --config "$tests_dir/fixtures/linux-$profile.toml" \
+            --config "$tests_dir/fixtures/$fixture_os-$profile.toml" \
             --cache "$tmp_dir/cache-$profile" \
             --persistent-state "$tmp_dir/state-$profile.boltdb" \
             --refresh-externals=never \
@@ -90,14 +97,44 @@ syntax_checks() {
 }
 
 require_command chezmoi
+require_command python3
+if [[ $fixture_os == macos ]]; then
+    require_command zsh
+fi
 
-[[ $(chezmoi --source "$repo_dir" execute-template \
+# Render a disposable source copy with all external downloads disabled.
+source_dir="$tmp_dir/source"
+python3 - "$repo_dir" "$source_dir" <<'PYTHON'
+import shutil
+import sys
+from pathlib import Path
+shutil.copytree(sys.argv[1], sys.argv[2], ignore=shutil.ignore_patterns('.git'))
+Path(sys.argv[2], '.chezmoiexternal.toml').write_text('')
+PYTHON
+
+
+[[ $(chezmoi --source "$source_dir" \
+    --destination "$tmp_dir/home-desktop" \
+    --config "$tests_dir/fixtures/$fixture_os-desktop.toml" \
+    --cache "$tmp_dir/cache-desktop" \
+    --persistent-state "$tmp_dir/state-desktop.boltdb" \
+    --refresh-externals=never execute-template \
     '{{ includeTemplate "isIPv4CIDR" "192.168.50.0/24" }}') == true ]] \
     || fail 'valid IPv4 CIDR must pass config sharing validation'
-[[ $(chezmoi --source "$repo_dir" execute-template \
+[[ $(chezmoi --source "$source_dir" \
+    --destination "$tmp_dir/home-desktop" \
+    --config "$tests_dir/fixtures/$fixture_os-desktop.toml" \
+    --cache "$tmp_dir/cache-desktop" \
+    --persistent-state "$tmp_dir/state-desktop.boltdb" \
+    --refresh-externals=never execute-template \
     '{{ includeTemplate "isIPv4CIDR" "192.168.300.0/24" }}') == false ]] \
     || fail 'out-of-range IPv4 octet must fail config sharing validation'
-[[ $(chezmoi --source "$repo_dir" execute-template \
+[[ $(chezmoi --source "$source_dir" \
+    --destination "$tmp_dir/home-desktop" \
+    --config "$tests_dir/fixtures/$fixture_os-desktop.toml" \
+    --cache "$tmp_dir/cache-desktop" \
+    --persistent-state "$tmp_dir/state-desktop.boltdb" \
+    --refresh-externals=never execute-template \
     '{{ includeTemplate "isIPv4CIDR" "192.168.50.0/33" }}') == false ]] \
     || fail 'out-of-range IPv4 prefix must fail config sharing validation'
 pass 'config sharing CIDR validation accepts only IPv4 CIDR notation'
@@ -120,58 +157,115 @@ managed_list headless >"$headless_list"
 managed_list skip >"$skip_list"
 pass 'all fixture profiles evaluate .chezmoiignore'
 
-assert_managed "$desktop_list" '.config/waybar/config.jsonc' 'desktop includes Waybar'
-assert_managed "$desktop_list" '.config/hypr/hyprland.lua' 'desktop includes Hyprland'
-assert_managed "$desktop_list" '.local/share/fcitx5/rime/rime_ice_full.schema.yaml' 'desktop includes Rime full-pinyin schema'
-assert_managed "$desktop_list" '.local/bin/copy' 'desktop includes clipboard helper'
-assert_managed "$desktop_list" '.local/bin/osc1337-im' 'desktop includes OSC 1337 input method helper'
-assert_managed "$desktop_list" '.local/bin/later' 'desktop includes one-off task runner'
-assert_managed "$desktop_list" '.config/systemd/user/later.path' 'desktop includes one-off task watcher'
-assert_managed "$desktop_list" '.config/systemd/user/later.service' 'desktop includes one-off task service'
-assert_managed "$desktop_list" '.config/systemd/user/config-share.service' 'desktop includes config sharing service'
-assert_managed "$desktop_list" '.local/share/config-share/mihomo/config.yaml' 'desktop shares Mihomo config'
-assert_managed "$desktop_list" '.local/share/config-share/surfingkeys/config.js' 'desktop shares Surfingkeys config'
-assert_ignored "$desktop_list" '.local/bin/dotfiles-services' 'repository helpers stay out of the deployed bin directory'
-assert_ignored "$desktop_list" '.hammerspoon/init.lua' 'Linux excludes Hammerspoon'
-assert_managed "$desktop_list" 'install-packages-linux.sh' 'Linux includes Linux install script'
-assert_ignored "$desktop_list" 'install-packages-macos.sh' 'Linux excludes macOS install script'
-assert_ignored "$desktop_list" '.config/fdu-connect/config.toml' 'disabled fdu-connect is excluded'
+if [[ $fixture_os == linux ]]; then
+    assert_managed "$desktop_list" '.config/waybar/config.jsonc' 'desktop includes Waybar'
+    assert_managed "$desktop_list" '.config/hypr/hyprland.lua' 'desktop includes Hyprland'
+    assert_managed "$desktop_list" '.local/share/fcitx5/rime/rime_ice_full.schema.yaml' 'desktop includes Rime full-pinyin schema'
+    assert_managed "$desktop_list" '.local/bin/copy' 'desktop includes clipboard helper'
+    assert_managed "$desktop_list" '.local/bin/osc1337-im' 'desktop includes OSC 1337 input method helper'
+    assert_managed "$desktop_list" '.local/bin/later' 'desktop includes one-off task runner'
+    assert_managed "$desktop_list" '.config/systemd/user/later.path' 'desktop includes one-off task watcher'
+    assert_managed "$desktop_list" '.config/systemd/user/later.service' 'desktop includes one-off task service'
+    assert_managed "$desktop_list" '.config/systemd/user/config-share.service' 'desktop includes config sharing service'
+    assert_managed "$desktop_list" '.local/share/config-share/mihomo/config.yaml' 'desktop shares Mihomo config'
+    assert_managed "$desktop_list" '.local/share/config-share/surfingkeys/config.js' 'desktop shares Surfingkeys config'
+    assert_ignored "$desktop_list" '.local/bin/dotfiles-services' 'repository helpers stay out of the deployed bin directory'
+    assert_ignored "$desktop_list" '.hammerspoon/init.lua' 'Linux excludes Hammerspoon'
+    assert_managed "$desktop_list" 'install-packages-linux.sh' 'Linux includes Linux install script'
+    assert_ignored "$desktop_list" 'install-packages-macos.sh' 'Linux excludes macOS install script'
+    assert_ignored "$desktop_list" '.config/fdu-connect/config.toml' 'disabled fdu-connect is excluded'
 
-assert_managed "$headless_list" '.config/nvim/init.lua' 'headless retains Neovim'
-assert_managed "$headless_list" '.local/bin/later' 'headless includes one-off task runner'
-assert_managed "$headless_list" '.config/systemd/user/later.path' 'headless includes one-off task watcher'
-assert_managed "$headless_list" '.config/systemd/user/later.service' 'headless includes one-off task service'
-assert_ignored "$headless_list" '.config/waybar/config.jsonc' 'headless excludes Waybar'
-assert_ignored "$headless_list" '.config/hypr/hyprland.lua' 'headless excludes Hyprland'
-assert_ignored "$headless_list" '.local/bin/osc1337-im' 'headless excludes OSC 1337 input method helper'
-assert_managed "$headless_list" '.config/systemd/user/config-share.service' 'custom sharing includes config sharing service'
-assert_managed "$headless_list" '.local/share/config-share/surfingkeys/config.js' 'custom sharing includes selected config'
-assert_ignored "$headless_list" '.local/share/config-share/mihomo/config.yaml' 'custom sharing excludes unselected config'
+    assert_managed "$headless_list" '.config/nvim/init.lua' 'headless retains Neovim'
+    assert_managed "$headless_list" '.local/bin/later' 'headless includes one-off task runner'
+    assert_managed "$headless_list" '.config/systemd/user/later.path' 'headless includes one-off task watcher'
+    assert_managed "$headless_list" '.config/systemd/user/later.service' 'headless includes one-off task service'
+    assert_ignored "$headless_list" '.config/waybar/config.jsonc' 'headless excludes Waybar'
+    assert_ignored "$headless_list" '.config/hypr/hyprland.lua' 'headless excludes Hyprland'
+    assert_ignored "$headless_list" '.local/bin/osc1337-im' 'headless excludes OSC 1337 input method helper'
+    assert_managed "$headless_list" '.config/systemd/user/config-share.service' 'custom sharing includes config sharing service'
+    assert_managed "$headless_list" '.local/share/config-share/surfingkeys/config.js' 'custom sharing includes selected config'
+    assert_ignored "$headless_list" '.local/share/config-share/mihomo/config.yaml' 'custom sharing excludes unselected config'
 
-assert_ignored "$skip_list" '.config/nvim/init.lua' 'skip excludes Neovim'
-assert_ignored "$skip_list" '.config/mihomo/config.yaml' 'skip excludes mihomo'
-assert_ignored "$skip_list" '.config/kitty/kitty.conf' 'skip excludes desktop applications'
-assert_ignored "$skip_list" '.local/bin/later' 'skip excludes one-off task runner'
-assert_ignored "$skip_list" '.config/systemd/user/later.path' 'skip excludes one-off task watcher'
-assert_ignored "$skip_list" '.config/systemd/user/config-share.service' 'skip fixture disables config sharing service'
+    assert_ignored "$skip_list" '.config/nvim/init.lua' 'skip excludes Neovim'
+    assert_ignored "$skip_list" '.config/mihomo/config.yaml' 'skip excludes mihomo'
+    assert_ignored "$skip_list" '.config/kitty/kitty.conf' 'skip excludes desktop applications'
+    assert_ignored "$skip_list" '.local/bin/later' 'skip excludes one-off task runner'
+    assert_ignored "$skip_list" '.config/systemd/user/later.path' 'skip excludes one-off task watcher'
+    assert_ignored "$skip_list" '.config/systemd/user/config-share.service' 'skip fixture disables config sharing service'
+else
+    for path in .hammerspoon/init.lua .config/karabiner/karabiner.json .config/yabai/yabairc .config/aerospace/aerospace.toml Library/LaunchAgents/mihomo.plist Library/LaunchAgents/config-share.plist Library/LaunchAgents/fdu-connect.plist .config/fdu-connect/config.toml .local/bin/fcitx5-remote; do
+        assert_managed "$desktop_list" "$path" "macOS desktop includes $path"
+    done
+    assert_managed "$desktop_list" 'install-packages-macos.sh' 'macOS includes macOS install script'
+    for profile in desktop headless skip; do
+        list="$tmp_dir/managed-$profile.txt"
+        for path in .config/hypr/hyprland.lua .config/waybar/config.jsonc .config/systemd/user/later.path .local/bin/later .config/sunshine/sunshine.conf install-packages-linux.sh; do
+            assert_ignored "$list" "$path" "macOS $profile excludes $path"
+        done
+    done
+    assert_managed "$headless_list" '.config/nvim/init.lua' 'macOS headless retains Neovim'
+    assert_managed "$headless_list" 'Library/LaunchAgents/config-share.plist' 'macOS headless enables custom sharing'
+    assert_managed "$headless_list" '.local/share/config-share/surfingkeys/config.js' 'macOS headless shares selected config'
+    assert_ignored "$headless_list" '.local/share/config-share/mihomo/config.yaml' 'macOS headless excludes unselected shared config'
+    for profile in headless skip; do
+        list="$tmp_dir/managed-$profile.txt"
+        for path in .hammerspoon/init.lua .config/karabiner/karabiner.json .config/yabai/yabairc .config/aerospace/aerospace.toml Library/LaunchAgents/mihomo.plist Library/LaunchAgents/fdu-connect.plist .local/bin/fcitx5-remote; do
+            assert_ignored "$list" "$path" "macOS $profile excludes $path"
+        done
+    done
+    assert_ignored "$skip_list" '.config/nvim/init.lua' 'macOS skip excludes Neovim'
+    assert_ignored "$skip_list" 'Library/LaunchAgents/config-share.plist' 'macOS skip disables sharing'
+fi
 
 render_managed_templates desktop "$desktop_list"
 render_managed_templates headless "$headless_list"
 render_managed_templates skip "$skip_list"
 pass 'all managed files and templates render for every fixture profile'
 
-grep -Fq '"height": 32' \
-    "$tmp_dir/rendered-desktop/.config/waybar/generated.jsonc" \
-    || fail 'Waybar uses the mocked focused monitor dimensions'
-pass 'Waybar uses the mocked focused monitor dimensions'
+if [[ $fixture_os == linux ]]; then
+    grep -Fq '"height": 32' \
+        "$tmp_dir/rendered-desktop/.config/waybar/generated.jsonc" \
+        || fail 'Waybar uses the mocked focused monitor dimensions'
+    pass 'Waybar uses the mocked focused monitor dimensions'
 
-grep -Fq 'IPAddressAllow=192.168.50.0/24' \
-    "$tmp_dir/rendered-desktop/.config/systemd/user/config-share.service" \
-    || fail 'config sharing service restricts clients to configured CIDR'
-pass 'config sharing service restricts clients to configured CIDR'
+    grep -Fq 'IPAddressAllow=192.168.50.0/24' \
+        "$tmp_dir/rendered-desktop/.config/systemd/user/config-share.service" \
+        || fail 'config sharing service restricts clients to configured CIDR'
+    pass 'config sharing service restricts clients to configured CIDR'
+else
+    python3 - "$tmp_dir" <<'PYTHON'
+import json
+import plistlib
+import subprocess
+import sys
+from pathlib import Path
+root = Path(sys.argv[1])
+for profile in ('desktop', 'headless', 'skip'):
+    rendered = root / f'rendered-{profile}'
+    for path in rendered.rglob('*.plist'):
+        with path.open('rb') as stream:
+            data = plistlib.load(stream)
+        assert data['Label'] == path.stem, path
+        assert data['ProgramArguments'], path
+        assert data['RunAtLoad'] is True, path
+    install = rendered / 'install-packages-macos.sh'
+    subprocess.run(['zsh', '-n', str(install)], check=True)
+rendered = root / 'rendered-desktop'
+with (rendered / '.config/karabiner/karabiner.json').open() as stream:
+    assert json.load(stream)['profiles']
+with (rendered / 'Library/LaunchAgents/config-share.plist').open('rb') as stream:
+    args = plistlib.load(stream)['ProgramArguments']
+assert args[args.index('--allowed-cidr') + 1] == '192.168.50.0/24'
+assert args[args.index('--port') + 1] == '18080'
+assert args[0].endswith('/.local/libexec/config-share-server')
+PYTHON
+    pass 'macOS plists, Karabiner JSON and rendered install scripts validate'
+fi
 
 service_calls="$tmp_dir/dotfiles-service-calls"
 : >"$service_calls"
+DOTFILES_OS=Linux \
+DOTFILES_MIHOMO_ENABLED=true \
 DOTFILES_SYSTEMCTL="$tests_dir/mock-bin/systemctl" \
 DOTFILES_SERVICES_TEST=1 \
 DOTFILES_SERVICE_CALLS="$service_calls" \

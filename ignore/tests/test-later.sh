@@ -113,7 +113,7 @@ grep -Fq 'compiled schedule: 1 cached, 0 changed' <<<"$second_output" || {
     exit 1
 }
 
-next_epoch=$(TZ=Asia/Shanghai date -d '2026-10-01 10:01:00' +%s)
+next_epoch=$(python3 -c 'from datetime import datetime; print(int(datetime.fromisoformat("2026-10-01T10:01:00+08:00").timestamp()))')
 grep -Fq "<--on-calendar=@$next_epoch>" "$calls_file" || {
     printf 'not ok - only the nearest future wakeup must be scheduled\n' >&2
     exit 1
