@@ -247,14 +247,16 @@ disabled_output=$("${systemctl_macos[@]}" is-enabled disabled.service 2>/dev/nul
 "${systemctl_macos[@]}" restart test.service
 grep -Fq 'launchctl <enable> <gui/501/stopped>' "$service_calls" \
     || fail 'macOS systemctl enable clears the launchd disabled override'
-grep -Fq 'launchctl <bootstrap> <gui/501>' "$service_calls" \
+[[ $(tail -n 2 "$service_calls" | head -n 1) == 'launchctl <bootout> <gui/501/test>' ]] \
+    || fail 'macOS systemctl restart boots out the loaded job first'
+[[ $(tail -n 1 "$service_calls") == "launchctl <bootstrap> <gui/501> <$systemctl_plists/test.plist>" ]] \
     || fail 'macOS systemctl enable --now bootstraps unloaded jobs'
 grep -Fq 'launchctl <bootout> <gui/501/test>' "$service_calls" \
     || fail 'macOS systemctl disable --now boots out loaded jobs'
 grep -Fq 'launchctl <disable> <gui/501/test>' "$service_calls" \
     || fail 'macOS systemctl disable sets the launchd disabled override'
-grep -Fq 'launchctl <kickstart> <-k> <gui/501/test>' "$service_calls" \
-    || fail 'macOS systemctl restart maps to launchctl kickstart -k'
+grep -Fq 'launchctl <bootstrap> <gui/501>' "$service_calls" \
+    || fail 'macOS systemctl restart bootstraps the plist after bootout'
 pass 'macOS systemctl wrapper maps common service lifecycle commands'
 
 PYTHONPYCACHEPREFIX="$tmp_dir/config-share-pycache" \
