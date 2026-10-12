@@ -53,6 +53,24 @@
 {{- $inputMethod := promptChoiceOnce . "inputMethod" "input method profile" $inputMethodChoices "tiger" -}}
 {{- $fduConnect := promptBoolOnce . "fduConnect" "enable fdu-connect" false -}}
 {{- $waybarHostnameSymbol := promptStringOnce . "waybar.hostnameSymbol" "Waybar hostname symbol" .chezmoi.hostname -}}
+{{- $configShareMode := "none" -}}
+{{- $configShareItems := "" -}}
+{{- $configShareCIDR := "" -}}
+{{- if or (eq .chezmoi.os "linux") (eq .chezmoi.os "darwin") -}}
+{{- $configShareChoices := list "none" "all" "custom" -}}
+{{- $configShareMode = promptChoiceOnce . "configShare.mode" "config sharing mode" $configShareChoices "none" -}}
+{{- if eq $configShareMode "custom" -}}
+{{- $configShareItems = promptStringOnce . "configShare.items" "shared configs (comma-separated: mihomo,surfingkeys)" "mihomo,surfingkeys" -}}
+{{- else if eq $configShareMode "all" -}}
+{{- $configShareItems = "mihomo,surfingkeys" -}}
+{{- end -}}
+{{- if ne $configShareMode "none" -}}
+{{- $configShareCIDR = promptStringOnce . "configShare.allowedCIDR" "allowed client CIDR (for example 192.168.1.0/24)" -}}
+{{- if ne (includeTemplate "isIPv4CIDR" $configShareCIDR) "true" -}}
+{{- fail (printf "invalid configShare.allowedCIDR %q: expected one IPv4 CIDR such as 192.168.1.0/24" $configShareCIDR) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
 [merge]
 command = "nvim"
 args = ["-d", "{{ "{{ .Destination }}" }}", "{{"{{ .Source }}"}}"]
@@ -70,6 +88,12 @@ hostnameSymbol = {{ $waybarHostnameSymbol | quote }}
 address = {{ $proxyAddress | quote }}
 host = {{ $proxyHost | quote }}
 port = {{ $proxyPort | quote }}
+
+[data.configShare]
+mode = {{ $configShareMode | quote }}
+items = {{ $configShareItems | quote }}
+allowedCIDR = {{ $configShareCIDR | quote }}
+port = 18080
 
 [data.install]
 # Host profile drives both dependency installation and which config groups are enabled.

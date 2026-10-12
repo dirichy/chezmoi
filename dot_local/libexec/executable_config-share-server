@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import ipaddress
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+
+
+class RestrictedHandler(SimpleHTTPRequestHandler):
+    allowed_network: ipaddress.IPv4Network
+
+    def client_allowed(self) -> bool:
+        address = ipaddress.ip_address(self.client_address[0])
+        return address.is_loopback or address in self.allowed_network
+
+    def reject_unless_allowed(self) -> bool:
+        if self.client_allowed():
+            return True
+        self.send_error(403, "Client address is outside the allowed network")
+        return False
+
+    def do_GET(self) -> None:
+        if self.reject_unless_allowed():
+            super().do_GET()
+
+    def do_HEAD(self) -> None:
+        if self.reject_unless_allowed():
+            super().do_HEAD()
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Serve selected configuration files")
+    parser.add_argument("--root", required=True, type=Path)
+    parser.add_argument("--port", required=True, type=int)
+    parser.add_argument("--allowed-cidr", required=True, type=ipaddress.ip_network)
+    parser.add_argument("--bind", default="0.0.0.0")
+    args = parser.parse_args()
+    if not isinstance(args.allowed_cidr, ipaddress.IPv4Network):
+        parser.error("--allowed-cidr must be an IPv4 network")
+    if not 1 <= args.port <= 65535:
+        parser.error("--port must be between 1 and 65535")
+    if not args.root.is_dir():
+        parser.error(f"--root is not a directory: {args.root}")
+    return args
+
+
+def main() -> None:
+    args = parse_args()
+    handler = partial(RestrictedHandler, directory=str(args.root))
+    handler.func.allowed_network = args.allowed_cidr
+    server = ThreadingHTTPServer((args.bind, args.port), handler)
+    server.serve_forever()
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,10 @@
+#!/bin/zsh
+
+if [[ $OSTYPE != darwin* ]]; then
+    command systemctl "$@"
+    return $?
+fi
+
+local source_dir
+source_dir=$(command chezmoi source-path) || return
+"$source_dir/ignore/bin/systemctl-macos" "$@"

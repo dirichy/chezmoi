@@ -1,0 +1,185 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+systemctl_cmd=${DOTFILES_SYSTEMCTL:-systemctl}
+launchctl_cmd=${DOTFILES_LAUNCHCTL:-launchctl}
+platform=${DOTFILES_OS:-$(uname -s)}
+service_home=${DOTFILES_HOME:-$HOME}
+mode=prompt
+
+case ${1-} in
+    --check) mode=check ;;
+    --yes) mode=yes ;;
+    "") ;;
+    *)
+        printf 'Usage: chezmoi x services [--check|--yes]\n' >&2
+        exit 2
+        ;;
+esac
+
+case $platform in
+    Linux) command -v "$systemctl_cmd" >/dev/null 2>&1 || { printf 'systemctl is required on Linux.\n' >&2; exit 1; } ;;
+    Darwin) command -v "$launchctl_cmd" >/dev/null 2>&1 || { printf 'launchctl is required on macOS.\n' >&2; exit 1; } ;;
+    *) printf 'Unsupported service platform: %s\n' "$platform" >&2; exit 1 ;;
+esac
+
+template_value() {
+    chezmoi execute-template "$1"
+}
+
+config_share_mode=${DOTFILES_CONFIG_SHARE_MODE:-}
+fdu_connect=${DOTFILES_FDU_CONNECT:-}
+cli_enabled=${DOTFILES_CLI_ENABLED:-}
+mihomo_enabled=${DOTFILES_MIHOMO_ENABLED:-}
+
+[[ -n $config_share_mode ]] || config_share_mode=$(template_value '{{ if hasKey . "configShare" }}{{ default "none" .configShare.mode }}{{ else }}none{{ end }}')
+[[ -n $fdu_connect ]] || fdu_connect=$(template_value '{{ .features.fduConnect }}')
+[[ -n $cli_enabled ]] || cli_enabled=$(template_value '{{ .features.cli }}')
+[[ -n $mihomo_enabled ]] || mihomo_enabled=$(template_value '{{ .apps.mihomo.enabled }}')
+
+confirm() {
+    local prompt=$1 answer
+    case $mode in
+        yes) return 0 ;;
+        check) return 1 ;;
+    esac
+    [[ -t 0 ]] || return 1
+    read -r -p "$prompt [y/N] " answer
+    [[ $answer == y || $answer == Y || $answer == yes || $answer == YES ]]
+}
+
+change_count=0
+pending_count=0
+reloaded=false
+
+systemd_enabled_state() {
+    "$systemctl_cmd" --user is-enabled "$1" 2>/dev/null || true
+}
+
+systemd_active_state() {
+    "$systemctl_cmd" --user is-active "$1" 2>/dev/null || true
+}
+
+systemd_is_enabled() {
+    case $1 in
+        enabled|enabled-runtime|linked|linked-runtime) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+prepare_systemd_change() {
+    if [[ $reloaded == false ]]; then
+        "$systemctl_cmd" --user daemon-reload
+        reloaded=true
+    fi
+}
+
+reconcile_systemd() {
+    local unit=$1 desired=$2 require_active=$3 enabled active
+    enabled=$(systemd_enabled_state "$unit")
+    if [[ $desired == true ]]; then
+        if ! systemd_is_enabled "$enabled"; then
+            pending_count=$((pending_count + 1))
+            printf '%s should be enabled (currently %s).\n' "$unit" "${enabled:-unknown}"
+            if confirm "Enable and start $unit?"; then
+                prepare_systemd_change
+                "$systemctl_cmd" --user enable --now "$unit"
+                change_count=$((change_count + 1))
+            fi
+            return
+        fi
+        active=$(systemd_active_state "$unit")
+        if [[ $require_active == true && $active != active ]]; then
+            pending_count=$((pending_count + 1))
+            printf '%s is enabled but not active.\n' "$unit"
+            if confirm "Start $unit?"; then
+                prepare_systemd_change
+                "$systemctl_cmd" --user start "$unit"
+                change_count=$((change_count + 1))
+            fi
+            return
+        fi
+    elif systemd_is_enabled "$enabled"; then
+        pending_count=$((pending_count + 1))
+        printf '%s is enabled but disabled by the dotfiles configuration.\n' "$unit"
+        if confirm "Disable and stop $unit?"; then
+            prepare_systemd_change
+            "$systemctl_cmd" --user disable --now "$unit"
+            change_count=$((change_count + 1))
+        fi
+        return
+    fi
+    printf '%s is in the expected state.\n' "$unit"
+}
+
+launchd_loaded() {
+    "$launchctl_cmd" print "$launchd_domain/$1" >/dev/null 2>&1
+}
+
+launchd_disabled() {
+    "$launchctl_cmd" print-disabled "$launchd_domain" 2>/dev/null | grep -Fq '"'"$1"'" => true'
+}
+
+reconcile_launchd() {
+    local label=$1 plist=$2 desired=$3 loaded=false disabled=false
+    launchd_loaded "$label" && loaded=true
+    launchd_disabled "$label" && disabled=true
+
+    if [[ $desired == true ]]; then
+        if [[ ! -f $plist ]]; then
+            pending_count=$((pending_count + 1))
+            printf '%s should be loaded, but its plist is missing: %s\n' "$label" "$plist"
+            return
+        fi
+        if [[ $loaded == false ]]; then
+            pending_count=$((pending_count + 1))
+            printf '%s should be enabled and loaded.\n' "$label"
+            if confirm "Enable and load $label?"; then
+                "$launchctl_cmd" enable "$launchd_domain/$label"
+                "$launchctl_cmd" bootstrap "$launchd_domain" "$plist"
+                change_count=$((change_count + 1))
+            fi
+            return
+        fi
+    elif [[ $loaded == true || (-f $plist && $disabled == false) ]]; then
+        pending_count=$((pending_count + 1))
+        printf '%s is available to launchd but disabled by the dotfiles configuration.\n' "$label"
+        if confirm "Boot out and disable $label?"; then
+            if [[ $loaded == true ]]; then
+                "$launchctl_cmd" bootout "$launchd_domain/$label"
+            fi
+            "$launchctl_cmd" disable "$launchd_domain/$label"
+            change_count=$((change_count + 1))
+        fi
+        return
+    fi
+    printf '%s is in the expected state.\n' "$label"
+}
+
+if [[ $platform == Linux ]]; then
+    config_share_desired=false
+    fdu_desired=false
+    later_desired=false
+    [[ $config_share_mode == none ]] || config_share_desired=true
+    [[ $fdu_connect != true ]] || fdu_desired=true
+    [[ $cli_enabled != true ]] || later_desired=true
+    reconcile_systemd config-share.service "$config_share_desired" true
+    reconcile_systemd fdu-connect.service "$fdu_desired" true
+    reconcile_systemd later.path "$later_desired" true
+    reconcile_systemd later.service "$later_desired" false
+else
+    launchd_domain="gui/$(id -u)"
+    launch_agents=${service_home}/Library/LaunchAgents
+    config_share_desired=false
+    fdu_desired=false
+    [[ $config_share_mode == none ]] || config_share_desired=true
+    [[ $fdu_connect != true ]] || fdu_desired=true
+    reconcile_launchd config-share "$launch_agents/config-share.plist" "$config_share_desired"
+    reconcile_launchd fdu-connect "$launch_agents/fdu-connect.plist" "$fdu_desired"
+    reconcile_launchd mihomo "$launch_agents/mihomo.plist" "$mihomo_enabled"
+fi
+
+printf 'Service check complete: %d pending, %d changed.\n' "$pending_count" "$change_count"
+if [[ $mode == check && $pending_count -gt 0 ]]; then
+    exit 1
+fi

@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+service_helper={{ joinPath .chezmoi.sourceDir "ignore/bin/dotfiles-services" | quote }}
+if [[ -x $service_helper ]]; then
+    DOTFILES_OS={{ ternary "Darwin" "Linux" (eq .chezmoi.os "darwin") | quote }} \
+    DOTFILES_CONFIG_SHARE_MODE={{ if hasKey . "configShare" }}{{ default "none" .configShare.mode | quote }}{{ else }}none{{ end }} \
+    DOTFILES_FDU_CONNECT={{ .features.fduConnect | quote }} \
+    DOTFILES_CLI_ENABLED={{ .features.cli | quote }} \
+    DOTFILES_MIHOMO_ENABLED={{ .apps.mihomo.enabled | quote }} \
+        "$service_helper"
+fi

@@ -1,3 +1,9 @@
+{{- $configShareMode := "none" -}}
+{{- $configShareItems := "" -}}
+{{- if hasKey . "configShare" -}}
+{{- $configShareMode = default "none" .configShare.mode -}}
+{{- $configShareItems = default "" .configShare.items -}}
+{{- end -}}
 # Repository-only files.
 *.md
 *.log
@@ -16,7 +22,26 @@ tools
 {{ end }}
 {{ if not .apps.mihomo.enabled }}
 .config/mihomo
-.config/systemd/user/mihomo_config_server.service
+{{ end }}
+{{ if or (ne .chezmoi.os "linux") (eq $configShareMode "none") }}
+.config/systemd/user/config-share.service
+{{ end }}
+{{ if or (ne .chezmoi.os "darwin") (eq $configShareMode "none") }}
+Library/LaunchAgents/config-share.plist
+{{ end }}
+{{ if eq $configShareMode "none" }}
+.local/share/config-share
+.local/libexec/config-share-server
+{{ else }}
+{{ if not (contains ",mihomo," (printf ",%s," (replace " " "" $configShareItems))) }}
+.local/share/config-share/mihomo
+{{ end }}
+{{ if not (contains ",surfingkeys," (printf ",%s," (replace " " "" $configShareItems))) }}
+.local/share/config-share/surfingkeys
+{{ end }}
+{{ end }}
+{{ if not .apps.mihomo.enabled }}
+Library/LaunchAgents/mihomo.plist
 {{ end }}
 {{ if not .features.inputMethod }}
 .config/fcitx5
@@ -65,7 +90,6 @@ Library
 .config/karabiner
 .config/aerospace
 .config/yabai
-Library/LaunchAgents/mihomo.plist
 {{ end }}
 
 # Linux-only files.

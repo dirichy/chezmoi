@@ -1,0 +1,251 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+launchctl_cmd=${SYSTEMCTL_MACOS_LAUNCHCTL:-launchctl}
+sudo_cmd=${SYSTEMCTL_MACOS_SUDO:-sudo}
+plist_buddy=${SYSTEMCTL_MACOS_PLIST_BUDDY:-/usr/libexec/PlistBuddy}
+user_scope=false
+
+while (($#)); do
+    case $1 in
+        --user) user_scope=true; shift ;;
+        --no-pager|--no-legend|--plain|--full) shift ;;
+        --) shift; break ;;
+        -*) break ;;
+        *) break ;;
+    esac
+done
+
+command_name=${1-}
+[[ -n $command_name ]] && shift
+
+if [[ $user_scope == true ]]; then
+    domain="gui/${SYSTEMCTL_MACOS_UID:-$(id -u)}"
+    search_dirs=${SYSTEMCTL_MACOS_SEARCH_DIRS:-"$HOME/Library/LaunchAgents:/Library/LaunchAgents:/System/Library/LaunchAgents"}
+else
+    domain=system
+    search_dirs=${SYSTEMCTL_MACOS_SEARCH_DIRS:-"/Library/LaunchDaemons:/System/Library/LaunchDaemons"}
+fi
+
+usage() {
+    cat <<'EOF'
+Usage: systemctl [--user] COMMAND [OPTIONS] UNIT...
+
+Supported commands on macOS:
+  list-units [PATTERN]       List loaded launchd jobs
+  list-unit-files [PATTERN]  List plist files and their enabled state
+  status UNIT                Show a concise status and launchctl details
+  show UNIT                  Show launchctl details
+  cat UNIT                   Print the backing plist
+  is-active [--quiet] UNIT   Test whether the job state is running
+  is-enabled [--quiet] UNIT  Test whether a plist exists and is not disabled
+  start UNIT...              Bootstrap or kickstart jobs
+  stop UNIT...               Boot out jobs for the current session
+  restart UNIT...            Bootstrap or kickstart -k jobs
+  enable [--now] UNIT...     Clear disabled overrides, optionally start
+  disable [--now] UNIT...    Set disabled overrides, optionally boot out
+  daemon-reload              No-op; launchd has no equivalent cache reload
+EOF
+}
+
+normalize_label() {
+    local label=$1
+    label=${label%.service}
+    label=${label%.plist}
+    printf '%s\n' "$label"
+}
+
+plist_label() {
+    local plist=$1
+    if [[ -x $plist_buddy ]]; then
+        "$plist_buddy" -c 'Print :Label' "$plist" 2>/dev/null
+    else
+        plutil -extract Label raw -o - "$plist" 2>/dev/null
+    fi
+}
+
+find_plist() {
+    local label=$1 dirs dir plist candidate
+    IFS=: read -r -a dirs <<<"$search_dirs"
+    for dir in "${dirs[@]}"; do
+        candidate=$dir/$label.plist
+        [[ -f $candidate ]] && { printf '%s\n' "$candidate"; return 0; }
+    done
+    for dir in "${dirs[@]}"; do
+        [[ -d $dir ]] || continue
+        for plist in "$dir"/*.plist; do
+            [[ -f $plist ]] || continue
+            [[ $(plist_label "$plist" || true) == "$label" ]] && {
+                printf '%s\n' "$plist"
+                return 0
+            }
+        done
+    done
+    return 1
+}
+
+job_loaded() {
+    "$launchctl_cmd" print "$domain/$1" >/dev/null 2>&1
+}
+
+job_active() {
+    "$launchctl_cmd" print "$domain/$1" 2>/dev/null | grep -Eq '^[[:space:]]*state = running$'
+}
+
+job_disabled() {
+    "$launchctl_cmd" print-disabled "$domain" 2>/dev/null | grep -Fq '"'"$1"'" => true'
+}
+
+mutate_launchctl() {
+    if [[ $user_scope == true || ${EUID:-$(id -u)} -eq 0 ]]; then
+        "$launchctl_cmd" "$@"
+    else
+        "$sudo_cmd" "$launchctl_cmd" "$@"
+    fi
+}
+
+require_plist() {
+    local label=$1 plist
+    plist=$(find_plist "$label" || true)
+    if [[ -z $plist ]]; then
+        printf 'Unit %s.service not found.\n' "$label" >&2
+        return 4
+    fi
+    printf '%s\n' "$plist"
+}
+
+start_job() {
+    local label=$1 plist
+    if job_loaded "$label"; then
+        mutate_launchctl kickstart "$domain/$label"
+    else
+        plist=$(require_plist "$label") || return
+        mutate_launchctl bootstrap "$domain" "$plist"
+    fi
+}
+
+list_unit_files() {
+    local pattern=${1-} dirs dir plist label state
+    IFS=: read -r -a dirs <<<"$search_dirs"
+    for dir in "${dirs[@]}"; do
+        [[ -d $dir ]] || continue
+        for plist in "$dir"/*.plist; do
+            [[ -f $plist ]] || continue
+            label=$(plist_label "$plist" || basename "$plist" .plist)
+            [[ -z $pattern || $label == *"$pattern"* ]] || continue
+            state=enabled
+            job_disabled "$label" && state=disabled
+            printf '%-50s %s\n' "$label.service" "$state"
+        done
+    done
+}
+
+case $command_name in
+    ""|-h|--help|help)
+        usage
+        ;;
+    daemon-reload)
+        printf 'launchd has no daemon-reload equivalent; no action needed.\n'
+        ;;
+    list-units)
+        pattern=${1-}
+        if [[ $user_scope == true ]]; then
+            "$launchctl_cmd" list | { [[ -z $pattern ]] && cat || grep -- "$pattern"; }
+        else
+            mutate_launchctl list | { [[ -z $pattern ]] && cat || grep -- "$pattern"; }
+        fi
+        ;;
+    list-unit-files)
+        list_unit_files "${1-}"
+        ;;
+    status|show)
+        label=$(normalize_label "${1:?unit name required}")
+        if job_loaded "$label"; then
+            [[ $command_name != status ]] || printf '● %s.service - loaded by launchd (%s)\n' "$label" "$domain"
+            "$launchctl_cmd" print "$domain/$label"
+        else
+            plist=$(find_plist "$label" || true)
+            printf '○ %s.service - not loaded%s\n' "$label" "${plist:+ ($plist)}"
+            exit 3
+        fi
+        ;;
+    cat)
+        label=$(normalize_label "${1:?unit name required}")
+        plist=$(require_plist "$label") || exit $?
+        printf '# %s\n' "$plist"
+        /bin/cat -- "$plist"
+        ;;
+    is-active)
+        quiet=false
+        [[ ${1-} != --quiet && ${1-} != -q ]] || { quiet=true; shift; }
+        label=$(normalize_label "${1:?unit name required}")
+        if job_active "$label"; then
+            [[ $quiet == true ]] || printf 'active\n'
+        else
+            [[ $quiet == true ]] || printf 'inactive\n'
+            exit 3
+        fi
+        ;;
+    is-enabled)
+        quiet=false
+        [[ ${1-} != --quiet && ${1-} != -q ]] || { quiet=true; shift; }
+        label=$(normalize_label "${1:?unit name required}")
+        plist=$(find_plist "$label" || true)
+        if [[ -z $plist ]]; then
+            [[ $quiet == true ]] || printf 'not-found\n'
+            exit 4
+        elif job_disabled "$label"; then
+            [[ $quiet == true ]] || printf 'disabled\n'
+            exit 1
+        else
+            [[ $quiet == true ]] || printf 'enabled\n'
+        fi
+        ;;
+    start|stop|restart)
+        (($#)) || { printf '%s requires at least one unit.\n' "$command_name" >&2; exit 2; }
+        for unit in "$@"; do
+            label=$(normalize_label "$unit")
+            case $command_name in
+                start) start_job "$label" ;;
+                stop) job_loaded "$label" && mutate_launchctl bootout "$domain/$label" ;;
+                restart)
+                    if job_loaded "$label"; then
+                        mutate_launchctl kickstart -k "$domain/$label"
+                    else
+                        plist=$(require_plist "$label") || exit $?
+                        mutate_launchctl bootstrap "$domain" "$plist"
+                    fi
+                    ;;
+            esac
+        done
+        ;;
+    enable|disable)
+        now=false
+        [[ ${1-} != --now ]] || { now=true; shift; }
+        (($#)) || { printf '%s requires at least one unit.\n' "$command_name" >&2; exit 2; }
+        for unit in "$@"; do
+            label=$(normalize_label "$unit")
+            plist=$(require_plist "$label") || exit $?
+            if [[ $command_name == enable ]]; then
+                mutate_launchctl enable "$domain/$label"
+                if [[ $now == true ]]; then
+                    if job_loaded "$label"; then
+                        job_active "$label" || mutate_launchctl kickstart "$domain/$label"
+                    else
+                        mutate_launchctl bootstrap "$domain" "$plist"
+                    fi
+                fi
+            else
+                if [[ $now == true ]] && job_loaded "$label"; then
+                    mutate_launchctl bootout "$domain/$label"
+                fi
+                mutate_launchctl disable "$domain/$label"
+            fi
+        done
+        ;;
+    *)
+        printf 'systemctl command is not supported on macOS: %s\n' "$command_name" >&2
+        usage >&2
+        exit 2
+        ;;
+esac

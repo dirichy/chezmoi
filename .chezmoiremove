@@ -53,6 +53,7 @@
 .config/systemd/user/once-cron.path
 .config/systemd/user/once-cron.service
 .config/systemd/user/once-cron.timer
+.config/systemd/user/mihomo_config_server.service
 .config/tmux/debounce.sh
 .config/tmux/yank.sh
 .config/waybar/install.sh
@@ -93,6 +94,7 @@
 .hammerspoon/space_as_modifier_for_number.lua
 .hammerspoon/tween.lua
 .hammerspoon/vlc.lua
+.local/bin/dotfiles-services
 .local/bin/hyprlua
 .local/bin/hyprmonitor
 .local/bin/kitty-im

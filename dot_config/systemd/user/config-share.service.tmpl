@@ -1,0 +1,18 @@
+[Unit]
+Description=Serve selected personal configuration files over HTTP
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/.local/share/config-share
+ExecStart=%h/.local/libexec/config-share-server --root %h/.local/share/config-share --port {{ .configShare.port }} --allowed-cidr {{ .configShare.allowedCIDR }}
+Restart=always
+RestartSec=5
+IPAddressDeny=any
+IPAddressAllow=localhost
+IPAddressAllow={{ .configShare.allowedCIDR }}
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target
