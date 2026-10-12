@@ -13,6 +13,12 @@ address = ""
 host = ""
 port = ""
 
+[data.configShare]
+mode = "custom"
+items = "surfingkeys"
+allowedCIDR = "10.20.30.0/24"
+port = 18080
+
 [data.install]
 profile = "headless"
 modules = ""

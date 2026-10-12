@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+action=${1:-}
+target=${2:-}
+
+if [[ ${SYSTEMCTL_MACOS_TEST:-0} == 1 ]]; then
+    case "$action:$target" in
+        print:*/test)
+            printf 'state = running\n'
+            exit 0
+            ;;
+        print:*)
+            exit 1
+            ;;
+        print-disabled:*)
+            printf 'disabled services = {\n\t"disabled" => true\n}\n'
+            exit 0
+            ;;
+        enable:*|disable:*|bootstrap:*|bootout:*|kickstart:*)
+            if [[ -n ${DOTFILES_SERVICE_CALLS:-} ]]; then
+                printf 'launchctl' >>"$DOTFILES_SERVICE_CALLS"
+                printf ' <%s>' "$@" >>"$DOTFILES_SERVICE_CALLS"
+                printf '\n' >>"$DOTFILES_SERVICE_CALLS"
+            fi
+            exit 0
+            ;;
+        list:*)
+            printf '123\t0\ttest\n'
+            exit 0
+            ;;
+    esac
+fi
+
+case "$action:$target" in
+    print:*/mihomo|print:*/fdu-connect)
+        exit 0
+        ;;
+    print:*)
+        exit 1
+        ;;
+    print-disabled:*)
+        printf 'disabled services = {\n}\n'
+        exit 0
+        ;;
+    enable:*|bootstrap:*|bootout:*|disable:*)
+        if [[ -n ${DOTFILES_SERVICE_CALLS:-} ]]; then
+            printf 'launchctl' >>"$DOTFILES_SERVICE_CALLS"
+            printf ' <%s>' "$@" >>"$DOTFILES_SERVICE_CALLS"
+            printf '\n' >>"$DOTFILES_SERVICE_CALLS"
+        fi
+        exit 0
+        ;;
+esac
+
+exit 1

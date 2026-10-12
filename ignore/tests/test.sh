@@ -33,7 +33,7 @@ managed_list() {
         --cache "$tmp_dir/cache-$profile" \
         --persistent-state "$tmp_dir/state-$profile.boltdb" \
         --refresh-externals=never \
-        managed --include files,scripts --path-style relative
+        managed --include files,scripts,symlinks --path-style relative
 }
 
 assert_managed() {
@@ -91,6 +91,17 @@ syntax_checks() {
 
 require_command chezmoi
 
+[[ $(chezmoi --source "$repo_dir" execute-template \
+    '{{ includeTemplate "isIPv4CIDR" "192.168.50.0/24" }}') == true ]] \
+    || fail 'valid IPv4 CIDR must pass config sharing validation'
+[[ $(chezmoi --source "$repo_dir" execute-template \
+    '{{ includeTemplate "isIPv4CIDR" "192.168.300.0/24" }}') == false ]] \
+    || fail 'out-of-range IPv4 octet must fail config sharing validation'
+[[ $(chezmoi --source "$repo_dir" execute-template \
+    '{{ includeTemplate "isIPv4CIDR" "192.168.50.0/33" }}') == false ]] \
+    || fail 'out-of-range IPv4 prefix must fail config sharing validation'
+pass 'config sharing CIDR validation accepts only IPv4 CIDR notation'
+
 safe_stderr="$tmp_dir/hyprctl-safe.stderr"
 fallback_output=$(PATH=/usr/bin:/bin \
     "$repo_dir/ignore/bin/hyprctl-safe" \
@@ -117,6 +128,10 @@ assert_managed "$desktop_list" '.local/bin/osc1337-im' 'desktop includes OSC 133
 assert_managed "$desktop_list" '.local/bin/later' 'desktop includes one-off task runner'
 assert_managed "$desktop_list" '.config/systemd/user/later.path' 'desktop includes one-off task watcher'
 assert_managed "$desktop_list" '.config/systemd/user/later.service' 'desktop includes one-off task service'
+assert_managed "$desktop_list" '.config/systemd/user/config-share.service' 'desktop includes config sharing service'
+assert_managed "$desktop_list" '.local/share/config-share/mihomo/config.yaml' 'desktop shares Mihomo config'
+assert_managed "$desktop_list" '.local/share/config-share/surfingkeys/config.js' 'desktop shares Surfingkeys config'
+assert_ignored "$desktop_list" '.local/bin/dotfiles-services' 'repository helpers stay out of the deployed bin directory'
 assert_ignored "$desktop_list" '.hammerspoon/init.lua' 'Linux excludes Hammerspoon'
 assert_managed "$desktop_list" 'install-packages-linux.sh' 'Linux includes Linux install script'
 assert_ignored "$desktop_list" 'install-packages-macos.sh' 'Linux excludes macOS install script'
@@ -129,12 +144,16 @@ assert_managed "$headless_list" '.config/systemd/user/later.service' 'headless i
 assert_ignored "$headless_list" '.config/waybar/config.jsonc' 'headless excludes Waybar'
 assert_ignored "$headless_list" '.config/hypr/hyprland.lua' 'headless excludes Hyprland'
 assert_ignored "$headless_list" '.local/bin/osc1337-im' 'headless excludes OSC 1337 input method helper'
+assert_managed "$headless_list" '.config/systemd/user/config-share.service' 'custom sharing includes config sharing service'
+assert_managed "$headless_list" '.local/share/config-share/surfingkeys/config.js' 'custom sharing includes selected config'
+assert_ignored "$headless_list" '.local/share/config-share/mihomo/config.yaml' 'custom sharing excludes unselected config'
 
 assert_ignored "$skip_list" '.config/nvim/init.lua' 'skip excludes Neovim'
 assert_ignored "$skip_list" '.config/mihomo/config.yaml' 'skip excludes mihomo'
 assert_ignored "$skip_list" '.config/kitty/kitty.conf' 'skip excludes desktop applications'
 assert_ignored "$skip_list" '.local/bin/later' 'skip excludes one-off task runner'
 assert_ignored "$skip_list" '.config/systemd/user/later.path' 'skip excludes one-off task watcher'
+assert_ignored "$skip_list" '.config/systemd/user/config-share.service' 'skip fixture disables config sharing service'
 
 render_managed_templates desktop "$desktop_list"
 render_managed_templates headless "$headless_list"
@@ -145,6 +164,103 @@ grep -Fq '"height": 32' \
     "$tmp_dir/rendered-desktop/.config/waybar/generated.jsonc" \
     || fail 'Waybar uses the mocked focused monitor dimensions'
 pass 'Waybar uses the mocked focused monitor dimensions'
+
+grep -Fq 'IPAddressAllow=192.168.50.0/24' \
+    "$tmp_dir/rendered-desktop/.config/systemd/user/config-share.service" \
+    || fail 'config sharing service restricts clients to configured CIDR'
+pass 'config sharing service restricts clients to configured CIDR'
+
+service_calls="$tmp_dir/dotfiles-service-calls"
+: >"$service_calls"
+DOTFILES_SYSTEMCTL="$tests_dir/mock-bin/systemctl" \
+DOTFILES_SERVICES_TEST=1 \
+DOTFILES_SERVICE_CALLS="$service_calls" \
+DOTFILES_CONFIG_SHARE_MODE=all \
+DOTFILES_FDU_CONNECT=false \
+DOTFILES_CLI_ENABLED=true \
+    bash "$repo_dir/ignore/bin/dotfiles-services" --yes >/dev/null
+grep -Fq 'systemctl <--user> <disable> <--now> <fdu-connect.service>' "$service_calls" \
+    || fail 'service reconciler disables configured-off enabled services'
+grep -Fq 'systemctl <--user> <enable> <--now> <later.path>' "$service_calls" \
+    || fail 'service reconciler enables configured-on services'
+grep -Fq 'systemctl <--user> <enable> <--now> <later.service>' "$service_calls" \
+    || fail 'service reconciler enables configured-on oneshot services'
+if grep -Fq '<config-share.service>' "$service_calls"; then
+    fail 'service reconciler must not change services already in the expected state'
+fi
+pass 'service reconciler applies only required state changes'
+
+mac_service_home="$tmp_dir/mac-service-home"
+mkdir -p "$mac_service_home/Library/LaunchAgents"
+: >"$mac_service_home/Library/LaunchAgents/config-share.plist"
+: >"$mac_service_home/Library/LaunchAgents/fdu-connect.plist"
+: >"$mac_service_home/Library/LaunchAgents/mihomo.plist"
+: >"$service_calls"
+DOTFILES_OS=Darwin \
+DOTFILES_HOME="$mac_service_home" \
+DOTFILES_LAUNCHCTL="$tests_dir/mock-bin/launchctl" \
+DOTFILES_SERVICE_CALLS="$service_calls" \
+DOTFILES_CONFIG_SHARE_MODE=all \
+DOTFILES_FDU_CONNECT=false \
+DOTFILES_CLI_ENABLED=true \
+DOTFILES_MIHOMO_ENABLED=true \
+    bash "$repo_dir/ignore/bin/dotfiles-services" --yes >/dev/null
+grep -Fq 'launchctl <bootstrap>' "$service_calls" \
+    || fail 'macOS service reconciler bootstraps configured-on LaunchAgents'
+grep -Fq 'config-share.plist>' "$service_calls" \
+    || fail 'macOS service reconciler bootstraps config sharing'
+grep -Fq 'launchctl <bootout>' "$service_calls" \
+    || fail 'macOS service reconciler boots out configured-off LaunchAgents'
+grep -Fq 'launchctl <disable>' "$service_calls" \
+    || fail 'macOS service reconciler disables configured-off LaunchAgents'
+if grep -Fq '/mihomo>' "$service_calls"; then
+    fail 'macOS service reconciler must not change loaded desired LaunchAgents'
+fi
+pass 'macOS service reconciler uses native launchctl lifecycle operations'
+
+systemctl_plists="$tmp_dir/systemctl-macos-plists"
+mkdir -p "$systemctl_plists"
+for plist in test disabled stopped; do
+    printf '<plist><dict><key>Label</key><string>%s</string></dict></plist>\n' "$plist" \
+        >"$systemctl_plists/$plist.plist"
+done
+: >"$service_calls"
+systemctl_macos=(
+    env
+    SYSTEMCTL_MACOS_TEST=1
+    SYSTEMCTL_MACOS_UID=501
+    SYSTEMCTL_MACOS_SEARCH_DIRS="$systemctl_plists"
+    SYSTEMCTL_MACOS_LAUNCHCTL="$tests_dir/mock-bin/launchctl"
+    DOTFILES_SERVICE_CALLS="$service_calls"
+    "$repo_dir/ignore/bin/systemctl-macos"
+    --user
+)
+[[ $("${systemctl_macos[@]}" is-active test.service) == active ]] \
+    || fail 'macOS systemctl wrapper reports running launchd jobs as active'
+[[ $("${systemctl_macos[@]}" is-enabled test.service) == enabled ]] \
+    || fail 'macOS systemctl wrapper reports available jobs as enabled'
+disabled_output=$("${systemctl_macos[@]}" is-enabled disabled.service 2>/dev/null || true)
+[[ $disabled_output == disabled ]] \
+    || fail 'macOS systemctl wrapper detects launchd disabled overrides'
+"${systemctl_macos[@]}" enable --now stopped.service
+"${systemctl_macos[@]}" disable --now test.service
+"${systemctl_macos[@]}" restart test.service
+grep -Fq 'launchctl <enable> <gui/501/stopped>' "$service_calls" \
+    || fail 'macOS systemctl enable clears the launchd disabled override'
+grep -Fq 'launchctl <bootstrap> <gui/501>' "$service_calls" \
+    || fail 'macOS systemctl enable --now bootstraps unloaded jobs'
+grep -Fq 'launchctl <bootout> <gui/501/test>' "$service_calls" \
+    || fail 'macOS systemctl disable --now boots out loaded jobs'
+grep -Fq 'launchctl <disable> <gui/501/test>' "$service_calls" \
+    || fail 'macOS systemctl disable sets the launchd disabled override'
+grep -Fq 'launchctl <kickstart> <-k> <gui/501/test>' "$service_calls" \
+    || fail 'macOS systemctl restart maps to launchctl kickstart -k'
+pass 'macOS systemctl wrapper maps common service lifecycle commands'
+
+PYTHONPYCACHEPREFIX="$tmp_dir/config-share-pycache" \
+    python3 "$tests_dir/test-config-share-server.py" \
+    "$repo_dir/dot_local/libexec/executable_config-share-server"
+pass 'config sharing server always allows loopback and filters other clients by CIDR'
 
 syntax_checks
 
