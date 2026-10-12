@@ -11,21 +11,88 @@
 
 ## Quick Start
 
-首次安装：
+1. 备份已有配置，安装 Git、curl 和 chezmoi。Arch 先安装 paru；macOS 先运行 `xcode-select --install` 并完成弹窗安装。
+2. 初始化仓库（将 `<repo>` 替换为本仓库 Git 地址），按提示选择 profile、填写本机数据；不用代理则将代理地址留空，不用 VPN / 配置共享则关闭。
 
-```bash
-sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply <repo>
-```
+   ```bash
+   # 未安装 chezmoi 时先执行；安装后若不在 PATH 中，使用 ./bin/chezmoi
+   sh -c "$(curl -fsLS get.chezmoi.io)"
+   chezmoi init <repo>
+   ```
 
-已有 chezmoi 后：
+3. 按需配置 gopass store / 解密私钥，写入 [Secrets](#secrets) 中要使用的条目；检查并修改 source 中自己的 SSH 主机、代理节点、应用路径及硬件快捷键。
+4. 检查并应用配置，输入 sudo 密码，回答服务启停确认；按安装日志补装失败的包。
 
-```bash
-chezmoi init <repo>
-chezmoi diff
-chezmoi apply
-```
+   ```bash
+   chezmoi diff
+   chezmoi apply --dry-run
+   chezmoi apply
+   ```
 
-日常更新：
+5. 按使用的功能完成下列手动设置。
+
+| 功能 / 平台 | 操作 |
+| --- | --- |
+| Zsh / 终端 | 需要时运行 `chsh -s "$(command -v zsh)"`，重新登录 |
+| Zen 快捷键 | 在 `about:support` 打开配置文件夹，退出 Zen，备份并用 `ignore/zen/zen-keyboard-shortcuts.json` 替换同名文件，重新启动 |
+| Surfingkeys | 安装扩展；在扩展设置中启用 Advanced mode，将 Load settings from 设为 `http://127.0.0.1:18080/surfingkeys/config.js`（需开启 Surfingkeys 配置共享） |
+| Tailscale / Sunshine | 登录 Tailscale；设置 Sunshine 账号并配对 Moonlight |
+| Linux 桌面 | 配置 greetd 登录入口，启动 Hyprland；将检查后的 `~/.cache/rsync_to_root/etc/keyd/` 配置安装到 `/etc/keyd/`，配置动态绑定权限并重启 keyd |
+| 壁纸 | 将图片放入 `~/Pictures/wallpaper` |
+| Linux 输入法 | 在 Fcitx5 中启用 Rime / 所选方案并重新部署，启动 Fcitx5 |
+| Linux 代理 | 自行启动 Mihomo 或配置服务 |
+| Linux 硬件功能 | 使用手机 idle 探测时配置 `l2ping` 权限，否则调整 `hypridle.conf`；按需配置 DDC / 背光设备权限、GRUB 启动项及 sudo 权限 |
+| macOS 桌面 | 启动 Hammerspoon、Karabiner，授予辅助功能 / 输入监控等所需权限，按需开启登录启动；安装 Alfred 5 或修改 Cmd-Space 绑定 |
+| macOS 输入法 | 安装 `/Library/Input Methods/Fcitx5.app`，在系统设置中启用，准备 Rime 词库并部署 |
+| macOS 窗口管理 | 安装、授权并启动 Yabai 或 AeroSpace；使用当前 wmux 时选择 Yabai，并配置 scripting addition / sudo 权限 |
+| macOS 系统代理 | 在网络设置中设置代理，或使用 `toggle_proxy` |
+| 局域网配置共享 | 设置允许客户端 CIDR，开放 TCP 18080，在客户端填写订阅 / 脚本 URL |
+| SSH 隧道 / 通知 | 准备 SSH 密钥和远端认证；按下文启用隧道 / 配置通知服务 |
+
+## Setup Notes
+
+### 初始化选项
+
+| 提示 | 需要填写 / 选择的内容 |
+| --- | --- |
+| `machine profile` | 按下表选择；默认 `desktop` |
+| `administrator on this machine` | 是否具备管理员权限；无权限选 `false`，缺失依赖需要自行准备 |
+| `package install command` | Linux 确认包管理命令；留空则只提示手动安装缺失包。macOS 安装脚本固定使用 Homebrew |
+| `install modules` | 仅 `custom` 询问，填写逗号分隔模块；Linux 支持 `core,shell,system,font-and-im,desktop,proxy,apps,dev,latex,nvidia,extra`，macOS 支持 `core,shell,font-and-im,proxy,desktop,dev,extra` |
+| `proxy address host:port` | 可用的代理地址；不用代理则留空 |
+| `input method profile` | `tiger` 或 `flypy` |
+| `enable fdu-connect` | 需要复旦 VPN 才选 `true`，还需准备账号 secret |
+| `Waybar hostname symbol` | 状态栏显示的主机标识，默认主机名 |
+| `config sharing mode` | `none`（默认）、`all` 或 `custom`；`custom` 再选 `mihomo,surfingkeys` 中要共享的项目 |
+| `allowed client CIDR` | 启用共享时填写；默认 `127.0.0.1/32`，局域网共享需填写实际网段，并自行配置防火墙允许 TCP 18080 |
+| `name` / `email` | 自己的 Git 用户名和邮箱；`name=dirichy` 会额外下载作者的 gopass store，其他用户应填写自己的名字 |
+| `Your mobile BluetoothMac...` | Linux idle 检测使用的手机蓝牙 MAC；不用此功能可留空，并按下文调整 idle 配置 |
+
+| Profile | 用途 |
+| --- | --- |
+| `headless` | 命令行 / 远程机器 |
+| `minimal` | 命令行 + 输入法相关配置 / 字体 |
+| `desktop` | 桌面、输入法、代理和常用应用 |
+| `devbox` | 命令行开发环境 |
+| `full` | 开发 + 桌面；Linux 额外安装 LaTeX 和检测到的 NVIDIA 支持 |
+| `everything` | `full` + 个人额外应用 / 游戏 |
+| `custom` | 自选安装模块；配置是否生成还取决于模板中的 features/apps 推导 |
+| `skip` | 跳过依赖安装并关闭多数可选配置；仍会管理部分公共文件，不等于不写入任何配置 |
+
+### 安装与配置说明
+
+- 初始化答案保存在本机 chezmoi 配置中，可用 `chezmoi edit-config` 检查 `[data]`。直接修改 profile 不会重新推导已有 features/apps；模板默认值不会覆盖 `prompt*Once` 保存的答案。`INSTALL_PROFILE` / `INSTALL_MODULES` 只改变依赖安装，不改变配置文件集合。
+- Linux 包名主要面向 Arch，其他发行版需要核对包名。脚本不会安装 paru；安装失败可能只输出警告。macOS 安装脚本固定使用 Homebrew，缺少时自动安装，需具备相应权限。
+- 初始化的代理地址不会提前启动代理；启用后 shell 会使用该地址。缺失 secret 会使用默认值；下载加密 store 后仍需解密私钥。macOS 安装清单不含 gopass。在 apply 后补齐 secret 时需再次 apply。
+- 个人 SSH 地址 / 用户名 / 路由器匹配在 `dot_ssh/config.tmpl`，代理节点 / DNS / 路由在 `dot_config/mihomo/config.yaml.tmpl`。Linux 的 GRUB 项、DDC 输入值、OpenRGB profile，以及 macOS 的 Wi-Fi 名称和应用路径需按本机调整。
+- Zsh 路径需在 `/etc/shells` 中才能用 chsh。首次启动 Zsh、Neovim、Yazi 会自动下载插件；Yazi 安装失败时运行 `ya pkg install`，需要自定义提示符时运行 `p10k configure`。
+- Linux 脚本安装 / 启用 greetd，但不写 `/etc/greetd/config.toml`。Hyprland 配置使用原生 Lua，需使用支持此配置格式的版本。keyd 配置只生成在用户缓存目录，不会自动安装到 `/etc/keyd/`。
+- Linux 手机 idle 检测调用 `sudo l2ping`，需无需交互即可运行；壁纸脚本读取 `~/Pictures/wallpaper`，还需确认 hyprpaper 使用的壁纸存在。远程机器需要退出登录后仍运行 user service 时，另行配置 linger。
+- macOS 安装清单不含 Fcitx5.app、Yabai、AeroSpace 和 Alfred。`fcitx5-remote` 链接依赖上述 app 安装位置；Rime 大词库 external 目前只为 Linux Fcitx5 下载。当前 wmux 的 macOS 窗口操作使用 Yabai，`yabairc` 会调用 `sudo yabai --load-sa`。
+- 服务确认被拒绝或在非交互环境中跳过后，可在新 Zsh 中运行 `chezmoi x services --check` 检查、`chezmoi x services` 补做；其他 shell 直接运行 source 中的 `ignore/bin/dotfiles-services`。Linux 管理 config-share、FDU Connect、later；macOS 管理 config-share、FDU Connect、Mihomo。
+- 配置共享可能包含订阅凭据，CIDR 应只允许自己的客户端访问。系统代理与 shell 代理变量需要分别配置。
+
+### 日常更新
 
 ```bash
 chezmoi cd
@@ -51,12 +118,10 @@ git commit
 - `name`: Git 用户名
 - `email`: Git 邮箱
 - `inputMethod`: 输入法方案，例如 `tiger` 或 `flypy`
-- `screenResolution`: 屏幕宽高，用于 Xresources DPI
-- `monitorScale`: 显示缩放
 - `fduConnect`: 是否启用复旦 VPN 配置
 - `phoneBluetoothMac`: 用于 Hyprland idle 判断是否在家
 
-配置会写入 chezmoi 的本地状态，不应该直接提交真实 secret。
+完整问题和 profile 说明见 Setup Notes。配置会写入本机 chezmoi 配置文件，不应该直接提交真实 secret。
 
 ## Secrets
 
@@ -64,7 +129,7 @@ secret 通过 `gopass-safe` 读取：
 
 ```toml
 [secret]
-command = "{{ joinPath .chezmoi.sourceDir "tools" "gopass-safe" }}"
+command = "{{ joinPath .chezmoi.sourceDir "ignore" "bin" "gopass-safe" }}"
 ```
 
 查找规则是 `chezmoi/<key>`，找不到时使用模板里的默认值。当前使用到的 secret 包括：
@@ -74,12 +139,14 @@ command = "{{ joinPath .chezmoi.sourceDir "tools" "gopass-safe" }}"
 - `wyyctc`
 - `fduID`
 - `fduSecret`
+- `maimaiSSpassword`: 个人 Shadowsocks 节点密码
+- `tmuxNotifyToken`: tmux 通知服务的认证 token（还需自行部署通知服务）
 
 ## Dependencies
 
 依赖安装脚本：
 
-- Arch Linux: `run_onchange_after_install-packages-archlinux.sh.tmpl`
+- Arch Linux: `run_onchange_after_install-packages-linux.sh.tmpl`
 - macOS: `run_onchange_after_install-packages-macos.sh.tmpl`
 
 Arch 主要依赖：
@@ -206,6 +273,34 @@ Yabai 功能：
 - 1-9 工作区
 - 浮动窗口规则
 - mpv/Moonlight 全屏规则
+
+## Browser
+
+`ignore/zen/` 不部署到 home，仓库没有自动导入浏览器配置的脚本。两项配置都需要手动设置。
+
+### Zen 快捷键
+
+1. 在 Zen 打开 `about:support`，找到“配置文件夹 / Profile Folder”，打开当前 profile 的目录。
+2. 完全退出 Zen，备份目录中已有的 `zen-keyboard-shortcuts.json`。
+3. 将仓库的 `ignore/zen/zen-keyboard-shortcuts.json` 复制到该目录，替换同名文件。
+4. 重新启动 Zen，在“设置 → 键盘快捷键”中检查并调整绑定。
+
+不要复制整个 profile。仓库文件中包含扩展快捷键，对应扩展也需自行安装；跨平台迁移后检查 Ctrl / Command 等修饰键。Zen 快捷键设置入口见[官方文档](https://docs.zen-browser.app/user-manual/shortcuts)。
+
+### Surfingkeys
+
+安装 Surfingkeys 扩展后，选择一种方式设置：
+
+- **粘贴配置**：运行下列命令，复制输出，在扩展设置中启用 Advanced mode，粘贴到配置编辑器并保存。
+
+  ```bash
+  chezmoi cd
+  chezmoi execute-template < ignore/zen/surfingkeys.js.tmpl
+  ```
+
+- **从共享 URL 加载**：初始化时启用 `configShare` 并选择 `surfingkeys`，应用配置并确认启动 config-share 服务。在扩展设置的 `Load settings from` 中填入 `http://127.0.0.1:18080/surfingkeys/config.js` 并保存；其他设备将 `127.0.0.1` 改为共享主机地址，并配置允许客户端 CIDR / 防火墙。
+
+不要直接粘贴 `.tmpl` 源文件；其中包含需要 chezmoi 展开的模板。共享服务使用渲染后的 `~/.local/share/config-share/surfingkeys/config.js`。URL 加载方式见 [Surfingkeys 官方说明](https://github.com/brookhong/Surfingkeys#load-settings-from-a-local-file)。
 
 ## Shell
 
