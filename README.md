@@ -280,6 +280,8 @@ macOS 使用 Fcitx5.app 时，`~/.local/bin/fcitx5-remote` 是到 app 内二进�
 
 ## Proxy And Network
 
+配置共享由 `configShare` 控制，Linux 使用 `config-share.service`，macOS 使用 `config-share` LaunchAgent。`chezmoi init` 的允许客户端 CIDR 默认为 `127.0.0.1/32`，输入为空也使用此值，仅允许本机访问。允许局域网访问时填写实际网段，例如 `192.168.1.0/24`；网段的主机位必须为零，`127.0.0.1/24` 等输入会被拒绝。已有非空配置会保留，需自行修改。
+
 Mihomo 配置在 `dot_config/mihomo/config.yaml.tmpl`：
 
 - 订阅 URL 通过 gopass secret 注入
@@ -356,6 +358,8 @@ fcitx5-remote -r
 ```
 
 macOS reload：
+
+macOS 的 `systemctl` wrapper 将 `restart` 映射为先 `launchctl bootout`、再 `bootstrap`，重新读取磁盘上的 plist；例如 `systemctl --user restart config-share`。`daemon-reload` 仍为空操作，因为 launchd 没有无需停止服务的对应命令。
 
 ```bash
 hs -c 'hs.reload()'
