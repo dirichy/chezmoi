@@ -34,6 +34,19 @@ chezmoi diff
 chezmoi apply
 ```
 
+仓库提供 `.githooks/pre-commit`：提交删除或重命名的 chezmoi source 文件时，
+它会把不再管理的旧目标路径自动加入 `.chezmoiremove`，使其他机器下次
+`chezmoi apply` 时删除对应文件；若目标文件在本机被修改，chezmoi 仍会询问是否覆盖。
+新机器第一次 `chezmoi apply` 时会通过 `run_once_before_configure-chezmoi-git-hooks.sh.tmpl`
+自动完成配置。如果 clone 后尚未 apply，也可以手动启用：
+
+```bash
+git config core.hooksPath .githooks
+```
+
+hook 会自动暂存 `.chezmoiremove`。纯属性重命名（例如给 source 文件增加
+`executable_` 前缀但目标路径不变）不会误加删除记录。
+
 把本机修改纳入仓库：
 
 ```bash
@@ -48,15 +61,39 @@ git commit
 
 首次运行会由 `.chezmoi.toml.tmpl` 询问这些数据：
 
+- `profile`: 本机 profile，控制依赖安装和配置启用，默认 `desktop`
 - `name`: Git 用户名
 - `email`: Git 邮箱
-- `inputMethod`: 输入法方案，例如 `tiger` 或 `flypy`
-- `screenResolution`: 屏幕宽高，用于 Xresources DPI
-- `monitorScale`: 显示缩放
+- `inputMethod`: 输入法方案，目前可选 `tiger` 或 `flypy`
+- `proxy.address`: 网络代理地址。启用 proxy 模块时默认 `127.0.0.1:7890`，否则默认空
 - `fduConnect`: 是否启用复旦 VPN 配置
 - `phoneBluetoothMac`: 用于 Hyprland idle 判断是否在家
+- `configShare.mode`: Linux/macOS 配置共享范围，可选 `none`、`all` 或 `custom`
+- `configShare.items`: `custom` 模式下发布的配置名，当前支持 `mihomo`、`surfingkeys`
+- `configShare.allowedCIDR`: 配置共享服务允许访问的客户端网段
 
 配置会写入 chezmoi 的本地状态，不应该直接提交真实 secret。
+
+Profile 会展开成几组本机数据：
+
+- `install.profile`: 安装脚本默认使用的 profile，可被 `INSTALL_PROFILE` 临时覆盖
+- `install.modules`: `custom` profile 下的模块列表，可被 `INSTALL_MODULES` 临时覆盖
+- `install.command`: Linux 包安装命令，脚本按空白拆成命令参数，并逐个把包名追加到命令后执行；可被 `INSTALL_COMMAND` 临时覆盖
+- `install.admin`: 是否是这台机器上的管理员，可被 `INSTALL_ADMIN` 临时覆盖；非管理员会跳过系统模块、驱动模块、system 级 service 和所有 sudo 操作
+- `features.*`: 是否启用某类配置，例如 `inputMethod`, `linuxDesktop`, `macDesktop`, `proxy`
+- `apps.<name>.enabled`: 是否落下某个软件的配置
+- `apps.<name>.profile`: 同一软件在不同机器 profile 下的配置变体入口
+
+当前内置 profile：
+
+- `headless`: CLI 和系统服务，不启用桌面/输入法配置
+- `minimal`: CLI、系统服务和输入法
+- `desktop`: 桌面日用配置
+- `devbox`: 开发工具配置
+- `full`: devbox + 桌面 + 硬件/串流相关配置
+- `everything`: full + 个人额外应用
+- `custom`: 手写安装模块列表
+- `skip`: 不安装软件，并尽量不落下可选配置组
 
 ## Secrets
 
@@ -79,10 +116,22 @@ command = "{{ joinPath .chezmoi.sourceDir "tools" "gopass-safe" }}"
 
 依赖安装脚本：
 
-- Arch Linux: `run_onchange_after_install-packages-archlinux.sh.tmpl`
+- Linux: `run_onchange_after_install-packages-linux.sh.tmpl`
 - macOS: `run_onchange_after_install-packages-macos.sh.tmpl`
 
-Arch 主要依赖：
+Linux 安装脚本默认按当前发行版给出安装命令，例如 Arch/Manjaro 使用 `paru -S --needed --noconfirm --skipreview`，Debian/Ubuntu 使用 `sudo apt-get install -y`，Fedora 使用 `sudo dnf install -y`。其它发行版可以在 init 时填写 `install.command`，例如 `sudo apk add` 或 `sudo xbps-install -Sy`。安装会逐包执行，单个包失败只会 warning，不会中断整个 module。
+
+包名仍以当前配置使用的名字为主；非 Arch 系统遇到包名不匹配时，安装脚本会 warning 并继续，用户再按提示手动安装。
+
+Linux 模块支持 `package:command` 形式声明软检测命令。脚本会先检查 `command` 是否存在；存在就认为这项能力已经可用，不再尝试安装 `package`。这适合共享机器、系统级预装软件，或软件来自不同包管理器的场景。
+
+非管理员机器上，Linux 安装脚本会跳过 `system` 和 `nvidia` 模块，也不会启用 system 级 service 或运行任何 `sudo` 命令；用户级配置、用户级 service 和普通应用安装仍按 profile 与 `package:command` 检测执行。
+
+`.chezmoiignore` 和 `.chezmoiexternal.toml` 都会读取 `features.*` / `apps.*`；未启用的配置组不会落文件，对应的大文件或外部资源也不会下载。
+
+`.Xresources` 不再由 chezmoi 管理。Hyprland 的 monitor setup 会先 merge 已有文件，再按当前显示器 scale 写入 `Xft.dpi = scale * 96`，然后重新 `xrdb -merge ~/.Xresources`；这样下次开机也能尽早使用上一次生成的 DPI。
+
+Linux 主要依赖：
 
 - 桌面: `hyprland`, `hyprpaper`, `hypridle`, `waybar`, `wofi`, `kitty`
 - 音频/蓝牙: `pipewire-audio`, `pipewire-pulse`, `wireplumber`, `bluez`, `blueman`, `pavucontrol`
@@ -144,9 +193,29 @@ Linux 桌面以 Hyprland 为主，入口是：
 
 相关服务：
 
-- `mihomo_config_server.service`: 在 `~/.config/mihomo` 起 HTTP server，用于给局域网其他设备提供定阅。
+- `config-share.service`: 在 `~/.local/share/config-share` 提供只读 HTTP 配置共享；初始化时可选择全部、关闭或自定义发布 `mihomo`、`surfingkeys`，并限制允许访问的客户端网段。
 - `fdu-connect.service`: 复旦 VPN，一个账号只能登录在一台设备，不然有bug。可以一个设备然后局域网共享。
 - `ssh-tunnel@.service`: 反向 SSH tunnel，用于在外网中转访问内网，需要有服务器。
+
+配置共享固定监听 TCP `18080`。`all` 会发布当前支持的全部配置；`custom` 接受逗号分隔的配置名；两者都会询问允许访问的 CIDR。应用配置后手动启用服务：
+
+```bash
+chezmoi x services
+```
+
+对应 URL 为 `http://<主机地址>:18080/mihomo/config.yaml` 和 `http://<主机地址>:18080/surfingkeys/config.js`。Mihomo 入口只是指向实际配置的单文件链接，不会公开整个 `~/.config/mihomo` 目录。
+
+每次 `chezmoi apply` 后会检查仓库管理的用户服务。Linux 使用 `systemctl --user` 管理 Config Share、FDU Connect 和 Later；macOS 使用原生 `launchctl` 管理 Config Share、FDU Connect 和 Mihomo。期望启用但尚未启用的服务会询问是否启用并启动；配置中已经关闭但仍处于 enabled 状态的服务会询问是否停止并禁用。非交互 apply 只报告差异。也可以手动运行 `chezmoi x services --check` 做只读检查，或使用 `chezmoi x services --yes` 接受全部调整。仓库内部 helper 位于 `ignore/bin`，由 zsh 中的 `chezmoi x` wrapper 调用，不会部署到 `~/.local/bin`。Linux 上需要实例参数的 `ssh-tunnel@.service` 不参与自动协调。
+
+macOS 的交互式 zsh 还提供一个 `systemctl` 兼容 wrapper，Linux 则原样调用系统的 `systemctl`。它支持常用的 `status`、`show`、`cat`、`is-active`、`is-enabled`、`start`、`stop`、`restart`、`enable/disable --now`、`list-units` 和 `list-unit-files`；底层使用当前用户的 `gui/$UID` launchd domain。例如：
+
+```bash
+systemctl --user status mihomo
+systemctl --user restart config-share
+systemctl --user disable --now fdu-connect
+```
+
+`daemon-reload` 在 macOS 上是带说明的 no-op。timer、socket、journal 等 systemd 专属功能不会伪装成 launchd 功能。
 
 反向 SSH tunnel 示例：
 
@@ -216,8 +285,8 @@ Zsh 配置在 `dot_config/zsh`：
 - fzf-tab、zsh-autosuggestions、history substring search、syntax highlighting
 - `zoxide` 接管 `cd`
 - 常用别名和一字母命令
-- `s` 函数使用 autossh 进入远端 tmux
-- `t` 函数选择/创建 tmux session
+- `s` 函数使用 autossh 和保活参数连接远端；远端交互式 zsh 会自动调用 `t`
+- `t` 函数选择/创建 tmux session；手动运行时 detach 后返回原 Zsh，SSH 初始化自启时使用 `t --exec` 替换当前 shell；选择列表中按 `q`、输入 session 名时按 `Esc` 可留在当前 shell，自启选择期间按 `Ctrl-C` 会取消 tmux 并继续完成 Zsh 初始化
 - `v` 函数封装 Neovim 打开文件/目录/历史路径
 
 Tmux 配置在 `dot_config/tmux`：
@@ -225,7 +294,7 @@ Tmux 配置在 `dot_config/tmux`：
 - `C-f` 临时进入 prefix table，状态栏短暂显示
 - Vim 风格 pane 导航
 - fzf session switcher
-- OSC52/系统剪贴板集成
+- 通用 `copy` wrapper，优先使用系统剪贴板，并以 OSC 52 支持 tmux/SSH
 - btm popup
 - activity notification
 
@@ -268,6 +337,9 @@ Linux 使用 Fcitx5 + Rime：
 
 - 配置目录：`dot_config/fcitx5`
 - 大文件通过 `.chezmoiexternal.toml` 下载到 `~/.local/share/fcitx5/rime`
+- Rime 方案包括虎码、小鹤双拼（`rime_ice`）和全拼（`rime_ice_full`）；输入 `/schema` 后按 `1`、`2`、`3` 选择，也保留 `F4` 方案菜单
+- 全拼与双拼共用雾凇词库及用户词典调频数据
+- 虎码使用数字选词，并支持空格、`;`、`'` 和方向键选词
 - `.chezmoiignore` 会按系统忽略不适用的前端配置
 
 重新部署：
@@ -314,22 +386,53 @@ SSH 配置在 `dot_ssh/config.tmpl`：
 - `sioyek`: 强制 Sioyek 使用 xcb
 - `sunshine_pre`: Sunshine 启动前显示器布局处理
 - `toggle_proxy`: macOS 网络代理开关
+- `tmux-notify`: tmux 桌面与 msmtp 邮件通知，按事件每 30 分钟去重
+
+`tmux-notify` 每次都会发送桌面通知；邮件单独按事件执行 30 分钟 debounce。它默认把
+`.email` 作为收件地址，发件地址由 msmtp 默认账户决定；可用
+`TMUX_NOTIFY_EMAIL` 和 `TMUX_NOTIFY_INTERVAL`（秒）覆盖。邮件失败后每 5 分钟重试，最多尝试
+3 次；测试或调试时可用 `TMUX_NOTIFY_RETRY_INTERVAL` 和 `TMUX_NOTIFY_MAX_ATTEMPTS` 覆盖。
+进入或重新选择 tmux window/pane 时会删除该目标原有的邮件发送记录，因此随后运行的新程序
+不会继承上一个程序的冷却时间。
+投递日志位于 `${XDG_STATE_HOME:-~/.local/state}/tmux-notify.log`。邮件投递前需配置 msmtp
+的默认账户（通常位于 `~/.msmtprc` 或 `~/.config/msmtp/config`）。
 
 ### One-off scheduled tasks (Linux)
 
-`later.path` 监控 `~/.local/state/later/tasks`（或 `$XDG_STATE_HOME/later/tasks`），用于管理支持重启和过期时间的一次性任务。首次应用时，`run_once_after_create-later-tasks.sh` 会创建带注释的空任务文件。开机、任务文件变化或定时唤醒时，Python 脚本只为最近的未来任务创建一个 transient systemd timer。编译缓存位于 `later/cache/compiled.json`；未修改的任务复用已解析时间，只有新增或修改行才会重新解析。格式为：
+`later.path` 监控 `~/.local/state/later/tasks`（或 `$XDG_STATE_HOME/later/tasks`），用于管理支持重启和过期时间的一次性任务。首次运行 `later` 或启动 `later.service` 时会自动创建带注释的任务文件。开机、任务文件变化或定时唤醒时，Python 脚本只为最近的未来任务创建一个 transient systemd timer。编译缓存位于 `later/cache/compiled.json`；未修改的任务复用已解析时间，只有新增或修改行才会重新解析。成功编译后，待执行行会统一写成绝对开始时间和绝对截止时间：
 
 ```text
-# date         time   expiry  command
-2026-10-01     23:00  10m     ~/.local/bin/backup
-2026-10-03     09:30  2h      notify-send '记得提交报告'
+# start-deadline command
+2026-10-01T23:00:00-2026-10-01T23:10:00 ~/.local/bin/backup
+2026-10-03T09:30:00-2026-10-03T11:30:00 notify-send '记得提交报告'
 ```
 
 编辑或查看任务文件：
 
 ```bash
+systemctl --user enable --now later.path later.service
 later -e
 later -l
+later +2h+30m notify-send '两小时后的提醒'
+later +3d ~/.local/bin/backup
+later 2026-10-03T09:30+2h 'backup | gzip > backup.gz'
+later 09:30+20m notify-send '早会'
+later 10-03T09:30-10-03T11:00 long-job
+later -j
+later -j a13f91c2
+later -j a13f91c2 -f
+```
+
+首个参数是执行时间。相对时间以 `+` 开头并可组合单位，例如 `+2d3h`；本机绝对时间支持 `YYYY-MM-DDTHH:MM[:SS]`。也可以写 `YY-MM-DDTHH:MM`（固定补成 20xx）、`MM-DDTHH:MM`（下一次该月日）或 `HH:MM`（下一次该时刻），但不接受时区标记。末尾的 `+时长` 表示允许延迟执行多久，省略时默认 `1h`；也可以用 `开始时间-截止时间` 直接给出绝对区间。所有简写都会在编译成功后原地展开成完整绝对区间；任意行编译失败时会立即报告行号，且不做部分改写。后面的参数全部属于命令，分隔用的 `--` 可写可不写。不带参数运行 `later` 会按 Pending、Running、Failed、Expired 分类显示任务。
+
+每个规范化任务会由完整任务行生成一个稳定的八位 ID，并显示在 `later` 状态和直接添加结果中。任务的合并 stdout/stderr、开始时间和退出状态保存在 `~/.local/state/later/logs/<ID>.log`。`later -j` 使用 `fzf` 按任务行选择日志；没有 `fzf` 或不在交互终端时打印日志索引。也可以用 `later -j ID` 直接查看，或加 `-f` 持续跟随。ID 支持无歧义的前缀。
+交互式输出会分别高亮 ID、开始时间、截止时间、命令和任务状态，`fzf` 也会保留这些颜色；设置 `NO_COLOR`、重定向输出或使用 dumb terminal 时自动输出纯文本。
+
+新建任务文件首行的 `# vim: set ft=later :` modeline 会让 Neovim 将其识别为 `later` filetype，不依赖固定路径 autocmd；已有任务文件需要手动补上这一行。Neovim 通过 `later --check=- --json` 检查当前未保存的 buffer，在打开、保存、离开 Insert mode，以及 Normal mode 停留到 `CursorHold` 时更新 `vim.diagnostic`；错误会像 LSP diagnostics 一样显示下划线、浮窗和跳转，不需要额外的语言服务器。命令行也可以只读检查任务文件或 stdin：
+
+```bash
+later --check
+later --check=- --json < ~/.local/state/later/tasks
 ```
 
 过期时间支持 `s`、`m`、`h`、`d`。每个未注释行都是待执行任务。运行中的任务会改成 `# [running]`；成功后移除，失败后改成 `# [failed:退出码]`，过期后改成 `# [expired]`。删除状态标记和行首 `#` 即可重试。命令以当前用户权限运行，关机等操作仍需另行配置权限。查看日志和启用 timer：
@@ -399,5 +502,5 @@ bash -n path/to/script.sh
 - 主要 Linux 发行版是 Arch Linux，包管理使用 `paru`。
 - Linux 桌面默认 Hyprland + systemd user services。
 - macOS 默认 Apple Silicon Homebrew 路径 `/opt/homebrew`。
-- 代理端口约定为 `127.0.0.1:7890`。
+- 代理地址来自 `proxy.address`；启用 proxy 模块时默认 `127.0.0.1:7890`。
 - 部分个人设备名和主机名写在 SSH/Hyprland 配置中。
