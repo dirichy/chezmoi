@@ -41,7 +41,7 @@ Supported commands on macOS:
   is-enabled [--quiet] UNIT  Test whether a plist exists and is not disabled
   start UNIT...              Bootstrap or kickstart jobs
   stop UNIT...               Boot out jobs for the current session
-  restart UNIT...            Bootstrap or kickstart -k jobs
+  restart UNIT...            Boot out and bootstrap jobs to reread plist files
   enable [--now] UNIT...     Clear disabled overrides, optionally start
   disable [--now] UNIT...    Set disabled overrides, optionally boot out
   daemon-reload              No-op; launchd has no equivalent cache reload
@@ -209,12 +209,12 @@ case $command_name in
                 start) start_job "$label" ;;
                 stop) job_loaded "$label" && mutate_launchctl bootout "$domain/$label" ;;
                 restart)
+                    plist=$(require_plist "$label") || exit $?
+                    plutil -lint "$plist" >/dev/null
                     if job_loaded "$label"; then
-                        mutate_launchctl kickstart -k "$domain/$label"
-                    else
-                        plist=$(require_plist "$label") || exit $?
-                        mutate_launchctl bootstrap "$domain" "$plist"
+                        mutate_launchctl bootout "$domain/$label"
                     fi
+                    mutate_launchctl bootstrap "$domain" "$plist"
                     ;;
             esac
         done

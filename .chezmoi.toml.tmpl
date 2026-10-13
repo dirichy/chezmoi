@@ -65,9 +65,9 @@
 {{- $configShareItems = "mihomo,surfingkeys" -}}
 {{- end -}}
 {{- if ne $configShareMode "none" -}}
-{{- $configShareCIDR = promptStringOnce . "configShare.allowedCIDR" "allowed client CIDR (for example 192.168.1.0/24)" -}}
+{{- $configShareCIDR = default "127.0.0.1/32" (promptStringOnce . "configShare.allowedCIDR" "allowed client CIDR (127.0.0.1/32: local only; LAN example: 192.168.1.0/24)" "127.0.0.1/32") -}}
 {{- if ne (includeTemplate "isIPv4CIDR" $configShareCIDR) "true" -}}
-{{- fail (printf "invalid configShare.allowedCIDR %q: expected one IPv4 CIDR such as 192.168.1.0/24" $configShareCIDR) -}}
+{{- fail (printf "invalid configShare.allowedCIDR %q: expected an IPv4 network with no host bits set, such as 127.0.0.1/32 (local only) or 192.168.1.0/24" $configShareCIDR) -}}
 {{- end -}}
 {{- end -}}
 {{- end -}}
