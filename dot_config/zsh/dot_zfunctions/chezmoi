@@ -1,0 +1,29 @@
+#!/bin/zsh
+
+if [[ ${1-} != x ]]; then
+    command chezmoi "$@"
+    return $?
+fi
+
+shift
+local tool=${1-}
+(( $# > 0 )) && shift
+
+local source_dir
+source_dir=$(command chezmoi source-path) || return
+
+case $tool in
+    services)
+        "$source_dir/ignore/bin/dotfiles-services" "$@"
+        ;;
+    ""|help)
+        print 'Usage: chezmoi x <tool> [arguments]'
+        print ''
+        print 'Tools:'
+        print '  services    Check and reconcile managed user services'
+        ;;
+    *)
+        print -u2 "Unknown chezmoi repository tool: $tool"
+        return 2
+        ;;
+esac

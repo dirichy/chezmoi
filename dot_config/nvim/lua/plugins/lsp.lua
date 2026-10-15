@@ -18,10 +18,34 @@ return {
 		event = { "BufReadPost", "BufWritePost", "InsertLeave" },
 		config = function()
 			local lint = require("lint")
+			lint.linters.later = {
+				cmd = "later",
+				stdin = true,
+				args = { "--check=-", "--json" },
+				stream = "stdout",
+				ignore_exitcode = true,
+				parser = function(output)
+					local ok, decoded = pcall(vim.json.decode, output)
+					if not ok or type(decoded) ~= "table" then
+						return {}
+					end
+					return vim.tbl_map(function(item)
+						return {
+							lnum = item.line - 1,
+							col = item.column - 1,
+							end_col = item.end_column - 1,
+							severity = vim.diagnostic.severity.ERROR,
+							message = item.message,
+							source = "later",
+						}
+					end, decoded)
+				end,
+			}
 			local candidates = {
 				bash = { "shellcheck" },
 				dockerfile = { "hadolint" },
 				lua = { "luacheck" },
+				later = { "later" },
 				markdown = { "markdownlint" },
 				python = { "ruff" },
 				sh = { "shellcheck" },
@@ -62,13 +86,25 @@ return {
 					require("lint").try_lint()
 				end,
 			})
+			vim.api.nvim_create_autocmd("CursorHold", {
+				group = vim.api.nvim_create_augroup("later_tasks_lint", { clear = true }),
+				callback = function(event)
+					if vim.bo[event.buf].filetype == "later" then
+						lint.try_lint("later")
+					end
+				end,
+			})
 		end,
 	},
 	{
 		"rachartier/tiny-inline-diagnostic.nvim",
 		-- priority = 1001, -- needs to be loaded in first
 		config = function()
-			require("tiny-inline-diagnostic").setup()
+			require("tiny-inline-diagnostic").setup({
+				options = {
+					overwrite_events = { "LspAttach", "DiagnosticChanged" },
+				},
+			})
 			vim.diagnostic.config({ virtual_text = false }) -- Only if needed in your configuration, if you already have native LSP diagnostics
 		end,
 	},

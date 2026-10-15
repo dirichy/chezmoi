@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+target=${!#}
+printf '%s\n' "${LATER_EDITOR_LINE:?}" >>"$target"

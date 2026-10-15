@@ -1,0 +1,38 @@
+# Rime schema
+# encoding: utf-8
+
+# 在现有小鹤双拼版 rime_ice 上恢复全拼的拼写规则。
+# 主词典和用户词典仍沿用 rime_ice，因此全拼与双拼共享词库和调频历史。
+
+__include: rime_ice.schema:/
+
+schema:
+  schema_id: rime_ice_full
+  name: 雾凇拼音·全拼
+  version: "2026-10-01"
+  description: |
+    雾凇拼音 - 全拼
+    https://github.com/iDvel/rime-ice
+
+translator:
+  prism: rime_ice_full
+  preedit_format:
+    - xform/([jqxy])v/$1u/
+    - xform/([nl])v/$1v/
+    - xform/([nl])ue/$1ve/
+    - xform/(?<=[A-Z])\s(?=[A-Z])//
+
+speller:
+  algebra:
+    # 超级简拼
+    - erase/^hm$/
+    - erase/^m$/
+    - erase/^n$/
+    - erase/^ng$/
+    - abbrev/^([a-z]).+$/$1/
+    - abbrev/^([zcs]h).+$/$1/
+    # 兼容 u / v（ü）的常见输入方式
+    - derive/^([nl])ve$/$1ue/
+    - derive/^([jqxy])u/$1v/
+    - derive/^([nl])ue$/$1ve/
+    - derive/^([jqxy])v/$1u/

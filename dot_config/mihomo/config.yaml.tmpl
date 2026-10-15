@@ -723,6 +723,10 @@ proxy-groups:
       name: Fudan,
       type: fallback,
       url: "https://mirrors.fducslg.com",
+      interval: 30,
+      lazy: false,
+      timeout: 3000,
+      max-failed-times: 2,
       proxies:
         [DIRECT, localhost_1081, dell_1081, yoga_1081, arch_dirichy_1081, arch_eva_1081],
     }

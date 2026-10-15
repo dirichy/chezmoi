@@ -1,0 +1,9 @@
+[Unit]
+Description=Synchronize and run one-off scheduled tasks
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/later --run
+
+[Install]
+WantedBy=default.target

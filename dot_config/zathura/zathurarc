@@ -54,10 +54,6 @@ set notification-fg "#151515" #00
 
 
 set render-loading "false"
-set scroll-step 1
-map j feedkeys "100<Down>"
-map k feedkeys "100<Up>"
+set scroll-step 100
 
-set scroll-hstep 1
-map h feedkeys "100<Left>"
-map l feedkeys "100<Right>"
+set scroll-hstep 100

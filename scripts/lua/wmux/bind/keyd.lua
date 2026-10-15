@@ -1,5 +1,6 @@
 local M = {}
 local SHELL = require("wmux.shell")
+local keycode = require("wmux.keycode")
 local log = require("wmux.log")
 
 local always = function()
@@ -48,34 +49,13 @@ local modifier_alias = {
 	command = M.modifier.SUPER,
 }
 
-local key_alias = {
-	caps_lock = "capslock",
-	escape = "esc",
-	return_or_enter = "enter",
-	left_arrow = "left",
-	right_arrow = "right",
-	up_arrow = "up",
-	down_arrow = "down",
-	grave_accent_and_tilde = "`",
-	hyphen = "-",
-	equal_sign = "=",
-	open_bracket = "[",
-	close_bracket = "]",
-	backslash = "\\",
-	semicolon = ";",
-	quote = "'",
-	comma = ",",
-	period = ".",
-	slash = "/",
-}
-
 local function normalize_key(key)
 	key = tostring(key)
 	if key:match("^mouse:") then
 		warn("ignoring unsupported mouse key: " .. key)
 		return nil
 	end
-	return key_alias[key] or key
+	return keycode.to("keyd", key)
 end
 
 function M.mod2int(mods)

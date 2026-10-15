@@ -56,6 +56,8 @@ vim.api.nvim_create_autocmd("BufReadPre", {
 	end,
 })
 
+require("later").setup()
+
 -- vim.api.nvim_create_autocmd("TextYankPost", {
 -- 	group = delayed_clipboard_group,
 -- 	callback = function()

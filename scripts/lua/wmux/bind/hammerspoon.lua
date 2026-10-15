@@ -1,4 +1,5 @@
 local SHELL = require("wmux.shell")
+local keycode = require("wmux.keycode")
 local log = require("wmux.log")
 ---@type keybinder
 local M = {}
@@ -6,6 +7,10 @@ local INVALID = {}
 
 local function warn(message)
 	log.warn("hammerspoon", message)
+end
+
+local function normalize_key(key)
+	return keycode.to("hammerspoon", key)
 end
 
 function M.mod2int(mods)
@@ -103,12 +108,12 @@ local function normalize_action(fn)
 			hs.execute(cmd)
 		end
 	elseif type(action) == "string" then
-		local action_key = action
+		local action_key = normalize_key(action)
 		action = function()
 			hs.eventtap.keyStroke({}, action_key)
 		end
 	elseif type(action) == "table" then
-		local action_key = action[1]
+		local action_key = normalize_key(action[1])
 		local action_mod = M.int2mods(action[2]) or {}
 		action = function()
 			hs.eventtap.keyStroke(action_mod, action_key)
@@ -138,6 +143,7 @@ local function normalize_condition(conditions)
 end
 
 local function bind_key(key, mod)
+	key = normalize_key(key)
 	mod = M.int2mods(mod)
 	if mod then
 		local bind_key = table.concat(mod, "+") .. "\0" .. key

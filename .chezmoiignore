@@ -1,3 +1,9 @@
+{{- $configShareMode := "none" -}}
+{{- $configShareItems := "" -}}
+{{- if hasKey . "configShare" -}}
+{{- $configShareMode = default "none" .configShare.mode -}}
+{{- $configShareItems = default "" .configShare.items -}}
+{{- end -}}
 # Repository-only files.
 *.md
 *.log
@@ -6,12 +12,36 @@ tools
 .config/fcitx5/conf/cached_layouts
 
 # Config groups controlled by host data.
+{{ if not .features.cli }}
+.local/bin/later
+.config/systemd/user/later.path
+.config/systemd/user/later.service
+{{ end }}
 {{ if not .apps.neovim.enabled }}
 .config/nvim
 {{ end }}
 {{ if not .apps.mihomo.enabled }}
 .config/mihomo
-.config/systemd/user/mihomo_config_server.service
+{{ end }}
+{{ if or (ne .chezmoi.os "linux") (eq $configShareMode "none") }}
+.config/systemd/user/config-share.service
+{{ end }}
+{{ if or (ne .chezmoi.os "darwin") (eq $configShareMode "none") }}
+Library/LaunchAgents/config-share.plist
+{{ end }}
+{{ if eq $configShareMode "none" }}
+.local/share/config-share
+.local/libexec/config-share-server
+{{ else }}
+{{ if not (contains ",mihomo," (printf ",%s," (replace " " "" $configShareItems))) }}
+.local/share/config-share/mihomo
+{{ end }}
+{{ if not (contains ",surfingkeys," (printf ",%s," (replace " " "" $configShareItems))) }}
+.local/share/config-share/surfingkeys
+{{ end }}
+{{ end }}
+{{ if not .apps.mihomo.enabled }}
+Library/LaunchAgents/mihomo.plist
 {{ end }}
 {{ if not .features.inputMethod }}
 .config/fcitx5
@@ -34,15 +64,14 @@ Library/LaunchAgents/fdu-connect.plist
 .config/sioyek
 .config/wezterm
 .config/zathura
-.local/bin/kitty-im
+.local/bin/osc1337-im
 .local/bin/sioyek
-.local/bin/wezterm-im
 .local/share/applications/sioyek.desktop
 {{ end }}
 
 # macOS-only files.
 {{ if ne .chezmoi.os "darwin" }}
-run_onchange_after_install-packages-macos.sh
+install-packages-macos.sh
 .gnupg/gpg-agent.conf
 .hammerspoon
 .config/karabiner
@@ -61,12 +90,11 @@ Library
 .config/karabiner
 .config/aerospace
 .config/yabai
-Library/LaunchAgents/mihomo.plist
 {{ end }}
 
 # Linux-only files.
 {{ if ne .chezmoi.os "linux" }}
-run_onchange_after_install-packages-linux.sh
+install-packages-linux.sh
 .cache/rsync_to_root
 .config/hypr
 .config/mako
@@ -77,6 +105,7 @@ run_onchange_after_install-packages-linux.sh
 .config/wireplumber
 .config/wofi
 .local/bin/qq
+.local/bin/later
 .local/bin/sioyek
 .local/bin/sunshine_pre
 .local/bin/tencentqq

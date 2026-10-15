@@ -1,0 +1,63 @@
+#!/bin/zsh
+
+if (( $# < 2 )); then
+    echo "Usage: c <archive> <file|directory> [...]" >&2
+    return 1
+fi
+
+local archive=$1
+shift
+
+if [[ -e $archive ]]; then
+    echo "Archive already exists: $archive" >&2
+    return 1
+fi
+
+local command_name
+local command_status
+case ${archive:l} in
+    *.tar.gz|*.tgz)
+        command_name=tar
+        (( $+commands[$command_name] )) && command tar -czf "$archive" -- "$@"
+        ;;
+    *.tar.bz2|*.tbz|*.tbz2)
+        command_name=tar
+        (( $+commands[$command_name] )) && command tar -cjf "$archive" -- "$@"
+        ;;
+    *.tar.xz|*.txz)
+        command_name=tar
+        (( $+commands[$command_name] )) && command tar -cJf "$archive" -- "$@"
+        ;;
+    *.tar.zst|*.tzst)
+        command_name=tar
+        (( $+commands[$command_name] )) && command tar --zstd -cf "$archive" -- "$@"
+        ;;
+    *.tar)
+        command_name=tar
+        (( $+commands[$command_name] )) && command tar -cf "$archive" -- "$@"
+        ;;
+    *.zip)
+        command_name=zip
+        (( $+commands[$command_name] )) && command zip -r "$archive" -- "$@"
+        ;;
+    *.rar)
+        command_name=rar
+        (( $+commands[$command_name] )) && command rar a -- "$archive" "$@"
+        ;;
+    *.7z)
+        command_name=7z
+        (( $+commands[$command_name] )) && command 7z a -- "$archive" "$@"
+        ;;
+    *)
+        echo "Unsupported archive format: $archive" >&2
+        return 1
+        ;;
+esac
+command_status=$?
+
+if (( ! $+commands[$command_name] )); then
+    echo "$command_name is not installed" >&2
+    return 1
+fi
+
+return $command_status

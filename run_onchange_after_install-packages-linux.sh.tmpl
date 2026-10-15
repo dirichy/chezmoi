@@ -1,4 +1,3 @@
-{{- if eq .chezmoi.os "linux" -}}
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -242,7 +241,7 @@ install_luarocks() {
 
 module_core() {
   install_packages core \
-    chezmoi:chezmoi zsh:zsh tmux:tmux gopass:gopass msmtp:msmtp curl:curl
+    chezmoi:chezmoi zsh:zsh tmux:tmux gopass:gopass msmtp:msmtp curl:curl python:python3
 }
 
 module_shell() {
@@ -416,4 +415,3 @@ if [[ -n "$INSTALL_MODULES" ]]; then
 else
   run_profile "$INSTALL_PROFILE"
 fi
-{{- end -}}

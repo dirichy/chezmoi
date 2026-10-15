@@ -1,5 +1,5 @@
 {{- $heightPercent := 3.25 -}}
-{{- $monitors := output "bash" "-lc" "out=$(hyprctl monitors -j 2>/dev/null); [[ $out == \\[* ]] && printf %s \"$out\" || printf []" | fromJson -}}
+{{- $monitors := output (joinPath .chezmoi.sourceDir "ignore/bin/hyprctl-safe") "monitors" "-j" "[]" | fromJson -}}
 {{- $monitor := dict "height" 1000 "scale" 1 -}}
 {{- if gt (len $monitors) 0 -}}
 {{- $monitor = index $monitors 0 -}}

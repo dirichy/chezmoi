@@ -5,14 +5,31 @@ if (( ! $+commands[tmux] )); then
     return 1
 fi
 
-local tmux_ls session_name number target session_count input_char
+local replace_shell=0
+if [[ $1 == --exec ]]; then
+    replace_shell=1
+    shift
+fi
+
+local tmux_ls session_name number target session_count input_char tty_state read_status
 tmux_ls=$(tmux ls 2>/dev/null)
 if [[ -z $tmux_ls ]]; then
     print -nP "There is no %F{green}tmux%f session. Input a name to create one (default: %Bdefault%b, %B%F{yellow}[Esc]%f%b to quit): "
     session_name=""
     while true; do
-        read -s -k 1 input_char || { echo; return 0; }
+        if (( replace_shell )); then
+            tty_state=$(stty -g 2>/dev/null)
+            [[ -n $tty_state ]] && stty intr undef
+            read -s -k 1 input_char
+            read_status=$?
+            [[ -n $tty_state ]] && stty "$tty_state"
+        else
+            read -s -k 1 input_char
+            read_status=$?
+        fi
+        (( read_status == 0 )) || { echo; return 0; }
         case $input_char in
+            $'\x03') echo; return 0 ;;
             $'\e') echo; return 0 ;;
             $'\n'|$'\r') echo; break ;;
             $'\x7f'|$'\b')
@@ -25,8 +42,12 @@ if [[ -z $tmux_ls ]]; then
         esac
     done
     [[ -z $session_name ]] && session_name="default"
-    if [[ -z $TMUX ]]; then
+    if [[ -z $TMUX && $replace_shell == 1 ]]; then
         exec tmux new-session -s "$session_name"
+    fi
+    if [[ -z $TMUX ]]; then
+        tmux new-session -s "$session_name"
+        return $?
     fi
     tmux new-session -s "$session_name" -d && tmux switch-client -t "$session_name"
     return $?
@@ -37,9 +58,20 @@ session_count=$(echo "$tmux_ls" | grep -c .)
 while true; do
     print -P "Choose a session (%B%F{cyan}[Enter]%f%b selects %B1%b), press %B%F{green}[a]%f%b to create one, or %B%F{yellow}[q]%f%b to quit"
     echo "$tmux_ls" | column -t
-    read -k 1 number
+    if (( replace_shell )); then
+        tty_state=$(stty -g 2>/dev/null)
+        [[ -n $tty_state ]] && stty intr undef
+        read -k 1 number
+        read_status=$?
+        [[ -n $tty_state ]] && stty "$tty_state"
+    else
+        read -k 1 number
+        read_status=$?
+    fi
     echo
+    (( read_status == 0 )) || return 0
 
+    [[ $number == $'\x03' ]] && return 0
     [[ $number == q ]] && return 0
     [[ -z $number || $number == $'\n' || $number == $'\r' ]] && number=1
     if [[ $number == a || $number == $((session_count + 1)) ]]; then
@@ -47,8 +79,19 @@ while true; do
             print -nP "Input a name for the new %F{green}tmux%f session (default: %Bdefault%b, %B%F{yellow}[Esc]%f%b to cancel): "
             session_name=""
             while true; do
-                read -s -k 1 input_char || { echo; break 2; }
+                if (( replace_shell )); then
+                    tty_state=$(stty -g 2>/dev/null)
+                    [[ -n $tty_state ]] && stty intr undef
+                    read -s -k 1 input_char
+                    read_status=$?
+                    [[ -n $tty_state ]] && stty "$tty_state"
+                else
+                    read -s -k 1 input_char
+                    read_status=$?
+                fi
+                (( read_status == 0 )) || { echo; break 2; }
                 case $input_char in
+                    $'\x03') echo; return 0 ;;
                     $'\e') echo; break 2 ;;
                     $'\n'|$'\r') echo; break ;;
                     $'\x7f'|$'\b')
@@ -65,8 +108,10 @@ while true; do
                 print -P "%F{red}Session already exists:%f $session_name" >&2
                 continue
             fi
-            if [[ -z $TMUX ]]; then
+            if [[ -z $TMUX && $replace_shell == 1 ]]; then
                 exec tmux new-session -s "$session_name"
+            elif [[ -z $TMUX ]]; then
+                tmux new-session -s "$session_name"
             else
                 tmux new-session -s "$session_name" -d && tmux switch-client -t "$session_name"
             fi
@@ -80,8 +125,10 @@ while true; do
     print -P "%F{red}Invalid selection:%f $number" >&2
 done
 
-if [[ -z $TMUX ]]; then
+if [[ -z $TMUX && $replace_shell == 1 ]]; then
     exec tmux attach-session -t "$target"
+elif [[ -z $TMUX ]]; then
+    tmux attach-session -t "$target"
 else
     tmux switch-client -t "$target"
 fi

@@ -11,6 +11,7 @@
 ZFUNCDIR=${ZDOTDIR:-$HOME}/.zfunctions
 fpath=($ZFUNCDIR $fpath)
 autoload -Uz $ZFUNCDIR/*(.:t)
+setopt interactivecomments
 
 # for gopass
 if [[ -n $SSH_TTY ]]; then
@@ -19,7 +20,7 @@ fi
 
 if [[ -n $SSH_TTY && -z $TMUX && -t 0 && -t 1 ]] && (( $+commands[tmux] )); then
     print -P "%F{cyan}SSH%f session detected. Choose a %F{green}tmux%f session, or press %B%F{yellow}[q]%f%b to stay in this shell."
-    t
+    t --exec
 fi
 
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
