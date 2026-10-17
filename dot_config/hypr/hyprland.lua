@@ -93,22 +93,22 @@ local function has_path(path)
 	return false
 end
 
-local function command_ok(cmd)
-	local ok = os.execute(cmd)
-	return ok == true or ok == 0
-end
-
+-- local function command_ok(cmd)
+-- 	local ok = os.execute(cmd)
+-- 	return ok == true or ok == 0
+-- end
+--
 local function has_nvidia()
 	return has_path("/proc/driver/nvidia/version") or has_path("/sys/module/nvidia")
 end
 
-local function has_proxy()
-	if not proxy.enabled then
-		return false
-	end
-	return command_ok(("timeout 1 bash -c '</dev/tcp/%s/%s' >/dev/null 2>&1"):format(proxy.host, proxy.port))
-end
-
+-- local function has_proxy()
+-- 	if not proxy.enabled then
+-- 		return false
+-- 	end
+-- 	return command_ok(("timeout 1 bash -c '</dev/tcp/%s/%s' >/dev/null 2>&1"):format(proxy.host, proxy.port))
+-- end
+--
 local env_table = {
 	["QT_QPA_PLATFORMTHEME"] = "qt6ct",
 	["XCURSOR_SIZE"] = "24",
@@ -127,7 +127,7 @@ if has_nvidia() then
 	env_table["WLR_DRM_NO_ATOMIC"] = "1"
 	env_table["GBM_BACKEND"] = "nvidia-drm"
 end
-if has_proxy() then
+if proxy.enabled then
 	env_table["http_proxy"] = "http://" .. proxy.address
 	env_table["https_proxy"] = "http://" .. proxy.address
 	env_table["all_proxy"] = "socks5://" .. proxy.address
