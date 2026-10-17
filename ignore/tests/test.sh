@@ -31,16 +31,31 @@ require_command() {
 }
 
 managed_list() {
-    local profile=$1
+    local profile=$1 fixture
+    fixture=${2:-$tests_dir/fixtures/$fixture_os-$profile.toml}
     mkdir -p "$tmp_dir/home-$profile"
     chezmoi \
         --source "$source_dir" \
         --destination "$tmp_dir/home-$profile" \
-        --config "$tests_dir/fixtures/$fixture_os-$profile.toml" \
+        --config "$fixture" \
         --cache "$tmp_dir/cache-$profile" \
         --persistent-state "$tmp_dir/state-$profile.boltdb" \
         --refresh-externals=never \
         managed --include files,scripts,symlinks --path-style relative
+}
+
+render_target() {
+    local name=$1 fixture=$2 target=$3 output=$4
+    mkdir -p "$tmp_dir/home-$name" "$(dirname -- "$output")"
+    chezmoi \
+        --source "$source_dir" \
+        --destination "$tmp_dir/home-$name" \
+        --config "$fixture" \
+        --cache "$tmp_dir/cache-$name" \
+        --persistent-state "$tmp_dir/state-$name.boltdb" \
+        --refresh-externals=never \
+        --no-tty \
+        cat "$tmp_dir/home-$name/$target" >"$output"
 }
 
 assert_managed() {
@@ -156,6 +171,40 @@ managed_list desktop >"$desktop_list"
 managed_list headless >"$headless_list"
 managed_list skip >"$skip_list"
 pass 'all fixture profiles evaluate .chezmoiignore'
+
+mihomo_only_fixture="$tests_dir/fixtures/proxy-mihomo-only.toml"
+mihomo_external_fixture="$tests_dir/fixtures/proxy-mihomo-and-external.toml"
+external_only_fixture="$tests_dir/fixtures/proxy-external-only.toml"
+
+mihomo_only_list="$tmp_dir/managed-mihomo-only.txt"
+mihomo_external_list="$tmp_dir/managed-mihomo-and-external.txt"
+external_only_list="$tmp_dir/managed-external-only.txt"
+managed_list mihomo-only "$mihomo_only_fixture" >"$mihomo_only_list"
+managed_list mihomo-and-external "$mihomo_external_fixture" >"$mihomo_external_list"
+managed_list external-only "$external_only_fixture" >"$external_only_list"
+
+assert_managed "$mihomo_only_list" '.config/mihomo/config.yaml' 'Mihomo can be enabled without client proxy settings'
+assert_managed "$mihomo_external_list" '.config/mihomo/config.yaml' 'Mihomo can coexist with an external client proxy'
+assert_ignored "$external_only_list" '.config/mihomo/config.yaml' 'external client proxy does not require Mihomo'
+
+render_target mihomo-only "$mihomo_only_fixture" '.config/zsh/.zshenv' "$tmp_dir/mihomo-only.zshenv"
+render_target mihomo-only "$mihomo_only_fixture" '.config/mihomo/config.yaml' "$tmp_dir/mihomo-only.yaml"
+render_target mihomo-and-external "$mihomo_external_fixture" '.config/zsh/.zshenv' "$tmp_dir/mihomo-and-external.zshenv"
+render_target mihomo-and-external "$mihomo_external_fixture" '.config/mihomo/config.yaml' "$tmp_dir/mihomo-and-external.yaml"
+render_target external-only "$external_only_fixture" '.config/zsh/.zshenv' "$tmp_dir/external-only.zshenv"
+
+if grep -Fq 'http_proxy=' "$tmp_dir/mihomo-only.zshenv"; then
+    fail 'Mihomo-only setup must not export client proxy variables'
+fi
+grep -Fq 'mixed-port: 7890' "$tmp_dir/mihomo-only.yaml" \
+    || fail 'Mihomo-only setup keeps the Mihomo listen port'
+grep -Fq 'http_proxy=http://10.20.30.40:1080' "$tmp_dir/mihomo-and-external.zshenv" \
+    || fail 'Mihomo plus external proxy exports the external proxy address'
+grep -Fq 'mixed-port: 7890' "$tmp_dir/mihomo-and-external.yaml" \
+    || fail 'external proxy port must not change the Mihomo listen port'
+grep -Fq 'http_proxy=http://10.20.30.40:1080' "$tmp_dir/external-only.zshenv" \
+    || fail 'external proxy works when Mihomo is disabled'
+pass 'Mihomo lifecycle and client proxy routing are independent'
 
 if [[ $fixture_os == linux ]]; then
     assert_managed "$desktop_list" '.config/waybar/config.jsonc' 'desktop includes Waybar'
