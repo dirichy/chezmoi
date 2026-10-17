@@ -34,14 +34,17 @@
 {{- $isFull := or (eq $profile "full") (eq $profile "everything") -}}
 {{- $isEverything := eq $profile "everything" -}}
 {{- $hasInputMethod := or $isMinimal $isDesktop $isFull $isEverything $isCustomInputMethod -}}
-{{- $hasProxy := or $isDesktop $isCustomProxy -}}
+{{- $hasProxy := promptBoolOnce . "features.proxy" "use proxy for shell and desktop apps" false -}}
 {{- $hasApps := or $isDesktop $isCustomApps -}}
 {{- $hasSystemServices := and $adminUser (or $isHeadless $isMinimal $isDesktop $isDevbox $isFull $isEverything $isCustomSystem) -}}
 {{- $proxyDefault := "" -}}
 {{- if $hasProxy -}}
 {{- $proxyDefault = "127.0.0.1:7890" -}}
 {{- end -}}
-{{- $proxyAddress := promptStringOnce . "proxy.address" "proxy address host:port" $proxyDefault -}}
+{{- $proxyAddress := "" -}}
+{{- if $hasProxy -}}
+{{- $proxyAddress = promptStringOnce . "proxy.address" "proxy address host:port" $proxyDefault -}}
+{{- end -}}
 {{- $proxyHost := "" -}}
 {{- $proxyPort := "" -}}
 {{- if contains ":" $proxyAddress -}}
@@ -129,7 +132,7 @@ enabled = {{ and (eq .chezmoi.os "linux") $isDesktop }}
 profile = {{ ternary "everything" "desktop" $isEverything | quote }}
 
 [data.apps.mihomo]
-enabled = {{ or $hasProxy $isDevbox $isFull $isEverything }}
+enabled = {{ or $isDesktop $isDevbox $isFull $isEverything $isCustomProxy }}
 profile = {{ ternary "gui" "headless" $isDesktop | quote }}
 
 [data.apps.sunshine]

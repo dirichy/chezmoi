@@ -37,7 +37,7 @@ case "$TERM" in
         ;;
 esac
 {{- end }}
-{{- if .proxy.address }}
+{{- if .features.proxy }}
 export https_proxy=http://{{ .proxy.address }} http_proxy=http://{{ .proxy.address }} #all_proxy=socks5://{{ .proxy.address }}
 {{- end }}
 {{- if eq .chezmoi.os "darwin"}}
