@@ -1,169 +1,288 @@
 #!/bin/zsh
 
 set -euo pipefail
+umask 077
 
-local cmd=${1:-}
-local name=${2:-}
-if [ -z "$cmd" ]; then
-    codex
-    return $?
+cmd=${1:-}
+name=${2:-}
+
+if [[ -z "$cmd" ]]; then
+    command codex
+    exit $?
 fi
 
 CODEX_DIR=${CODEX_HOME:-"$HOME/.codex"}
 STORE_DIR="$HOME/.codex-accounts"
 STATUS_FILE="$STORE_DIR/status.json"
+
+# Account status format:
 # {
-#    "current_account": "account_name",
-#    "accounts": [
-#       "account1","account2",...
-#    ]
+#   "current_account": "account_name",
+#   "accounts": ["account1", "account2"]
 # }
-mkdir -p "$STORE_DIR"
-[ -f "$STATUS_FILE" ] || cat > "$STATUS_FILE" <<'JSON'
+
+mkdir -p "$STORE_DIR" "$CODEX_DIR"
+
+if [[ ! -f "$STATUS_FILE" ]]; then
+    cat > "$STATUS_FILE" <<'JSON'
 {
   "current_account": "",
   "accounts": []
 }
 JSON
+fi
+
+error() {
+    print -u2 -- "Error: $1"
+    exit "${2:-1}"
+}
 
 usage() {
-    echo "用法："
-    echo "  $0 save <name>   保存当前登录为 <name>"
-    echo "  $0 use  <name>   切换到 <name>"
-    echo "  $0 new  <name?>  登录新账号，如果提供<name>则自动store"
-    echo "  $0 list          列出所有账号"
-    exit 1
+    cat <<'EOF'
+Usage:
+  codex save <name>   Save the current account as <name>
+  codex use  <name>   Switch to a saved account
+  codex new  [name]   Log in to a new account, optionally saving it
+  codex list          List all saved accounts
+  codex help          Show help information
+
+All other commands are forwarded to Codex CLI.
+EOF
+    exit "${1:-1}"
+}
+
+confirm() {
+    local answer
+    read -r "answer?$1 [y/N]: " || return 1
+    [[ "$answer" == [yY] ]]
+}
+
+validate_name() {
+    local account="$1"
+
+    [[ "$account" =~ '^[a-zA-Z0-9]+$' ]] ||
+        error "Invalid account name: $account (only letters and digits are allowed)"
+}
+
+# Atomically copy a file to avoid partial writes.
+safe_copy() {
+    local source="$1"
+    local destination="$2"
+    local tmp="${destination}.tmp.$$"
+
+    [[ -f "$source" ]] || error "Source file not found: $source"
+
+    cp "$source" "$tmp" || error "Failed to copy: $source"
+    mv -f "$tmp" "$destination" || error "Failed to write: $destination"
+}
+
+# Atomically update account status.
+update_status() {
+    local filter="$1"
+    shift
+
+    local tmp="${STATUS_FILE}.tmp.$$"
+
+    if ! jq "$@" "$filter" "$STATUS_FILE" > "$tmp"; then
+        rm -f "$tmp"
+        error "Failed to update account status."
+    fi
+
+    mv -f "$tmp" "$STATUS_FILE"
+}
+
+current_account() {
+    jq -r '.current_account' "$STATUS_FILE"
+}
+
+add_account() {
+    local account="$1"
+
+    update_status '
+        .accounts |= (
+            if index($account) == null
+            then . + [$account]
+            else .
+            end
+        )
+    ' --arg account "$account"
+}
+
+update_current_account() {
+    local account="$1"
+
+    update_status \
+        '.current_account = $account' \
+        --arg account "$account"
 }
 
 store() {
-    [ -n "$1" ] || return 1
-    local target_path="$STORE_DIR/$1"
+    local account="$1"
+    validate_name "$account"
+
+    local target_path="$STORE_DIR/$account"
+    local auth_file="$CODEX_DIR/auth.json"
+
+    [[ -f "$auth_file" ]] || error "No active Codex authentication found."
+
     mkdir -p "$target_path"
-    if [ -f "$CODEX_DIR/auth.json" ]; then
-        cp "$CODEX_DIR/auth.json" "$target_path/auth.json"
-    else
-        echo "⚠️  当前 $CODEX_DIR/auth.json 不存在，跳过"
-        exit 1
-    fi
-    if [ -f "$CODEX_DIR/config.toml" ]; then
-        cp "$CODEX_DIR/config.toml" "$target_path/config.toml"
+
+    safe_copy "$auth_file" "$target_path/auth.json"
+
+    if [[ -f "$CODEX_DIR/config.toml" ]]; then
+        safe_copy "$CODEX_DIR/config.toml" "$target_path/config.toml"
     fi
 }
 
 restore() {
-    local target_path="$STORE_DIR/$1"
-    if [ -f "$target_path/auth.json" ]; then
-        cp "$target_path/auth.json" "$CODEX_DIR/auth.json"
-    else
-        echo "⚠️  当前 $target_path/auth.json 不存在，跳过"
-        exit 1
-    fi
-    if [ -f "$target_path/config.toml" ]; then
-        cp "$target_path/config.toml" "$CODEX_DIR/config.toml"
-    fi
-}
+    local account="$1"
+    validate_name "$account"
 
-error(){
-    echo "$1";
-    exit ${2:-1}
+    local target_path="$STORE_DIR/$account"
+
+    [[ -f "$target_path/auth.json" ]] ||
+        error "Saved account not found: $account"
+
+    safe_copy "$target_path/auth.json" "$CODEX_DIR/auth.json"
+
+    if [[ -f "$target_path/config.toml" ]]; then
+        safe_copy "$target_path/config.toml" "$CODEX_DIR/config.toml"
+    fi
 }
 
 stop_codex() {
-    timeout 5s codex app-server daemon stop || error "Codex is in use, stop all client first!"
-    return 0
-}
-start_codex() {
-    timeout 5s codex app-server daemon start || error "Start codex failed"
-    return 0
+    timeout 5s codex app-server daemon stop ||
+        error "Failed to stop Codex daemon. Close all Codex clients first."
 }
 
-add_account(){
-    local target_account="$1"
-    jq --arg account "$target_account" '
-  .accounts |= (
-    if index($account) == null
-    then . + [$account]
-    else .
-    end
-  )
-' "$STATUS_FILE" > "$STATUS_FILE.new" && mv -f "$STATUS_FILE.new" "$STATUS_FILE"
-}
-update_current_account(){
-    jq '.current_account="'"$1"'"' "$STATUS_FILE" > "$STATUS_FILE.new" && mv -f "$STATUS_FILE.new" "$STATUS_FILE"
+start_codex() {
+    timeout 5s codex app-server daemon start ||
+        error "Failed to start Codex daemon."
 }
 
 case "$cmd" in
     list)
-        local current_account=$(jq --raw-output '.current_account' "$STATUS_FILE")
-        if [ -z "$current_account" ]; then
-            echo "No current account"
+        current=$(current_account)
+
+        if [[ -z "$current" ]]; then
+            echo "Current account: none"
         else
-            echo "Current account: $current_account"
+            echo "Current account: $current"
         fi
-        echo "Avaliable accounts:"
-        jq '.accounts' "$STATUS_FILE"
-        exit $?
+
+        echo "Saved accounts:"
+        jq -r '.accounts[] | "  - \(.)"' "$STATUS_FILE"
         ;;
 
     save)
-        [ -n "$name" ] || usage
-        local current_account=$(jq --raw-output '.current_account' "$STATUS_FILE")
-        if [ -n "$current_account" ] && [ "$current_account" != "$name" ]; then
-            read -r "answer?Current account seems saved as $current_account, still save it as $name?[y/N]:"
-            if [[ "$answer" != [yY] ]]; then
+        [[ -n "$name" ]] || usage
+        validate_name "$name"
+
+        current=$(current_account)
+
+        if [[ -n "$current" && "$current" != "$name" ]]; then
+            confirm "Current account is '$current'. Save it as '$name' instead?" ||
                 exit 0
-            fi
         fi
-        local target_account="$name"
-        local target_path="$STORE_DIR/$target_account"
-        store "$target_account"
-        update_current_account "$target_account"
-        add_account "$target_account"
-        echo "✅ 已保存当前登录为账号: $target_account"
-        echo "   位置: $target_path"
-        exit $?
+
+        if [[ "$current" != "$name" &&
+              -f "$STORE_DIR/$name/auth.json" ]]; then
+            confirm "Account '$name' already exists. Overwrite its credentials?" ||
+                exit 0
+        fi
+
+        store "$name"
+        add_account "$name"
+        update_current_account "$name"
+
+        echo "Account saved successfully: $name"
+        echo "Location: $STORE_DIR/$name"
         ;;
 
     use)
-        [ -n "$name" ] || usage
-        local current_account=$(jq --raw-output '.current_account' "$STATUS_FILE")
-        local target_account="$name"
-        if [ "$current_account" = "$target_account" ];then
-            echo "Already using $current_account, do nothing"
+        [[ -n "$name" ]] || usage
+        validate_name "$name"
+
+        current=$(current_account)
+
+        if [[ "$current" == "$name" ]]; then
+            echo "Already using account: $name"
             exit 0
         fi
-        if [ -z "$current_account" ] && [ -f "$CODEX_DIR/auth.json" ]; then
-            read -r "answer?Current account is not saved, continue will lose it's auth [y/N]:"
-            if [[ "$answer" != [yY] ]]; then
+
+        [[ -f "$STORE_DIR/$name/auth.json" ]] ||
+            error "Account '$name' does not exist."
+
+        if [[ -z "$current" && -f "$CODEX_DIR/auth.json" ]]; then
+            confirm "The current account is not saved. Continue and discard its credentials?" ||
                 exit 0
-            fi
         fi
+
         stop_codex
-        [ -n "$current_account" ] && store "$current_account"
-        restore "$target_account"
-        update_current_account "$target_account"
+
+        if [[ -n "$current" ]]; then
+            store "$current"
+        fi
+
+        restore "$name"
+        update_current_account "$name"
+
         start_codex
-        exit 0
+
+        echo "Switched to account: $name"
         ;;
+
     new)
-        local current_account=$(jq --raw-output '.current_account' "$STATUS_FILE")
-        if [ -z "$current_account" ] && [ -f "$CODEX_DIR/auth.json" ]; then
-            read -r "answer?Current account is not saved, continue will lose it's auth [y/N]:"
-            if [[ "$answer" != [yY] ]]; then
-                exit 0
+        if [[ -n "$name" ]]; then
+            validate_name "$name"
+
+            if [[ -f "$STORE_DIR/$name/auth.json" ]]; then
+                error "Account '$name' already exists. Choose another name."
             fi
         fi
+
+        current=$(current_account)
+
+        if [[ -z "$current" && -f "$CODEX_DIR/auth.json" ]]; then
+            confirm "The current account is not saved. Continue and discard its credentials?" ||
+                exit 0
+        fi
+
         stop_codex
-        [ -n "$current_account" ] && store "$current_account"
-        rm "$CODEX_DIR/auth.json"
-        rm "$CODEX_DIR/config.toml"
+
+        if [[ -n "$current" ]]; then
+            store "$current"
+        fi
+
+        rm -f "$CODEX_DIR/auth.json"
         update_current_account ""
-        command codex login --device-auth || error "Codex not logined, please login first"
-        [ -n "$name" ] && store "$name" && add_account "$name" && update_current_account "$name"
-        exit 0
+
+        echo "Starting Codex device authentication..."
+
+        if ! command codex login --device-auth; then
+            error "Codex login failed. Run 'codex new' to retry."
+        fi
+
+        if [[ -n "$name" ]]; then
+            store "$name"
+            add_account "$name"
+            update_current_account "$name"
+            echo "New account saved: $name"
+        else
+            echo "Login successful. Use 'codex save <name>' to save this account."
+        fi
+
+        start_codex
         ;;
+
+    help)
+        command codex help
+        echo
+        echo "Additional account management commands:"
+        usage 0
+        ;;
+
     *)
         command codex "$@"
-        return $?
         ;;
 esac
