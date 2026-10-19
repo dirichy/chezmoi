@@ -202,10 +202,21 @@ codex_usage() {
 
   local i
   jq -r '
+    def limit_label($fallback):
+      if .windowDurationMins == 300 then
+        "5-hour limit"
+      elif .windowDurationMins == 10080 then
+        "Weekly limit"
+      elif (.windowDurationMins // 0) > 0 then
+        ((.windowDurationMins / 60) | floor | tostring) + "-hour limit"
+      else
+        $fallback
+      end;
+
     .result.rateLimits
     | [
-        ["5-hour limit", .primary],
-        ["Weekly limit", .secondary]
+        [(.primary | limit_label("5-hour limit")), .primary],
+        [(.secondary | limit_label("Weekly limit")), .secondary]
       ][]
     | select(.[1] != null)
     | [
