@@ -87,412 +87,95 @@ proxy-providers:
 # 若需修改请参阅文档 https://wiki.metacubex.one
 # --------------------------------------------------
 
+{{- define "fudan-rule" }}
+  {{ . }}:
+    type: http
+    behavior: domain
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/dirichy/mihomo_fudan_rule/refs/heads/main/{{ . }}.list"
+    path: ./rule_provider/{{ . }}.list
+{{- end }}
+{{- define "quixotic-rule" }}
+  {{ .name }}{{ .behavior }}:
+    type: http
+    interval: 600
+    behavior: {{ .behavior }}
+    format: text
+    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/{{ .behavior }}/{{ .name }}.list"
+    path: ./rule_provider/{{ .behavior }}/{{ .name }}.list
+{{- end }}
+{{- define "rule-domain" }}{{ template "quixotic-rule" (dict "name" . "behavior" "domain") }}{{ end }}
+{{- define "rule-ipcidr" }}{{ template "quixotic-rule" (dict "name" . "behavior" "ipcidr") }}{{ end }}
+
 # 规则订阅
 rule-providers:
+{{- template "fudan-rule" "fudan-direct" }}
+{{- template "fudan-rule" "fudan" }}
   # 秋风广告拦截规则
   # https://awavenue.top
   # 由于 Anti-AD 误杀率高，本项目已在 1.11-241024 版本更换秋风广告规则
-  fudan-direct:
-    type: http
-    behavior: domain
-    format: text
-    # path可为空(仅限clash.meta 1.15.0以上版本)
-    url: "https://ghfast.top/https://raw.githubusercontent.com/dirichy/mihomo_fudan_rule/refs/heads/main/fudan-direct.list"
-    path: ./rule_provider/fudan-direct.list
-  fudan:
-    type: http
-    behavior: domain
-    format: text
-    # path可为空(仅限clash.meta 1.15.0以上版本)
-    url: "https://ghfast.top/https://raw.githubusercontent.com/dirichy/mihomo_fudan_rule/refs/heads/main/fudan.list"
-    path: ./rule_provider/fudan.list
   AWAvenue-Ads:
     type: http
     behavior: domain
     format: yaml
-    # path可为空(仅限clash.meta 1.15.0以上版本)
     path: ./rule_provider/AWAvenue-Ads.yaml
     url: "https://ghfast.top/https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/refs/heads/main/Filters/AWAvenue-Ads-Rule-Clash-Classical.yaml"
     interval: 600
-  aidomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/ai.list"
-    # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/ai.list
-  apnsdomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/apns.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/apns.list
-  apnsipcidr:
-    type: http
-    interval: 600
-    behavior: ipcidr
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/apns.list"
-    path: ./rule_provider/ipcidr/apns.list
-  apple-cndomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/apple-cn.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/apple-cn.list
-  apple-proxydomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/apple-proxy.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/apple-proxy.list
-  appledomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/apple.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/apple.list
-  appleipcidr:
-    type: http
-    interval: 600
-    behavior: ipcidr
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/apple.list"
-    path: ./rule_provider/ipcidr/apple.list
-  cdndomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/cdn.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/cdn.list
-  cndomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/cn.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/cn.list
-  cnipcidr:
-    type: http
-    interval: 600
-    behavior: ipcidr
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/cn.list"
-    path: ./rule_provider/ipcidr/cn.list
-  bilibilidomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/bilibili.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/bilibili.list
-  bilibiliipcidr:
-    type: http
-    interval: 600
-    behavior: ipcidr
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/bilibili.list"
-    path: ./rule_provider/ipcidr/bilibili.list
-  dmcadomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/dmca.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/dmca.list
-  dmcaipcidr:
-    type: http
-    interval: 600
-    behavior: ipcidr
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/dmca.list"
-    path: ./rule_provider/ipcidr/dmca.list
-  dmmdomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/dmm.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/dmm.list
-  dmmipcidr:
-    type: http
-    interval: 600
-    behavior: ipcidr
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/dmm.list"
-    path: ./rule_provider/ipcidr/dmm.list
-  games-cndomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/games-cn.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/games-cn.list
-  gamesdomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/games.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/games.list
-  gamesipcidr:
-    type: http
-    interval: 600
-    behavior: ipcidr
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/games.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/ipcidr/games.list
-  ecommercedomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/ecommerce.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/ecommerce.list
-  ecommerceipcidr:
-    type: http
-    interval: 600
-    behavior: ipcidr
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/ecommerce.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/ipcidr/ecommerce.list
-  forumdomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/forum.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/forum.list
-  gfwdomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/gfw.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/gfw.list
-  gfwipcidr:
-    type: http
-    interval: 600
-    behavior: ipcidr
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/gfw.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/ipcidr/gfw.list
-  gitsdomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/gits.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/gits.list
-  googledomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/google.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/google.list
-  googleipcidr:
-    type: http
-    interval: 600
-    behavior: ipcidr
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/google.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/ipcidr/google.list
-  googlefcmdomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/googlefcm.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/googlefcm.list
-  googlefcmipcidr:
-    type: http
-    interval: 600
-    behavior: ipcidr
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/googlefcm.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/ipcidr/googlefcm.list
-  httpdnsdomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/httpdns.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/httpdns.list
-  httpdnsipcidr:
-    type: http
-    interval: 600
-    behavior: ipcidr
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/httpdns.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/ipcidr/httpdns.list
-  iplocation-proxydomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/iplocation-proxy.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/iplocation-proxy.list
-  iplocation-proxyipcidr:
-    type: http
-    interval: 600
-    behavior: ipcidr
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/iplocation-proxy.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/ipcidr/iplocation-proxy.list
-  iplocation-directdomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/iplocation-direct.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/iplocation-direct.list
-  microsoft-cndomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/microsoft-cn.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/microsoft-cn.list
-  microsoftdomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/microsoft.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/microsoft.list
-  onedrivedomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/onedrive.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/onedrive.list
-  paypaldomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/paypal.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/paypal.list
-  privatedomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/private.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/private.list
-  privateipcidr:
-    type: http
-    interval: 600
-    behavior: ipcidr
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/private.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/ipcidr/private.list
-  proxydomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/proxy.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/proxy.list
-  proxyipcidr:
-    type: http
-    interval: 600
-    behavior: ipcidr
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/proxy.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/ipcidr/proxy.list
-  socialmedia-cndomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/socialmedia-cn.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/socialmedia-cn.list
-  socialmedia-cnipcidr:
-    type: http
-    interval: 600
-    behavior: ipcidr
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/socialmedia-cn.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/ipcidr/socialmedia-cn.list
-  socialmediadomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/socialmedia.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/socialmedia.list
-  socialmediaipcidr:
-    type: http
-    interval: 600
-    behavior: ipcidr
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/socialmedia.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/ipcidr/socialmedia.list
-  speedtestdomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/speedtest.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/speedtest.list
-  spotifydomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/spotify.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/spotify.list
-  spotifyipcidr:
-    type: http
-    interval: 600
-    behavior: ipcidr
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/spotify.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/ipcidr/spotify.list
-  tiktokdomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/tiktok.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/tiktok.list
-  tld-proxydomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/tld-proxy.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/tld-proxy.list
-  youtubedomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/youtube.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/youtube.list
-  youtubeipcidr:
-    type: http
-    interval: 600
-    behavior: ipcidr
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/ipcidr/youtube.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/ipcidr/youtube.list
-  fake-ip-filterdomain:
-    type: http
-    interval: 600
-    behavior: domain
-    format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/domain/fake-ip-filter.list" # path可为空(仅限clash.meta 1.15.0以上版本)
-    path: ./rule_provider/domain/fake-ip-filter.list
+  # 使用对应类型的模板添加规则；provider 名保持为「规则名 + 类型」。
+{{- template "rule-domain" "ai" }}
+{{- template "rule-domain" "apns" }}
+{{- template "rule-ipcidr" "apns" }}
+{{- template "rule-domain" "apple-cn" }}
+{{- template "rule-domain" "apple-proxy" }}
+{{- template "rule-domain" "apple" }}
+{{- template "rule-ipcidr" "apple" }}
+{{- template "rule-domain" "cdn" }}
+{{- template "rule-domain" "cn" }}
+{{- template "rule-ipcidr" "cn" }}
+{{- template "rule-domain" "bilibili" }}
+{{- template "rule-ipcidr" "bilibili" }}
+{{- template "rule-domain" "dmca" }}
+{{- template "rule-ipcidr" "dmca" }}
+{{- template "rule-domain" "dmm" }}
+{{- template "rule-ipcidr" "dmm" }}
+{{- template "rule-domain" "games-cn" }}
+{{- template "rule-domain" "games" }}
+{{- template "rule-ipcidr" "games" }}
+{{- template "rule-domain" "ecommerce" }}
+{{- template "rule-ipcidr" "ecommerce" }}
+{{- template "rule-domain" "forum" }}
+{{- template "rule-domain" "gfw" }}
+{{- template "rule-ipcidr" "gfw" }}
+{{- template "rule-domain" "gits" }}
+{{- template "rule-domain" "google" }}
+{{- template "rule-ipcidr" "google" }}
+{{- template "rule-domain" "googlefcm" }}
+{{- template "rule-ipcidr" "googlefcm" }}
+{{- template "rule-domain" "httpdns" }}
+{{- template "rule-ipcidr" "httpdns" }}
+{{- template "rule-domain" "iplocation-proxy" }}
+{{- template "rule-ipcidr" "iplocation-proxy" }}
+{{- template "rule-domain" "iplocation-direct" }}
+{{- template "rule-domain" "microsoft-cn" }}
+{{- template "rule-domain" "microsoft" }}
+{{- template "rule-domain" "onedrive" }}
+{{- template "rule-domain" "paypal" }}
+{{- template "rule-domain" "private" }}
+{{- template "rule-ipcidr" "private" }}
+{{- template "rule-domain" "proxy" }}
+{{- template "rule-ipcidr" "proxy" }}
+{{- template "rule-domain" "socialmedia-cn" }}
+{{- template "rule-ipcidr" "socialmedia-cn" }}
+{{- template "rule-domain" "socialmedia" }}
+{{- template "rule-ipcidr" "socialmedia" }}
+{{- template "rule-domain" "speedtest" }}
+{{- template "rule-domain" "spotify" }}
+{{- template "rule-ipcidr" "spotify" }}
+{{- template "rule-domain" "tiktok" }}
+{{- template "rule-domain" "tld-proxy" }}
+{{- template "rule-domain" "youtube" }}
+{{- template "rule-ipcidr" "youtube" }}
+{{- template "rule-domain" "fake-ip-filter" }}
 
 mode: rule
 # ipv6 支持
