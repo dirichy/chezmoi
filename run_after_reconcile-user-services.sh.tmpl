@@ -1,3 +1,4 @@
+{{- if ne .chezmoi.command "diff" -}}
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -10,3 +11,4 @@ if [[ -x $service_helper ]]; then
     DOTFILES_MIHOMO_ENABLED={{ .apps.mihomo.enabled | quote }} \
         "$service_helper"
 fi
+{{ end -}}
