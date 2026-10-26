@@ -419,7 +419,7 @@ proxy-groups:
       name: 自动选择,
       <<: *use,
       type: url-test,
-      exclude-filter: "免费|下载专用",
+      exclude-filter: "免费|下载专用|新加坡",
     }
   - { name: 广告拦截, type: select, proxies: [REJECT, DIRECT, 默认节点] }
   - { name: 境外AI, <<: *pr }
