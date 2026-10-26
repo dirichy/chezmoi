@@ -24,6 +24,9 @@ local postfix = require("luasnip.extras.postfix").postfix
 local types = require("luasnip.util.types")
 local parse = require("luasnip.util.parser").parse_snippet
 local ms = ls.multi_snippet
+local function never()
+	return false
+end
 
 -- vim.keymap.set("i", "<CR>", function()
 -- 	local node = require("luasnip").session.current_nodes[vim.api.nvim_get_current_buf()]
@@ -56,6 +59,7 @@ local M = make_snip({ { "(", ")" }, { "[", "]" }, { "{", "}" }, { '"', '"' }, { 
 	condition = function()
 		return vim.bo.filetype ~= "tex"
 	end,
+	show_conditon = never,
 })
 make_snip({
 	{
@@ -65,6 +69,7 @@ make_snip({
 			condition = function()
 				return vim.bo.filetype == "tex" and require("nvimtex.conditions.luasnip").in_text()
 			end,
+			show_conditon = never,
 		},
 	},
 	{ "{", "}" },
