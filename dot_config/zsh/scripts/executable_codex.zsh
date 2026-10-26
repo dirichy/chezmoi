@@ -40,11 +40,11 @@ error() {
 usage() {
   cat <<'EOF'
 Usage:
-  codex save <name>   Save the current account as <name>
-  codex use  <name>   Switch to a saved account
-  codex new  [name]   Log in to a new account, optionally saving it
-  codex list          List all saved accounts
-  codex help          Show help information
+  codex save/store <name>   Save the current account as <name>
+  codex use  <name>         Switch to a saved account
+  codex new  [name]         Log in to a new account, optionally saving it
+  codex list/status         List all saved accounts
+  codex help                Show help information
 
 All other commands are forwarded to Codex CLI.
 EOF

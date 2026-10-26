@@ -12,10 +12,6 @@
 
 本报告之后已经完成的相关改动：
 
-- `gopass-safe` 已移至 `tools/gopass-safe`，并更新 Chezmoi 模板调用路径及忽略规则。
-- 旧 `kmap` 目录已删除，公共窗口、workspace、应用启动和截图绑定已迁移到 `wmux`。
-- wmux 的 Hyprland backend 已支持应用条件、优先级分派和 `createmod` 的 fallback modifier；Karabiner、Hammerspoon、Hyprland 和 keyd backend 使用统一绑定 API。
-- `Alt+a/c/v/x` 和终端 `Alt+n` 已移到 `dot_config/hypr/shortcuts.lua`，由 Hyprland 与 keyd 配置共同使用。
 - warning 已改为写入 `$XDG_STATE_HOME/wmux/warnings.log` 或 `$HOME/.local/state/wmux/warnings.log`，不再写入 stderr。
 - Hyprlua 旧目录、TCP IPC、systemd 服务和命令已删除；因此下列直接针对旧 Hyprlua IPC/初始化/事件总线的条目已通过移除旧实现解决。Waybar 的 Hyprlua 亮度 backend、Sunshine 调用和 Neovim 残留调用也已切换或删除。
 
@@ -27,11 +23,11 @@
 
 文件：`dot_config/hypr/keyd.lua:8-12`、`dot_config/hypr/hyprland.lua`、`README.md` 的相关说明
 
-`keyd.lua` 现在已使用 wmux 的 keyd backend，并通过 `window.active` 动态执行 `keyd bind reset`。它仍不是 Hyprland 主配置自动加载的模块，必须确认 keyd 服务或启动脚本实际加载 `keyd.lua`；同时应区分静态 `default.conf` 和运行时 `keyd bind` 生成的绑定格式，不能直接把运行时输出当作静态配置语法。
+`keyd.lua` 现在已使用 wmux 的 keyd backend，并通过 `window.active` 动态执行 `keyd bind reset`。它仍不是 Hyprland 主配置自动加载的模块，必须确认 keyd 服务或启动脚本实际加载 `keyd.lua`；同时应区分静态 `physical.conf` 和运行时 `keyd bind` 生成的绑定格式，不能直接把运行时输出当作静态配置语法。
 
 ### 1. 安装脚本启用的服务与仓库内容不完全对应
 
-文件：`run_onchange_after_install-packages-archlinux.sh.tmpl` 的 `module_desktop`、`dot_config/systemd/user/`
+文件：`run_onchange_after_install-packages-linux.sh.tmpl` 的 `module_desktop`、`dot_config/systemd/user/`
 
 Arch 安装模块会启用 `hyprpaper`、`hypridle`、`waybar` 等用户服务，但仓库中没有对应的 service 文件，行为依赖系统包是否提供同名 unit。若这些服务是刻意依赖发行版提供，应在脚本中先检测 unit 是否存在并给出清晰提示；若由本仓库管理，则应补充启用逻辑。空的 `module_proxy()` 也被 profile 调用，容易让人误以为代理依赖已经安装。
 

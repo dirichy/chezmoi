@@ -1,3 +1,4 @@
+{{- /* TODO(test): add a fixture-controlled battery-present branch when Linux laptop support is needed. */ -}}
 {{- $hasBattery := gt (len (glob "/sys/class/power_supply/BAT*")) 0 -}}
 {
   "layer": "top",

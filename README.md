@@ -59,7 +59,8 @@
 | `administrator on this machine` | 是否具备管理员权限；无权限选 `false`，缺失依赖需要自行准备 |
 | `package install command` | Linux 确认包管理命令；留空则只提示手动安装缺失包。macOS 安装脚本固定使用 Homebrew |
 | `install modules` | 仅 `custom` 询问，填写逗号分隔模块；Linux 支持 `core,shell,system,font-and-im,desktop,proxy,apps,dev,latex,nvidia,extra`，macOS 支持 `core,shell,font-and-im,proxy,desktop,dev,extra` |
-| `proxy address host:port` | 可用的代理地址；不用代理则留空 |
+| `use proxy for shell and desktop apps` | 是否让 shell、Hyprland 和系统代理使用代理地址，默认关闭；与 Mihomo 的安装和服务启用相互独立 |
+| `proxy address host:port` | 启用代理使用开关时填写代理地址，默认 `127.0.0.1:7890` |
 | `input method profile` | `tiger` 或 `flypy` |
 | `enable fdu-connect` | 需要复旦 VPN 才选 `true`，还需准备账号 secret |
 | `Waybar hostname symbol` | 状态栏显示的主机标识，默认主机名 |
@@ -90,6 +91,7 @@
 - Linux 手机 idle 检测调用 `sudo l2ping`，需无需交互即可运行；壁纸脚本读取 `~/Pictures/wallpaper`，还需确认 hyprpaper 使用的壁纸存在。远程机器需要退出登录后仍运行 user service 时，另行配置 linger。
 - macOS 安装清单不含 Fcitx5.app、Yabai、AeroSpace 和 Alfred。`fcitx5-remote` 链接依赖上述 app 安装位置；Rime 大词库 external 目前只为 Linux Fcitx5 下载。当前 wmux 的 macOS 窗口操作使用 Yabai，`yabairc` 会调用 `sudo yabai --load-sa`。
 - 服务确认被拒绝或在非交互环境中跳过后，可在新 Zsh 中运行 `chezmoi x services --check` 检查、`chezmoi x services` 补做；其他 shell 直接运行 source 中的 `ignore/bin/dotfiles-services`。Linux 管理 config-share、FDU Connect、later；macOS 管理 config-share、FDU Connect、Mihomo。
+- 服务协调脚本在 `chezmoi diff` 时渲染为空，避免每次显示产生噪声；`chezmoi apply` 时仍会正常检查并按需确认服务启停。
 - 配置共享可能包含订阅凭据，CIDR 应只允许自己的客户端访问。系统代理与 shell 代理变量需要分别配置。
 
 ### 日常更新
@@ -132,7 +134,8 @@ git commit
 - `name`: Git 用户名
 - `email`: Git 邮箱
 - `inputMethod`: 输入法方案，目前可选 `tiger` 或 `flypy`
-- `proxy.address`: 网络代理地址。启用 proxy 模块时默认 `127.0.0.1:7890`，否则默认空
+- `features.proxy`: 是否让 shell、Hyprland 和系统代理使用代理地址，默认关闭；不控制 Mihomo 的安装、配置或服务
+- `proxy.address`: 启用代理使用开关时采用的网络代理地址，默认 `127.0.0.1:7890`；关闭时为空且不会询问地址
 - `inputMethod`: 输入法方案，例如 `tiger` 或 `flypy`
 - `fduConnect`: 是否启用复旦 VPN 配置
 - `phoneBluetoothMac`: 用于 Hyprland idle 判断是否在家
