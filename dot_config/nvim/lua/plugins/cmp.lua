@@ -66,8 +66,18 @@ return {
 			},
 		},
 		completion = {
+			documentation = {
+				auto_show = true,
+				auto_show_delay_ms = 200,
+			},
+
 			menu = {
 				draw = {},
+			},
+			accept = {
+				auto_brackets = {
+					blocked_filetypes = { "gotmpl" },
+				},
 			},
 		},
 		cmdline = {
@@ -97,8 +107,13 @@ return {
 		-- elsewhere in your config, without redefining it, due to `opts_extend`(
 		snippets = { preset = "luasnip" },
 		sources = {
-			default = { "lsp", "path", "snippets", "buffer", "nvimtex", "math" },
+			default = { "lsp", "path", "snippets", "buffer", "nvimtex", "math", "vimoi" },
 			providers = {
+				vimoi = {
+					module = "vimoi.blink",
+					score_offset = 1,
+					name = "vimoi",
+				},
 				-- nerdfont = {
 				-- 	module = "blink-nerdfont",
 				-- 	name = "Nerd Fonts",

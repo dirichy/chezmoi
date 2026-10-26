@@ -76,7 +76,13 @@
 {{- end -}}
 [merge]
 command = "nvim"
-args = ["-d", "{{ "{{ .Destination }}" }}", "{{"{{ .Source }}"}}"]
+args = [
+    "-c",
+    "lua require('vimoi.api').diff_files(vim.fn.argv(0), vim.fn.argv(1))",
+    "--",
+    "{{"{{ .Source }}"}}",
+    "{{ "{{ .Destination }}" }}"
+]
 [data]
 name = {{ ( promptStringOnce . "name" "name" ) | quote }}
 email = {{ ( promptStringOnce . "email" "email" ) | quote }}
