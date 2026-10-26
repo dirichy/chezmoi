@@ -13,6 +13,9 @@ set -g display-time 1500
 set -g remain-on-exit off
 set -g repeat-time 300
 setw -g automatic-rename off
+set-option -a terminal-features 'xterm*:extkeys'
+set -s extended-keys on
+set -s extended-keys-format csi-u
 
 # Keep tmux terminal-only even when its server was started from a desktop
 # session. This makes pinentry select a terminal backend for local and remote
