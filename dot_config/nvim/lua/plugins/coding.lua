@@ -105,7 +105,7 @@ return {
 					cuda = { "clang-format" },
 					json = { "jq" },
 					jsonc = { "prettierd" },
-					zsh = { "beautysh" },
+					zsh = { "shfmt" },
 					html = { "prettierd" },
 					yaml = { "prettierd" },
 					liquid = function(buffer)
