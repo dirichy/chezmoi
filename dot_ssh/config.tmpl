@@ -8,6 +8,11 @@
 
 Include ~/.ssh/config.d/*.conf
 
+Host github
+    Hostname github.com
+    User git
+    Port 22
+
 Host *
     ControlMaster auto
     ControlPath ~/.ssh/control-%r@%h:%p
