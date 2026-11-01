@@ -1,0 +1,60 @@
+return {
+	{
+		vim.fn.isdirectory(vim.env.HOME .. "/flash-any.nvim/") == 0 and "dirichy/flash-any.nvim",
+		dir = vim.fn.isdirectory(vim.env.HOME .. "/flash-any.nvim/") == 1 and vim.env.HOME .. "/flash-any.nvim",
+		dependencies = { "folke/flash.nvim" },
+		opts = {
+			sources = {
+		{{- if eq .inputMethod "tiger"}}
+				{ name = "tiger", strategy = "top_force", max_length = 4 },
+    {{- else if eq .inputMethod "flypy"}}	
+				{ name = "flypy"},
+		{{- end }}
+				"nerdfont",
+				"unicode",
+			},
+		},
+		keys = {
+			{
+				"s",
+				mode = { "n", "o" },
+				function()
+					require("flash").treesitter()
+				end,
+				desc = "flash treesitter",
+			},
+			{
+				"r",
+				mode = "o",
+				function()
+					require("flash").remote()
+				end,
+				desc = "remote flash",
+			},
+			{
+				"r",
+				mode = { "o", "x" },
+				function()
+					require("flash").treesitter_search()
+				end,
+				desc = "treesitter search",
+			},
+			{
+				"<c-s>",
+				mode = { "c" },
+				function()
+					require("flash").toggle()
+				end,
+				desc = "toggle flash search",
+			},
+			{
+				"s",
+				mode = { "n", "x", "o" },
+				function()
+					require("flash-any").jump()
+				end,
+				desc = "flash any",
+			},
+		},
+	},
+}
