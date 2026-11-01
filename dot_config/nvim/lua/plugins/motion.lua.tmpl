@@ -7,8 +7,15 @@ return {
 			sources = {
 		{{- if eq .inputMethod "tiger"}}
 				{ name = "tiger", strategy = "top_force", max_length = 4 },
-    {{- else if eq .inputMethod "flypy"}}	
-				{ name = "flypy"},
+    {{- else if eq .inputMethod "flypy"}}
+				{
+					name = "pinyin",
+					scheme = "flypy",
+					fuzzy = {
+						initials = { { "l", "n" } },
+						finals = { { "ing", "in" }, { "eng", "en" }, { "un", "ong" } },
+					},
+				},
 		{{- end }}
 				"nerdfont",
 				"unicode",
