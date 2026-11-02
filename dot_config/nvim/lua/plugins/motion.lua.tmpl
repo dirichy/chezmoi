@@ -6,7 +6,7 @@ return {
 		opts = {
 			sources = {
 		{{- if eq .inputMethod "tiger"}}
-				{ name = "tiger", strategy = "top_force", max_length = 4 },
+				{ name = "tiger", append_space_below = 4 },
     {{- else if eq .inputMethod "flypy"}}	
 				{ name = "flypy"},
 		{{- end }}
@@ -14,30 +14,27 @@ return {
 				"unicode",
 			},
 		},
+		config = function(_, opts)
+			require("flash").setup({
+				modes = {
+					char = {
+						matcher = function(win, state, range)
+							return require("flash-any").char(win, state, range)
+						end,
+						-- multi_line = false, -- 只匹配当前行
+					},
+				},
+			})
+			require("flash-any").setup(opts)
+		end,
 		keys = {
-			{
-				"s",
-				mode = { "n", "o" },
-				function()
-					require("flash").treesitter()
-				end,
-				desc = "flash treesitter",
-			},
 			{
 				"r",
 				mode = "o",
 				function()
-					require("flash").remote()
+					require("flash-any").remote()
 				end,
 				desc = "remote flash",
-			},
-			{
-				"r",
-				mode = { "o", "x" },
-				function()
-					require("flash").treesitter_search()
-				end,
-				desc = "treesitter search",
 			},
 			{
 				"<c-s>",
