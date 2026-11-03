@@ -115,8 +115,9 @@ end
 
 function M.send_key(key, mods)
 	key = normalize_key(key)
-	hl.dispatch(hl.dsp.send_key_state({ mods = mod2string(mods), key = key, state = "down" }))
-	hl.dispatch(hl.dsp.send_key_state({ mods = mod2string(mods), key = key, state = "up" }))
+	hl.dispatch(hl.dsp.send_shortcut({ mods = mod2string(mods), key = key }))
+	-- hl.dispatch(hl.dsp.send_key_state({ mods = mod2string(mods), key = key, state = "down" }))
+	-- hl.dispatch(hl.dsp.send_key_state({ mods = mod2string(mods), key = key, state = "up" }))
 end
 
 local function normalize_action(fn)
@@ -177,7 +178,7 @@ local function bind_key(key, mod, opts)
 		string_key = string_key .. " + "
 	end
 	string_key = string_key .. key
-	local bucket_key = string_key .. "\0" .. opts_key(opts)
+	local bucket_key = string_key --.. "\0" .. opts_key(opts)
 	if not M.bindlist[bucket_key] then
 		M.bindlist[bucket_key] = {}
 		hl.bind(string_key, function()

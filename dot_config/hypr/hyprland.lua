@@ -40,7 +40,7 @@ hl.config({
 
 	decoration = {
 		rounding = 0,
-		rounding_power = 0,
+		rounding_power = 1,
 		-- Change transparency of focused and unfocused windows
 		active_opacity = 1.0,
 		inactive_opacity = 0.95,
@@ -229,10 +229,10 @@ local winmod = SUPER
 local sysmod = SUPER + CTRL
 kmap.bind("backspace", winmod, wm.move_to_space(11))
 kmap.bind("backspace", winmod + SHIFT, wm.move_win_to_space(11))
-kmap.bind("mouse:272", winmod, hl.dsp.window.drag(), nil, nil, { mouse = true })
-kmap.bind("mouse:273", winmod, hl.dsp.window.resize(), nil, nil, { mouse = true })
-kmap.bind("mouse:272", winmod, hl.dsp.window.fullscreen(), nil, nil, { mouse = true, click = true })
-kmap.bind("mouse:273", winmod, hl.dsp.window.float(), nil, nil, { mouse = true, click = true })
+hl.bind("SUPER + mouse:272", hl.dsp.window.drag(), { mouse = true })
+hl.bind("SUPER + mouse:273", hl.dsp.window.resize(), { mouse = true })
+hl.bind("SUPER + mouse:272", hl.dsp.window.fullscreen(), { click = true })
+hl.bind("SUPER + mouse:273", hl.dsp.window.float(), { click = true })
 hl.bind("SUPER + p", hl.dsp.window.pin())
 hl.bind("XF86AudioRaiseVolume", function()
 	require("volume").accelerate_raise()
@@ -282,7 +282,7 @@ hl.on("window.open", function(win)
 	end
 end)
 hl.on("window.active", function(win)
-	local class = win.class or ""
+	local class = win and win.class or ""
 	if class:match("^steam_app") then
 		if restore_repeat_rate == 0 then
 			restore_repeat_rate = hl.get_config("input.repeat_rate")
@@ -302,8 +302,10 @@ end)
 hl.on(
 	"workspace.active",
 	util.debounce(function(space)
-		local id = space.id
-		hl.exec_cmd("hyprctl hyprpaper wallpaper ,~/wallpaper/wallpaper" .. tostring(id) .. ".JPG")
+		local id = space and space.id
+		if id then
+			hl.exec_cmd("hyprctl hyprpaper wallpaper ,~/wallpaper/wallpaper" .. tostring(id) .. ".JPG")
+		end
 	end, 200, true)
 )
 require("window_focus_guard")
