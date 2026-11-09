@@ -36,28 +36,12 @@ local function copy_diagnostics()
 		vim.notify(string.format("Line %d has no diagnostics.", lnum))
 		return
 	end
+	local register = vim.v.register
 
 	table.sort(diagnostics, function(a, b)
 		return a.severity < b.severity
 	end)
 
-	-- so which diagnostic to choose
-	local result
-
-	-- 1. take wharever appears first
-	result = vim.trim(diagnostics[1].message)
-
-	-- 2. just concatenate everything
-	result = vim.iter(diagnostics)
-		:map(function(diag)
-			return vim.trim(diag.message)
-			-- you may want to prefix with severity
-			-- local prefix = diag.severity == vim.diagnostic.severity.ERROR and 'ERROR: ' or 'WARNING: '
-			-- return prefix .. vim.trim(diag.message)
-		end)
-		:join("\r\n")
-
-	-- 3. use vim.ui.select
 	vim.ui.select(diagnostics, {
 		prompt = "Select diagnostic:",
 		format_item = function(diag)
@@ -65,15 +49,14 @@ local function copy_diagnostics()
 			return string.format("%s: [%s] %s (%s)", severity, diag.code, vim.trim(diag.message), diag.source)
 		end,
 	}, function(choice)
-		if choice then
-			result = vim.trim(choice.message)
+		if not choice then
+			return
 		end
-	end)
 
-	if result then
-		vim.fn.setreg(vim.v.register, result)
-		vim.notify(string.format("Yank diagnostic to register `%s`: %s", vim.v.register, result))
-	end
+		local result = vim.trim(choice.message)
+		vim.fn.setreg(register, result)
+		vim.notify(string.format("Yank diagnostic to register `%s`: %s", register, result))
+	end)
 end
 vim.keymap.set("n", "dy", copy_diagnostics, { desc = "Yank diagnostic" })
 -- local parser_config = require("nvim-treesitter.parsers").get_parser_configs()
