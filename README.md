@@ -409,6 +409,13 @@ Neovim 配置在 `dot_config/nvim`：
 - 支持 LuaRocks 路径
 - `PROF=1 nvim` 可启用 snacks profiler
 
+Kitty 的 scrollback 使用 [kitty-scrollback.nvim](https://github.com/mikesmithgh/kitty-scrollback.nvim)，
+保留 `Ctrl+f` 后按 `Esc` 的入口，并关闭插件默认 Neovim 键位。插件由 lazy.nvim 在首次启动时安装；
+复制后打开的编辑窗中，`:w` 保持粘贴回 Kitty 的行为，`:q` 将编辑窗全文复制到系统剪贴板并退出整个 scrollback。
+Kitty 通过 action alias 调用 `~/.local/share/nvim/lazy/kitty-scrollback.nvim/python/kitty_scrollback_nvim.py`，
+自定义 `XDG_DATA_HOME` / `NVIM_APPNAME` 时需同步调整此路径。要求 Kitty >= 0.43.0、Neovim >= 0.10。
+应用配置并安装插件后，完全退出并重新打开 Kitty，使 `listen_on` 生效，再运行 `:KittyScrollbackCheckHealth` 检查。
+
 常用命令：
 
 ```bash

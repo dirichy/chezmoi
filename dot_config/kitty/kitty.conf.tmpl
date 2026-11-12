@@ -126,16 +126,19 @@ enabled_layouts splits,stack
 # Tmux-like copy mode: use Neovim as the scrollback pager.
 scrollback_pager nvim --cmd 'set clipboard=unnamedplus' --cmd 'set eventignore=FileType' +'nnoremap q ZQ' +'call nvim_open_term(0, {})' +'set nomodified nolist' +'$' -
 
+# Keep existing scrollback mappings, but launch kitty-scrollback.nvim instead.
+action_alias show_scrollback kitten {{ joinPath .chezmoi.homeDir ".local" "share" "nvim" "lazy" "kitty-scrollback.nvim" "python" "kitty_scrollback_nvim.py" }}
+
 # Shell integration enables prompt jumps, command-output browsing, and cwd-aware
 # new windows. `no-cursor` is worth trying if prompt cursor shape changes annoy.
 # notify_on_cmd_finish never
 
-# Required for leader mappings that temporarily show/hide the tab bar.
+# Required for leader mappings and kitty-scrollback.nvim.
 allow_remote_control yes
+listen_on unix:/tmp/kitty
 watcher {{ joinPath .chezmoi.homeDir ".config" "kitty" "im-control.py" }}
 
 # Safer alternatives if remote control ever needs to be exposed beyond local TTY.
-# listen_on unix:@kitty
 # remote_control_password
 
 # C-f is the tmux prefix in ~/.config/tmux/tmux.conf. In kitty, use it as a
