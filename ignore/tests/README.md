@@ -17,12 +17,15 @@ It checks:
 - rendering of every managed file and template in those profiles;
 - macOS LaunchAgent plist parsing, Karabiner JSON, and rendered installer Zsh syntax;
 - Linux and macOS service lifecycle behavior through mocks on either platform;
+- the macOS systemctl wrapper with native `plutil` on macOS only (service calls remain mocked);
 - desktop CLI integration through deterministic commands in `mock-bin`;
 - the caller-provided fallback contract of the chezmoi-only `hyprctl-safe` helper;
 - Bash syntax for non-template shell scripts;
 - Lua syntax when `luac` is available.
 
 Required dependencies are `chezmoi`, Bash and Python 3; macOS checks also use
-Zsh. `luac` is optional. GUI authorization, application behavior and real service
+Zsh and the system-provided `plutil`. Linux skips checks that require native macOS
+tools; fully mocked service logic still runs on both platforms. `luac` is optional.
+GUI authorization, application behavior and real service
 startup still require manual verification on the corresponding platform. Add behavioral
 assertions to `test.sh` whenever a profile gains or loses an important file.
