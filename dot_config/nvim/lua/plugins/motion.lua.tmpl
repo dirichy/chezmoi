@@ -2,7 +2,8 @@ return {
 	{
 		vim.fn.isdirectory(vim.env.HOME .. "/flash-any.nvim/") == 0 and "dirichy/flash-any.nvim",
 		dir = vim.fn.isdirectory(vim.env.HOME .. "/flash-any.nvim/") == 1 and vim.env.HOME .. "/flash-any.nvim",
-		dependencies = { "folke/flash.nvim" },
+		dependencies = { "folke/flash.nvim", "dirichy/flash-any-pinyin.nvim" },
+		build = "make",
 		opts = {
 			sources = {
 		{{- if eq .inputMethod "tiger"}}
@@ -17,8 +18,6 @@ return {
 					},
 				},
 		{{- end }}
-				"nerdfont",
-				"unicode",
 			},
 		},
 		config = function(_, opts)

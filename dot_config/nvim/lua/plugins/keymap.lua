@@ -5,7 +5,7 @@ return {
 		lazy = false,
 		config = function()
 			local keyflow = require("keyflow")
-			keyflow.mode.new({
+			keyflow.mode({
 				name = "Vitual move cursor",
 				vimmode = "n",
 				trigger = "g",
@@ -17,7 +17,7 @@ return {
 				},
 				hint = true,
 			})
-			keyflow.mode.new({
+			keyflow.mode({
 				name = "Move Screen",
 				vimmode = "n",
 				trigger = "z",
@@ -33,7 +33,7 @@ return {
 				},
 				hint = true,
 			})
-			keyflow.mode.new({
+			keyflow.mode({
 				name = "Marco mode",
 				vimmode = "n",
 				trigger = "<leader>@",
