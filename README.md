@@ -396,6 +396,7 @@ Tmux 配置在 `dot_config/tmux`：
 - Vim 风格 pane 导航
 - fzf session switcher
 - 通用 `copy` wrapper，优先使用系统剪贴板，并以 OSC 52 支持 tmux/SSH
+- `copy` 的 OSC 52 输入超过 64 KiB 时先确认并显示输入大小；优先使用通用 `dialog` / `whiptail`，未安装时退回终端 `[y/N]` 提示，默认取消。tmux 中在独立 popup 内确认；无可用交互终端或 popup 打开失败时取消。确认后流式编码、发送全文，wrapper 不再截断，但仍受接收终端的大小限制。系统剪贴板与远程 tunnel 后端不受影响，Neovim 内置 OSC 52 不经过此 wrapper。
 - btm popup
 - activity notification
 

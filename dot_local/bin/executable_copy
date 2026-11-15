@@ -16,6 +16,57 @@ copy_to() {
 	fi
 }
 
+show_confirmation() {
+	local dialog_cmd=$1 description=$2 tty_path=$3 reply=
+	if ! { exec 3<>"$tty_path"; } 2>/dev/null; then
+		printf 'copy: OSC 52 confirmation requires an interactive terminal\n' >&2
+		return 1
+	fi
+	if [ -n "$dialog_cmd" ]; then
+		"$dialog_cmd" --title 'OSC 52 clipboard copy' --defaultno \
+			--yesno "$description" 10 68 <&3 >&3 2>&3
+		return $?
+	fi
+
+	# Hosts without dialog/whiptail still require explicit confirmation.
+	printf '%s [y/N] ' "$description" >&3
+	IFS= read -r reply <&3 || return 1
+	case $reply in
+		y|Y|yes|YES) return 0 ;;
+		*) return 1 ;;
+	esac
+}
+
+confirm_osc52() {
+	local dialog_cmd= description= tty_path=
+	description="Copy $input_bytes bytes via OSC 52?"
+	description="$description Large transfers may briefly stall the terminal."
+	if command_exists dialog; then
+		dialog_cmd=$(command -v dialog)
+	elif command_exists whiptail; then
+		dialog_cmd=$(command -v whiptail)
+	fi
+
+	if [ -n "${TMUX:-}" ] && command_exists tmux; then
+		# copy-pipe runs in the background. Give the prompt its own TTY so the
+		# pane's shell/TUI cannot consume the confirmation keys or redraw over it.
+		{
+			printf '%s\n' '#!/usr/bin/env bash' 'set -euo pipefail'
+			declare -f show_confirmation
+			printf '%s\n' 'show_confirmation "$1" "$2" /dev/tty && : >"$3"'
+		} >"$work_dir/confirm.sh"
+		tmux display-popup -E -w 76 -h 14 -t "${TMUX_PANE:-}" \
+			"$BASH" "$work_dir/confirm.sh" "$dialog_cmd" "$description" "$work_dir/confirmed" \
+			|| return 1
+		# Closing the popup, ESC, or a tool error must never approve the copy.
+		[ -f "$work_dir/confirmed" ]
+		return $?
+	fi
+
+	tty_path=${SSH_TTY:-/dev/tty}
+	show_confirmation "$dialog_cmd" "$description" "$tty_path"
+}
+
 if command_exists pbcopy; then
 	copy_to pbcopy
 	exit
@@ -56,28 +107,39 @@ if [ -n "${TMUX:-}" ] && command_exists tmux; then
 	[ "$use_osc52" != off ] || exit 1
 fi
 
-input=$(mktemp "${TMPDIR:-/tmp}/copy.XXXXXX")
-trap 'rm -f -- "$input"' EXIT
+work_dir=$(mktemp -d "${TMPDIR:-/tmp}/copy.XXXXXX")
+input="$work_dir/input"
+trap 'rm -f -- "$input" "$work_dir/confirm.sh" "$work_dir/confirmed"; rmdir -- "$work_dir"' EXIT
 if [ "${#input_files[@]}" -gt 0 ]; then
 	cat -- "${input_files[@]}" >"$input"
 else
 	cat >"$input"
 fi
 
-max_bytes=74994
 input_bytes=$(wc -c <"$input")
-if [ "$input_bytes" -gt "$max_bytes" ]; then
-	printf 'copy: input truncated by %d bytes for OSC 52\n' "$((input_bytes - max_bytes))" >&2
+if [ "$input_bytes" -gt 65536 ]; then
+	if ! confirm_osc52; then
+		printf 'copy: OSC 52 copy cancelled\n' >&2
+		exit 1
+	fi
 fi
 
-payload=$(head -c "$max_bytes" "$input" | base64 | tr -d '\r\n')
-osc=$(printf '\033]52;c;%s\a' "$payload")
-
-if [ -n "${TMUX:-}" ]; then
-	esc=$'\033'
-	tmux_payload=${osc//$esc/$esc$esc}
-	osc=$(printf '\033Ptmux;%s\033\\' "$tmux_payload")
-fi
+emit_osc52() {
+	local status=0
+	if [ -n "${TMUX:-}" ]; then
+		printf '\033Ptmux;\033\033]52;c;'
+	else
+		printf '\033]52;c;'
+	fi
+	# Stream the entire file once; Base64 contains no ESC bytes to escape for tmux.
+	base64 <"$input" | tr -d '\r\n' || status=$?
+	# Close the control sequence even if the encoder fails partway through.
+	printf '\a'
+	if [ -n "${TMUX:-}" ]; then
+		printf '\033\\'
+	fi
+	return "$status"
+}
 
 target_tty=${SSH_TTY:-}
 if [ -z "$target_tty" ] && [ -n "${TMUX_PANE:-}" ] && command_exists tmux; then
@@ -88,7 +150,7 @@ if [ -z "$target_tty" ] && [ -t 2 ]; then
 fi
 
 if [ -n "$target_tty" ] && [ -w "$target_tty" ]; then
-	printf '%s' "$osc" >"$target_tty"
+	emit_osc52 >"$target_tty"
 else
-	printf '%s' "$osc"
+	emit_osc52
 fi
