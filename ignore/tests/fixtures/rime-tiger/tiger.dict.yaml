@@ -1,0 +1,14 @@
+name: tiger
+version: "fixture"
+sort: by_weight
+...
+的	u	1000
+一	f	255
+一	fi	0
+来	abcd	1000
+如	efgh	1000
+𠮷	ijkl	1000
+甲	aaab	1000
+乙	aaab	900
+组词	z	2000
+Rime	lmno	1000

@@ -31,7 +31,7 @@ lua_unicode_display_filter = require("unicode_display")  -- unicode显示滤镜
         io.close(f)
     end
 ]]
-    
+
 local function C2U(char)
     local unicode_d = utf8.codepoint(char)
     local unicode_h = string.format('%x', unicode_d)

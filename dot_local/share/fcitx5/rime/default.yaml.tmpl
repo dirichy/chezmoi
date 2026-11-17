@@ -7,12 +7,14 @@ schema_list:
   # - schema: lufs_flypy # 小鹤双拼
   {{- if eq .inputMethod "tiger" }}
   - schema: tiger
+  - schema: tiger_full
   - schema: rime_ice
   - schema: rime_ice_full
   {{- else}}
   - schema: rime_ice
   - schema: rime_ice_full
   - schema: tiger
+  - schema: tiger_full
   {{- end}}
   # - schema: tigress
   # - schema: PY_c
@@ -27,11 +29,7 @@ switcher:
   caption: "[方案菜单]"
   hotkeys:
     - F4
-  save_options:
-    # - full_shape
-    # - ascii_punct
-    # - traditionalization
-    # - emoji_suggestion
+  save_options: [] # 只保留当前会话，不跨重启保存
   fold_options: false
   abbreviate_options: true
   option_list_separator: "/"
@@ -55,7 +53,7 @@ recognizer:
     url: "^(www[.]|https?:|ftp[.:]|mailto:|file:).*$|^[a-z]+[.].+$" # URL 输入
 
     # 响应功能
-    punct: "^/([0-9]0?|[A-Za-z]+)$" # 响应
+    punct: "^(;[A-Za-z]+|/([A-Za-z]+|[0-9]|10)?)$" # 分号功能命令、斜杠符号菜单及调试统计入口
     unicode: "^U[a-f0-9]+" # 响应 Unicode
 
 ascii_composer:
@@ -78,7 +76,7 @@ key_binder:
 
     # = / - 翻页
     - { when: has_menu, accept: equal, send: Page_Down } # = 向下翻页
-    - { when: composing, accept: minus, send: BackSpace } # - 向上翻页
+    - { when: has_menu, accept: minus, send: Page_Up } # - 上一页
 
     # . / , 翻页
     # 需要注释掉部分冲突的正则匹配才可用，详情见: https://github.com/LufsX/rime/issues/15#issuecomment-1496011933
@@ -103,7 +101,7 @@ key_binder:
     - { when: always, accept: Control+Shift+Alt+9, unset_option: ascii_mode } # 切换全角半角
     - { when: always, accept: Control+Shift+2, toggle: ascii_punct } # 切换中英标点
     # - { when: always, accept: Control+Shift+4, toggle: traditionalization } # 切换简繁
-    - { when: always, accept: Control+Shift+3, toggle: emoji_suggestion } # 切换是否显示 Emoji
+    - { when: always, accept: Control+Shift+3, toggle: emoji } # 切换是否显示 Emoji
 
 
     # Rime key bindings

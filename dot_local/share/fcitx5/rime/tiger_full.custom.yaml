@@ -1,0 +1,4 @@
+__include: tiger.custom:/
+
+patch:
+  translator/dictionary: tiger.extended

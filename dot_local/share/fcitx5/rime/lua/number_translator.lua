@@ -1,4 +1,4 @@
-﻿-- 来源 https://github.com/yanhuacuo/98wubi-tables > http://98wb.ysepan.com/
+-- 来源 https://github.com/yanhuacuo/98wubi-tables > http://98wb.ysepan.com/
 -- 数字、金额大写
 -- 触发前缀默认为 recognizer/patterns/number 的第 2 个字符，即 R
 
@@ -146,9 +146,10 @@ end
 local function number_translator(input, seg, env)
     -- 获取 recognizer/patterns/number 的第 2 个字符作为触发前缀
     env.number_keyword = env.number_keyword or
-        env.engine.schema.config:get_string('recognizer/patterns/number'):sub(2, 2)
+        (env.engine.schema.config:get_string('recognizer/patterns/number') or '^R'):sub(2, 2)
     local str, num, numberPart
-    if env.number_keyword ~= '' and input:sub(1, 1) == env.number_keyword then
+    if env.number_keyword ~= '' and input:sub(1, 1) == env.number_keyword
+        and input:sub(2):match('^%d+%.?%d*$') then
         str = string.gsub(input, "^(%a+)", "")
         numberPart = number_translatorFunc(str)
         if str and #str > 0 and #numberPart > 0 then

@@ -1,0 +1,3 @@
+{{- $custom := include "dot_local/share/fcitx5/rime/tiger.extended.dict.yaml" -}}
+{{- $custom = replaceAllRegex "(?m)^name: tiger.extended\\r?$" "name: tiger_common.extended" $custom -}}
+{{- replaceAllRegex "(?m)^(\\s*- )tiger\\r?$" "${1}tiger_common" $custom -}}

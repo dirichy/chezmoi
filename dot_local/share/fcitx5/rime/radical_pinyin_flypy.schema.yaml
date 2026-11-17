@@ -1,0 +1,13 @@
+# 共用上游部件词典，为小鹤单独编译拼写索引，避免与全拼相互覆盖。
+__include: radical_pinyin.schema:/
+
+schema:
+  schema_id: radical_pinyin_flypy
+  name: 部件拆字·小鹤
+
+speller:
+  algebra:
+    __include: radical_pinyin.schema:/algebra_double_pinyin_flypy
+
+translator:
+  prism: radical_pinyin_flypy

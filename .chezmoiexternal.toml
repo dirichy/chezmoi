@@ -20,12 +20,21 @@ type = "git-repo"
 url = "https://ghfast.top/https://github.com/dirichy/gopass.git"
 {{ end }}
 
-# Rime large dictionaries.
-{{ if .apps.fcitx5.enabled }}
-[".local/share/fcitx5/rime"]
-type = "archive"
-url = "https://ghfast.top/https://github.com/evawyy/rime_bigfiles/releases/download/0.0.1/rime_big.tar.gz"
-stripComponents = 1
+# Update the upstream checkout before rendering .local/share/fcitx5/rime templates.
+{{ if .features.inputMethod }}
+[".cache/rime-ice/upstream"]
+type = "git-repo"
+url = "https://github.com/iDvel/rime-ice.git"
+refreshPeriod = "24h"
+clone.args = ["--depth=1", "--single-branch", "--branch=main"]
+pull.args = ["--ff-only"]
+
+[".cache/rime-tiger/upstream"]
+type = "git-repo"
+url = "https://github.com/zhhmn/huma-rime.git"
+refreshPeriod = "24h"
+clone.args = ["--depth=1", "--single-branch", "--branch=master"]
+pull.args = ["--ff-only"]
 {{ end }}
 
 # Mihomo UI is intentionally disabled until a pinned version/checksum is chosen.

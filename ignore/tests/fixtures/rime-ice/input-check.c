@@ -1,0 +1,83 @@
+// Isolated librime input check; every writable path is supplied by the fixture runner.
+#include <rime_api.h>
+#include <dlfcn.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int main(int argc, char **argv) {
+  if (argc != 7) return 2;
+  if (!dlopen(argv[5], RTLD_NOW | RTLD_GLOBAL)) { fprintf(stderr,"%s\n",dlerror()); return 6; }
+  RimeApi *api = rime_get_api();
+  RIME_STRUCT(RimeTraits, traits);
+  traits.shared_data_dir = argv[6];
+  traits.user_data_dir = argv[1];
+  traits.log_dir = argv[1];
+  traits.app_name = "rime.radical-test";
+  traits.min_log_level = 2;
+  const char *modules[] = {"default", "deployer", "lua", NULL};
+  traits.modules = modules;
+  api->setup(&traits);
+  api->initialize(&traits);
+  if (!api->deploy_config_file("default.yaml", "config_version")) return 9;
+  char schema_path[4096];
+  snprintf(schema_path, sizeof(schema_path), "%s/%s.schema.yaml", argv[1], argv[2]);
+  char dep[4096];
+  snprintf(dep,sizeof(dep),"%s/radical_pinyin.schema.yaml",argv[1]);
+  if (!api->deploy_schema(dep)) return 7;
+  snprintf(dep,sizeof(dep),"%s/radical_pinyin_flypy.schema.yaml",argv[1]);
+  if (!api->deploy_schema(dep)) return 8;
+  if (!api->deploy_schema(schema_path)) { fprintf(stderr,"deploy failed\n"); return 3; }
+  RimeSessionId session = api->create_session();
+  if (!api->select_schema(session, argv[2])) return 4;
+  api->set_option(session, "ascii_mode", False);
+  api->set_option(session, "simp_hint", False);
+  api->set_option(session, "simp_record", False);
+  char committed[8192] = {0};
+  for (const char *p = argv[3]; *p; ++p) {
+    int code = (unsigned char)*p;
+    if (code == '\t') code = 0xff09;
+    if (code == '\b') code = 0xff08;
+    if (code == '\n') code = 0xff0d;
+    api->process_key(session, code, 0);
+    RIME_STRUCT(RimeCommit, commit);
+    if (api->get_commit(session, &commit)) {
+      if (commit.text) strncat(committed, commit.text, sizeof(committed) - strlen(committed) - 1);
+      api->free_commit(&commit);
+    }
+  }
+  RIME_STRUCT(RimeContext, ctx);
+  api->get_context(session, &ctx);
+  printf("%s %s: preedit=%s candidates=", argv[2], argv[3], ctx.composition.preedit ? ctx.composition.preedit : "");
+  for (int i=0; i<ctx.menu.num_candidates; ++i) printf(" [%s]",ctx.menu.candidates[i].text);
+  puts("");
+  int ok = ctx.menu.num_candidates > 0 && strcmp(ctx.menu.candidates[0].text, argv[4]) == 0;
+  if (strncmp(argv[4], "prefix:", 7) == 0) {
+    ok = ctx.menu.num_candidates > 0 && strncmp(ctx.menu.candidates[0].text, argv[4] + 7, strlen(argv[4] + 7)) == 0;
+  }
+  if (strcmp(argv[4], "format:time") == 0) {
+    int h, m, s;
+    ok = ctx.menu.num_candidates > 0 && strlen(ctx.menu.candidates[0].text) == 8 &&
+      sscanf(ctx.menu.candidates[0].text, "%d:%d:%d", &h, &m, &s) == 3 && h < 24 && m < 60 && s < 60;
+  }
+  if (strcmp(argv[4], "format:timestamp") == 0) {
+    ok = ctx.menu.num_candidates > 0 && strlen(ctx.menu.candidates[0].text) >= 10 &&
+      strspn(ctx.menu.candidates[0].text, "0123456789") == strlen(ctx.menu.candidates[0].text);
+  }
+  if (strncmp(argv[4], "second:", 7) == 0) {
+    ok = ctx.menu.num_candidates > 1 && strcmp(ctx.menu.candidates[1].text, argv[4] + 7) == 0;
+  }
+  if (strncmp(argv[4], "schema:", 7) == 0) {
+    char current[256] = {0};
+    ok = api->get_current_schema(session, current, sizeof(current)) && strcmp(current, argv[4] + 7) == 0;
+    printf("selected schema=%s\n", current);
+  }
+  if (strncmp(argv[4], "commit:", 7) == 0) {
+    ok = strcmp(committed, argv[4] + 7) == 0;
+    printf("committed=%s\n", committed);
+  }
+  api->free_context(&ctx);
+  api->destroy_session(session);
+  api->finalize();
+  return ok ? 0 : 5;
+}

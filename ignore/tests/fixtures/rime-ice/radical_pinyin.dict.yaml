@@ -1,0 +1,8 @@
+name: radical_pinyin
+version: "fixture"
+sort: by_weight
+...
+林	mu'mu	100
+昌	ri'ri	100
+明	ri'yue	100
+柿	mu'shi	100

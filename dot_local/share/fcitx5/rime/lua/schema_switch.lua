@@ -1,41 +1,18 @@
--- 输入 /schema 后，通过选择自定义候选项切换输入方案。
+-- 输入 ;s 后，通过选择自定义候选项切换输入方案。
 -- 结构与选择键处理方式来自 librime-lua 官方 sample/lua/switch.lua。
 
-local function select_index(key, env)
-	local ch = key.keycode
-	local index = -1
-	local select_keys = env.engine.schema.select_keys
-
-	if select_keys ~= nil and select_keys ~= "" and not key:ctrl() and ch >= 0x20 and ch < 0x7f then
-		local pos = string.find(select_keys, string.char(ch), 1, true)
-		if pos ~= nil then
-			index = pos - 1
-		end
-	elseif ch >= 0x30 and ch <= 0x39 then
-		index = (ch - 0x30 + 9) % 10
-	elseif ch >= 0xffb0 and ch <= 0xffb9 then
-		index = (ch - 0xffb0 + 9) % 10
-	elseif ch == 0x20 then
-		index = 0
-	end
-
-	return index
-end
+local menu_index = require("menu_keys")
 
 local kAccepted = 1
 local kNoop = 2
 
-local function selector(key, env)
-	if key:release() or key:alt() then
-		return kNoop
-	end
-
+local function select(key, env)
 	local context = env.engine.context
-	if context.input ~= "/schema" then
+	if context.input ~= ";s" then
 		return kNoop
 	end
 
-	local index = select_index(key, env)
+	local index = menu_index(key, env.engine.schema, 0)
 	local schema_id = env.schemas[index]
 	if schema_id == nil then
 		return kNoop
@@ -47,11 +24,24 @@ local function selector(key, env)
 end
 
 local function init(env)
-	env.schemas = {
-		[0] = "tiger",
-		[1] = "rime_ice",
-		[2] = "rime_ice_full",
-	}
+	-- Context survives schema changes. This non-transient property marks the session,
+	-- so defaults run only once, including when switching via the native F4 menu.
+	local context = env.engine.context
+	if context:get_property("session_options_initialized") == "" then
+		context:set_option("emoji", env.engine.schema.config:get_bool("session_defaults/emoji") == true)
+		context:set_option("simp_hint", true)
+		context:set_option("simp_record", true)
+		context:set_property("session_options_initialized", "1")
+	end
+	env.schemas = {}
+	for index, schema in ipairs(require("schema_catalog")) do
+		env.schemas[index - 1] = schema.id
+	end
 end
 
-return { init = init, func = selector }
+local function open(env)
+	env.engine.context:push_input("s")
+	return kAccepted
+end
+
+return { init = init, open = open, select = select }

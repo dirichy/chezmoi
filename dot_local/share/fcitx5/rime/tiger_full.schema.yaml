@@ -1,0 +1,10 @@
+# Share Tiger behavior; only the dictionary and schema identity differ.
+__include: tiger.schema:/
+
+schema:
+  schema_id: tiger_full
+  name: 虎码·全字集
+
+translator:
+  dictionary: tiger.extended
+  prism: tiger_full

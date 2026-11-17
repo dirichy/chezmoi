@@ -33,7 +33,12 @@ require_command() {
 managed_list() {
     local profile=$1 fixture
     fixture=${2:-$tests_dir/fixtures/$fixture_os-$profile.toml}
-    mkdir -p "$tmp_dir/home-$profile"
+    mkdir -p "$tmp_dir/home-$profile/.cache/rime-tiger/upstream"
+    cp "$tests_dir/fixtures/rime-tiger/tiger.dict.yaml" "$tmp_dir/home-$profile/.cache/rime-tiger/upstream/"
+    mkdir -p "$tmp_dir/home-$profile/.cache/rime-ice/upstream/opencc" "$tmp_dir/home-$profile/.cache/rime-tiger/upstream/opencc"
+    cp "$tests_dir/fixtures/rime-ice/"*.yaml "$tmp_dir/home-$profile/.cache/rime-ice/upstream/"
+    printf '笑\t笑 😄\n' > "$tmp_dir/home-$profile/.cache/rime-ice/upstream/opencc/emoji.txt"
+    printf '虎\t虎 🐯\n' > "$tmp_dir/home-$profile/.cache/rime-tiger/upstream/opencc/emoji.txt"
     chezmoi \
         --source "$source_dir" \
         --destination "$tmp_dir/home-$profile" \
@@ -128,6 +133,20 @@ shutil.copytree(sys.argv[1], sys.argv[2], ignore=shutil.ignore_patterns('.git'))
 Path(sys.argv[2], '.chezmoiexternal.toml').write_text('')
 PYTHON
 
+python3 "$tests_dir/test-rime-tiger.py" "$repo_dir" "$tmp_dir"
+pass 'Tiger and Ice Git externals update dictionaries and shared Emoji in one isolated apply'
+
+python3 "$tests_dir/test-rime-radical.py" "$repo_dir" "$source_dir" "$tmp_dir"
+
+if command -v lua >/dev/null 2>&1; then
+    lua "$tests_dir/test-rime-tools.lua" "$repo_dir"
+    pass 'Rime schemes share tools while preserving their trigger prefixes'
+    mkdir -p "$tmp_dir/simp-stats"
+    lua "$tests_dir/test-rime-simp.lua" "$repo_dir" "$tmp_dir/simp-stats"
+    pass 'Tiger shorthand reminders and statistics are independent and persist locally'
+else
+    printf '# skip - Rime tool behavior requires lua\n'
+fi
 
 [[ $(chezmoi --source "$source_dir" \
     --destination "$tmp_dir/home-desktop" \
@@ -206,6 +225,22 @@ grep -Fq 'mixed-port: 7890' "$tmp_dir/mihomo-and-external.yaml" \
 grep -Fq 'http_proxy=http://10.20.30.40:1080' "$tmp_dir/external-only.zshenv" \
     || fail 'external proxy works when Mihomo is disabled'
 pass 'Mihomo lifecycle and client proxy routing are independent'
+
+assert_ignored "$desktop_list" '.local/share/fcitx5/rime/lua/exe.lua' 'desktop excludes removed website launcher'
+for path in radical_pinyin.dict.yaml radical_pinyin.schema.yaml radical_pinyin_flypy.schema.yaml lua/tiger/repeat_last.lua lua/tiger/commit_guard.lua lua/symbol_menu.lua lua/date_commands.lua lua/menu_keys.lua; do
+    assert_managed "$desktop_list" ".local/share/fcitx5/rime/$path" "desktop includes $path"
+    assert_ignored "$headless_list" ".local/share/fcitx5/rime/$path" "headless excludes $path"
+    assert_ignored "$skip_list" ".local/share/fcitx5/rime/$path" "skip excludes $path"
+done
+assert_managed "$desktop_list" '.local/share/fcitx5/rime/cn_dicts' 'desktop links upstream Ice dictionaries'
+assert_managed "$desktop_list" '.local/share/fcitx5/rime/shared_emoji/emoji.txt' 'desktop manages shared Emoji mappings'
+assert_managed "$desktop_list" '.local/share/fcitx5/rime/tiger_common.dict.yaml' 'desktop manages generated Tiger common dictionary'
+assert_managed "$desktop_list" '.local/share/fcitx5/rime/lua/tiger/simp_table.lua' 'desktop manages generated Tiger shorthand table'
+assert_ignored "$headless_list" '.local/share/fcitx5/rime/lua/tiger/simp_table.lua' 'headless excludes Tiger shorthand table'
+assert_ignored "$skip_list" '.local/share/fcitx5/rime/lua/tiger/simp_table.lua' 'skip excludes Tiger shorthand table'
+assert_managed "$desktop_list" '.local/share/fcitx5/rime/tiger_full.schema.yaml' 'desktop includes Tiger full-character schema'
+assert_ignored "$headless_list" '.local/share/fcitx5/rime/tiger_full.schema.yaml' 'headless excludes Tiger schemas'
+assert_ignored "$skip_list" '.local/share/fcitx5/rime/tiger_full.schema.yaml' 'skip excludes Tiger schemas'
 
 if [[ $fixture_os == linux ]]; then
     assert_managed "$desktop_list" '.config/waybar/config.jsonc' 'desktop includes Waybar'

@@ -9,7 +9,7 @@
 #
 # 目前配置中有个别功能仍然是全拼拼写，不能自动适配，所以需要手动修改一下：
 # - 英文中部分符号的派生规则：在英文方案文件 melt_eng.schema.yaml > speller > algebra 修改为对应的双拼拼写运算
-# - 部件拆字的拼写规则：在部件拆字方案 radical_pinyin.schema.yaml > speller > algebra 修改为对应的双拼拼写运算
+# - 部件拆字已由 radical_pinyin_flypy 单独适配，全拼沿用 radical_pinyin。
 # 打个补丁一劳永逸，补丁写法参考 [常见问题](https://github.com/iDvel/rime-ice/issues/133) 或 others/双拼补丁示例/ 文件夹
 
 # 方案说明
@@ -24,10 +24,10 @@ schema:
     https://github.com/iDvel/rime-ice
   dependencies:
     # - melt_eng # 英文输入，作为次翻译器挂载到拼音方案
-    # - radical_pinyin # 部件拆字，反查及辅码
+    - radical_pinyin_flypy # 部件拆字，反查及辅码（小鹤拼写索引）
 
 # 开关
-# reset: 默认状态。注释掉后，切换窗口时不会重置到默认状态。
+# 普通开关不设 reset，切方案时保留当前会话状态。
 # states: 方案选单显示的名称。可以注释掉，仍可以通过快捷键切换。
 # abbrev: 默认的缩写取 states 的第一个字符，abbrev 可自定义一个字符
 switches:
@@ -39,18 +39,19 @@ switches:
     states: [简, 繁]
   - name: emoji
     states: [💀, 😄]
-    reset: 1
   - name: full_shape
     states: [半角, 全角]
   - name: search_single_char # search.lua 的功能开关，辅码查词时是否单字优先
     states: [正常, 单字]
     abbrev: [词, 单]
 
+session_defaults:
+  emoji: true
+
 # 输入引擎
 engine:
   processors:
-    - lua_processor@*schema_switch # /schema 后按 1/2/3 切换方案
-    - lua_processor@auto_put
+    - lua_processor@*quick_input # 快符与 ;字母 命令的统一入口
     - lua_processor@*select_character # 以词定字
     - ascii_composer
     - recognizer
@@ -64,42 +65,37 @@ engine:
     - ascii_segmentor
     - matcher
     - abc_segmentor
-    # - affix_segmentor@radical_lookup  # 部件拆字自定义 tag
+    - affix_segmentor@radical_lookup  # 部件拆字自定义 tag
     - punct_segmentor
     - fallback_segmentor
   translators:
     - punct_translator
+    - lua_translator@*symbol_menu # / 逐级符号菜单
     - script_translator
-    - lua_translator@*schema_switch_translator # /schema 方案菜单
+    - lua_translator@*schema_switch_translator # ;s 方案菜单
     - lua_translator@*date_translator # 时间、日期、星期
     - lua_translator@*lunar # 农历
     # - lua_translator@*uuid # UUID
     - table_translator@custom_phrase # 自定义短语 custom_phrase.txt
     # - table_translator@melt_eng # 英文输入
-    - table_translator@cn_en # 中英混合词汇
-    # - table_translator@radical_lookup # 部件拆字反查
+    # - table_translator@cn_en # 中英混合词汇（启用时需同时配置下方 cn_en）
+    - table_translator@radical_lookup # 部件拆字反查
     - lua_translator@*unicode # Unicode
     - lua_translator@*number_translator # 数字、金额大写
     - lua_translator@*calc_translator # 计算器
     # - lua_translator@*force_gc # 暴力 GC
   filters:
     - lua_filter@*corrector # 错音错字提示
-    # - reverse_lookup_filter@radical_reverse_lookup # 部件拆字滤镜
+    - reverse_lookup_filter@radical_reverse_lookup # 部件拆字滤镜
     # - lua_filter@*autocap_filter # 英文自动大写
     # - lua_filter@*pin_cand_filter # 置顶候选项（顺序要求：置顶候选项 > Emoji > 简繁切换）
     # - lua_filter@*reduce_english_filter # 降低部分英语单词在候选项的位置
     - simplifier@emoji # Emoji
     - simplifier@traditionalize # 简繁切换
-    # - lua_filter@*search@radical_pinyin # 部件拆字辅码
+    - lua_filter@*search # 部件拆字辅码，来源由 search/schema 指定
     - uniquifier # 去重
 
-# Lua 配置: 日期、时间、星期、ISO 8601、时间戳的触发关键字
-date_translator:
-  date: date # 日期： 2022-11-29
-  time: time # 时间： 18:13
-  week: week # 星期： 星期二
-  datetime: datetime # ISO 8601： 2022-11-29T18:13:11+08:00
-  timestamp: timestamp # 时间戳： 1669716794
+# 日期入口由 lua/date_commands.lua 统一定义。
 
 # Lua 配置：农历的触发关键字
 lunar: lunar # 农历： 二〇二三年冬月二十 癸卯年（兔）冬月二十
@@ -478,7 +474,7 @@ custom_phrase:
 # Emoji
 emoji:
   option_name: emoji # 对应 switches 中的 name
-  opencc_config: emoji.json # 选择要加载的 OpenCC 配置
+  opencc_config: {{ joinPath .chezmoi.destDir ".local/share/fcitx5/rime/shared_emoji/emoji.json" | quote }} # 与虎码共享合并后的 Emoji 映射
   inherit_comment: false # 在 corrector.lua 及反查中，emoji 的 comment 显示为空
 
 # 简繁切换
@@ -503,32 +499,33 @@ punctuator:
   symbols:
     __include: symbols:/punctuator/symbols # 从 symbols_v.yaml 导入配置
 
-# 部件拆字反查
-# radical_lookup:
-#   tag: radical_lookup
-#   dictionary: radical_pinyin
-#   enable_user_dict: false
-#   prefix: "uU" # 反查前缀（反查时前缀会消失影响打英文所以设定为两个字母，或可改成一个非字母符号），与 recognizer/patterns/radical_lookup 匹配
-#   tips: "  〔拆字〕"
-#   comment_format:
-#     - erase/^.*$//
-# 部件拆字滤镜
-# radical_reverse_lookup:
-#   tags: [radical_lookup]
-#   # dictionary 为拼音标注来源，目前是显示本方案词库的注音。
-#   # 可去部件拆字方案下载更全的、带声调的、已编译好的词典： https://github.com/mirtlecn/rime-radical-pinyin#反查带声调注音
-#   dictionary: rime_ice
-# comment_format:     # 自定义 comment，例如在左右加上括号
-#  - xform/^/(/
-#  - xform/$/)/
+
+# 开头反引号拆字反查；拼音后的反引号交给 search 做辅码筛选。
+radical_lookup:
+  tag: radical_lookup
+  dictionary: radical_pinyin
+  prism: radical_pinyin_flypy
+  enable_user_dict: false
+  prefix: "`"
+  tips: "  〔拆字〕"
+  comment_format:
+    - erase/^.*$//
+
+radical_reverse_lookup:
+  tags: [radical_lookup]
+  dictionary: rime_ice
+
+search:
+  schema: radical_pinyin_flypy
 
 # 处理符合特定规则的输入码，如网址、反查
 
 recognizer:
   import_preset: default # 从 default.yaml 继承通用的
   patterns: # 再增加方案专有的：
-    punct: "^/([0-9]|10|[A-Za-z]+)$" # 响应 symbols_v.yaml 的 symbols，用 'v' 替换 '/'
-    # radical_lookup: "^uU[a-z]+$" # 响应部件拆字的反查，触发前缀与 radical_lookup/prefix 匹配
+    schema_switch: "^;s$"
+    punct: "^(;[A-Za-z]+|/([A-Za-z]+|[0-9]|10)?)$" # 分号功能命令、斜杠符号菜单及调试统计入口
+    radical_lookup: "^`[a-z]*$" # 仅开头的反引号触发拆字反查
     unicode: "^U[a-f0-9]+" # 脚本将自动获取第 2 个字符 U 作为触发前缀，响应 lua_translator@*unicode，输出 Unicode 字符
     number: "^R[0-9]+[.]?[0-9]*" # 脚本将自动获取第 2 个字符 R 作为触发前缀，响应 lua_translator@*number_translator，数字金额大写
     calculator: "^cC.+" # 响应 lua_translator@*calc_translator，计算器。前缀设定项 calculator/prefix
@@ -556,9 +553,9 @@ editor:
 # 拼写设定
 speller:
   # 如果不想让什么标点直接上屏，可以加在 alphabet，或者编辑标点符号为两个及以上的映射
-  alphabet: zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA`
-  # initials 定义仅作为始码的按键，排除 ` 让单个的 ` 可以直接上屏
-  initials: zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA
+  alphabet: zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA`;
+  # initials 保留反引号作为拆字反查起始键
+  initials: zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA`;
   delimiter: " '" # 第一位<空格>是拼音之间的分隔符；第二位<'>表示可以手动输入单引号来分割拼音。
   algebra:
     - erase/^xx$/

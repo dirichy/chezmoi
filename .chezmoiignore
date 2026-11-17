@@ -10,6 +10,7 @@
 ignore
 tools
 .config/fcitx5/conf/cached_layouts
+.local/share/fcitx5/rime/tiger-simp-stats.tsv
 
 # Config groups controlled by host data.
 {{ if not .features.cli }}

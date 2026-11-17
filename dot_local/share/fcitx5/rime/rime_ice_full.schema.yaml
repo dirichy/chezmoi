@@ -13,6 +13,8 @@ schema:
   description: |
     雾凇拼音 - 全拼
     https://github.com/iDvel/rime-ice
+  dependencies:
+    - radical_pinyin
 
 translator:
   prism: rime_ice_full
@@ -21,6 +23,12 @@ translator:
     - xform/([nl])v/$1v/
     - xform/([nl])ue/$1ve/
     - xform/(?<=[A-Z])\s(?=[A-Z])//
+
+radical_lookup:
+  prism: radical_pinyin
+
+search:
+  schema: radical_pinyin
 
 speller:
   algebra:

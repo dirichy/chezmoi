@@ -1,0 +1,13 @@
+name: rime_ice
+version: "fixture"
+sort: by_weight
+...
+的	u	1000
+一	f	255
+一	fi	0
+林	lin	100
+昌	chang	100
+明	ming	100
+是	shi	1000
+时	shi	900
+柿	shi	100
