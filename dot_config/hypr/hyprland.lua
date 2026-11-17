@@ -18,6 +18,12 @@ monitor.setup()
 -- 	scale = 2.5,
 -- })
 hl.config({
+	render = {
+		-- Avoid fullscreen black flashes caused by automatic HDR mode switches.
+		-- https://github.com/hyprwm/Hyprland/discussions/16848
+		-- https://github.com/hyprwm/Hyprland/discussions/16945
+		cm_auto_hdr = 0,
+	},
 	xwayland = {
 		force_zero_scaling = true,
 	},
