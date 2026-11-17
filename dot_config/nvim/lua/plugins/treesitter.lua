@@ -29,23 +29,29 @@ return {
 		branch = "main",
 		build = ":TSUpdate",
 		config = function()
-			require("nvim-treesitter").setup()
+			local treesitter = require("nvim-treesitter")
+			treesitter.setup()
+			local available = {}
+			for _, language in ipairs(treesitter.get_available()) do
+				available[language] = true
+			end
 			local installing = {}
 
 			local function start_parser(buf, filetype)
+				local language = vim.treesitter.language.get_lang(filetype)
 				local ok = pcall(vim.treesitter.start, buf)
 				if ok then
 					return true
 				end
 
-				if installing[filetype] then
+				if not language or not available[language] or installing[language] then
 					return false
 				end
 
-				installing[filetype] = true
-				local ok_install = pcall(require("nvim-treesitter").install, { filetype })
+				installing[language] = true
+				local ok_install = pcall(treesitter.install, { language })
 				if not ok_install then
-					installing[filetype] = nil
+					installing[language] = nil
 					return false
 				end
 
@@ -53,11 +59,11 @@ return {
 				local function retry()
 					attempts = attempts + 1
 					if not vim.api.nvim_buf_is_valid(buf) then
-						installing[filetype] = nil
+						installing[language] = nil
 						return
 					end
-					if pcall(vim.treesitter.start, buf) or attempts >= 2 then
-						installing[filetype] = nil
+					if pcall(vim.treesitter.start, buf) or attempts >= 600 then
+						installing[language] = nil
 						return
 					end
 					vim.defer_fn(retry, 100)
