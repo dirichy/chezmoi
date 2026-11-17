@@ -389,7 +389,9 @@ Zsh 配置在 `dot_config/zsh`：
 - `s` 函数使用 autossh 和保活参数连接远端；远端交互式 zsh 会自动调用 `t`
 - `t` 函数选择/创建 tmux session；手动运行时 detach 后返回原 Zsh，SSH 初始化自启时使用 `t --exec` 替换当前 shell；选择列表中按 `q`、输入 session 名时按 `Esc` 可留在当前 shell，自启选择期间按 `Ctrl-C` 会取消 tmux 并继续完成 Zsh 初始化
 - `v` 函数封装 Neovim 打开文件/目录/历史路径
-- `a r`（或 `codex r`）用 fzf 恢复当前目录的 Codex session，`a ra` 显示全部目录；列表内 `Ctrl-D` 切回当前目录，`Ctrl-A` 显示全部，`Esc` 取消。匹配目录使用解析符号链接后的完整路径，不含子目录。选择后以该 session 的目录调用 `codex resume <id> --cd <cwd>`，原生 `codex resume` 保持原样。
+- `a r`（或 `codex r`）用 fzf 恢复当前目录的 Codex session，`a ra` 显示全部目录；列表顶部提示快捷键：`Ctrl-D` 切回当前目录，`Ctrl-A` 显示全部，`Enter` 恢复。当前目录视图隐藏路径，全部视图显示路径；最近活动时间简写为 `5m`、`3h`、`2d`、`4w`，超过一年留空。匹配目录使用解析符号链接后的完整路径，不含子目录。选择后以该 session 的目录调用 `codex resume <id> --cd <cwd>`，原生 `codex resume` 保持原样。
+- 会话标题优先使用 Codex 保存的名称（`threads.name`，包括自动生成或手动重命名的标题），其次使用 `session_index.jsonl` 的最新 `thread_name`，都没有时才使用原始标题 / 第一句 prompt；旧版 rollout 模式也会同步名称索引中的重命名。
+- Session picker 默认进入 Insert 模式输入搜索；`Esc` 切到 Normal 并保留搜索过滤，`j/k` 上下选择，`i` 回到 Insert。Normal 下 `q` / `Esc` 取消，两种模式均可 `Enter` 恢复。顶部显示当前模式和快捷键，边框标明 `cwd` / `all`。此模式切换需要 fzf 0.59+。
 - Session 索引在 `${CODEX_HOME:-~/.codex}/wrapper-resume.sqlite3`，只读同步本地 Codex 数据库中的未归档 CLI/VS Code 会话，不按账号隔离；旧版本没有可用数据库时增量读取 `sessions/`。当前目录优先，再按恢复次数的对数与最近活动时间加权排序（1 小时内 ×4、1 天内 ×2、1 周内 ×0.5、更早 ×0.25）；次数只记录此 picker 的选择。删除索引可重建，但会丢失恢复次数。需要 `fzf`、`python3`，缺少时回退原生 picker。
 
 Tmux 配置在 `dot_config/tmux`：

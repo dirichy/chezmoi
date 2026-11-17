@@ -6,6 +6,18 @@ umask 077
 cmd=${1:-}
 name=${2:-}
 
+# Keep native resume untouched; a/codex r and ra use the fzf picker.
+if [[ ( "$cmd" == r || "$cmd" == ra ) && $# == 1 ]]; then
+  if (( $+commands[python3] && $+commands[fzf] )); then
+    exec python3 "${0:A:h}/codex-resume.py" "$cmd"
+  fi
+  print -u2 -- 'fzf/python3 unavailable; using the native Codex session picker.'
+  if [[ "$cmd" == ra ]]; then
+    exec codex resume --all
+  fi
+  exec codex resume
+fi
+
 if [[ -z "$cmd" ]]; then
   command codex
   exit $?
@@ -44,6 +56,7 @@ Usage:
   codex use  <name>         Switch to a saved account
   codex new  [name]         Log in to a new account, optionally saving it
   codex list/status         List all saved accounts
+  a r / a ra              fzf resume: current directory / all sessions
   codex help                Show help information
 
 All other commands are forwarded to Codex CLI.
