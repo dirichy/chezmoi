@@ -8,14 +8,9 @@ return {
 			render_modes = true,
 			anti_conceal = {
 				enabled = true,
-				disabled_modes = false,
-				above = 0,
-				below = 0,
-			},
-			win_options = {
-				concealcursor = {
-					rendered = "nvic",
-				},
+				disabled_modes = { "n", "v", "V", "\22", "s", "S", "\19", "c", "t", "R", "Rc", "Rx", "Rv", "Rvc", "Rvx" },
+				above = 1,
+				below = 1,
 			},
 		},
 	},
