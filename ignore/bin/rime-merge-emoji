@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+"""Merge OpenCC Emoji maps in argument order, preserving candidate priority."""
+
+from pathlib import Path
+import sys
+
+
+def merge(paths):
+    mappings = {}
+    for path in paths:
+        for number, line in enumerate(path.read_text(encoding="utf-8-sig").splitlines(), 1):
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
+            fields = line.split("\t")
+            if len(fields) != 2 or not fields[0] or not fields[1].strip():
+                raise ValueError(f"{path}:{number}: expected trigger<TAB>candidates")
+            key, values = fields
+            candidates = mappings.setdefault(key, dict.fromkeys([key]))
+            for candidate in values.split():
+                candidates.setdefault(candidate, None)
+    if not mappings:
+        raise ValueError("Emoji maps are empty")
+    return "".join(f"{key}\t{' '.join(mappings[key])}\n" for key in sorted(mappings))
+
+
+if __name__ == "__main__":
+    try:
+        if len(sys.argv) < 3:
+            raise ValueError("usage: rime-merge-emoji PRIMARY_MAP SECONDARY_MAP [MAP...]")
+        result = merge([Path(path) for path in sys.argv[1:]])
+        sys.stdout.buffer.write(result.encode("utf-8"))
+    except (OSError, ValueError) as error:
+        print(f"rime-merge-emoji: {error}", file=sys.stderr)
+        sys.exit(1)

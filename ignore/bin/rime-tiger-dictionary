@@ -1,0 +1,124 @@
+#!/usr/bin/env python3
+"""Render the common Tiger dictionary from the local upstream checkout."""
+
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import sys
+import tempfile
+
+
+COMMON_MIN_WEIGHT = 255
+CACHE_MAGIC = b"rime-tiger-dictionary-v1\n"
+
+def split_dictionary(data):
+    text = data.decode("utf-8-sig").replace("\r\n", "\n")
+    parts = re.split(r"^\.\.\.\s*$", text, maxsplit=1, flags=re.MULTILINE)
+    if len(parts) != 2:
+        raise ValueError("dictionary is missing its YAML header terminator")
+    return parts[0], parts[1].splitlines()
+
+def common_dictionary(data, name):
+    header, lines = split_dictionary(data)
+    header, count = re.subn(r"^name:.*$", f"name: {name}", header, flags=re.MULTILINE)
+    if count != 1:
+        raise ValueError("dictionary must have exactly one name")
+    common_chars = set()
+    for line in lines:
+        if line.strip() and not line.lstrip().startswith("#"):
+            fields = line.split("\t")
+            if len(fields) < 3:
+                raise ValueError("upstream entry must contain text, code and weight")
+            if int(fields[2]) >= COMMON_MIN_WEIGHT:
+                common_chars.add(fields[0])
+    kept = []
+    entries = 0
+    for line in lines:
+        if line.strip() and not line.lstrip().startswith("#"):
+            if line.split("\t", 1)[0] not in common_chars:
+                continue
+            entries += 1
+        kept.append(line)
+    if not entries:
+        raise ValueError("generated dictionary has no entries")
+    return (header + "...\n" + "\n".join(kept) + "\n").encode("utf-8")
+
+
+def short_code_table(data):
+    """Recommend only the first candidate of one/two-letter common codes."""
+    _, lines = split_dictionary(data)
+    first = {}
+    for line in lines:
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        char, code, weight, *_ = line.split("\t")
+        if len(char) != 1 or not re.fullmatch(r"[a-z]{1,2}", code):
+            continue
+        weight = int(weight)
+        # Rime's by_weight order is stable for equal weights.
+        if code not in first or weight > first[code][1]:
+            first[code] = (char, weight)
+    short = {}
+    for code in sorted(first, key=lambda code: (len(code), code)):
+        short.setdefault(first[code][0], code)
+    fingerprint = hashlib.sha256(data).hexdigest()
+    rows = [f"-- Generated from tiger_common dictionary; SHA256: {fingerprint}", "return {"]
+    for char, code in sorted(short.items()):
+        rows.append(f"\t[{json.dumps(char, ensure_ascii=False)}] = {json.dumps(code)},")
+    rows.append("}")
+    return ("\n".join(rows) + "\n").encode("utf-8")
+
+
+def cached_dictionary(data, cache_dir, kind="dictionary"):
+    if kind not in ("dictionary", "simp"):
+        raise ValueError("unknown artifact: " + kind)
+    digest = hashlib.sha256()
+    for content in (data, Path(__file__).read_bytes()):
+        digest.update(len(content).to_bytes(8, "big"))
+        digest.update(content)
+    suffix = ".cache" if kind == "dictionary" else ".simp.cache"
+    cache_file = cache_dir / (digest.hexdigest() + suffix)
+    header_size = len(CACHE_MAGIC) + 32
+    try:
+        cached = cache_file.read_bytes()
+        result = cached[header_size:]
+        if (cached.startswith(CACHE_MAGIC)
+                and cached[len(CACHE_MAGIC):header_size] == hashlib.sha256(result).digest()):
+            return result
+    except OSError:
+        pass
+
+    result = (common_dictionary(data, "tiger_common") if kind == "dictionary"
+              else short_code_table(cached_dictionary(data, cache_dir)))
+    temporary = None
+    try:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(dir=cache_dir, prefix=".tmp-", delete=False) as output:
+            temporary = Path(output.name)
+            output.write(CACHE_MAGIC + hashlib.sha256(result).digest() + result)
+        # Concurrent readers see either the complete old artifact or the complete new one.
+        os.replace(temporary, cache_file)
+    except OSError as error:
+        print(f"rime-tiger-dictionary: cannot save cache: {error}", file=sys.stderr)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+    return result
+
+
+def main():
+    if len(sys.argv) not in (3, 4):
+        raise ValueError("usage: rime-tiger-dictionary UPSTREAM_DICTIONARY CACHE_DIR [simp]")
+    kind = sys.argv[3] if len(sys.argv) == 4 else "dictionary"
+    result = cached_dictionary(Path(sys.argv[1]).read_bytes(), Path(sys.argv[2]), kind)
+    sys.stdout.buffer.write(result)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (OSError, ValueError) as error:
+        print(f"rime-tiger-dictionary: {error}", file=sys.stderr)
+        sys.exit(1)
