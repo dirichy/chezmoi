@@ -99,10 +99,11 @@ return {
 				colors()
 			end, { noremap = true, silent = true, desc = "find snip" })
 			local keyflow = require("keyflow")
-			keyflow.mode.new({
+			keyflow.mode({
 				name = "Math Environment Change",
-				mode = "n",
+				vimmode = "n",
 				trigger = "m",
+				hint = true,
 				maps = {
 					["<C-a>"] = {
 						action = function()
