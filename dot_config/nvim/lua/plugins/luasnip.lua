@@ -209,7 +209,7 @@ return {
         return cNode.C(pos, { snip, iNode.I(nil, { "" }) })
       end,
       -- Function expected to return a list of filetypes (or empty list)
-      ft_func = ft_functions.from_cursor_pos,
+      ft_func = ft_functions.from_pos_or_filetype,
       -- fn(bufnr) -> string[] (filetypes).
       -- load_ft_func = ft_functions.from_filetype_load,
       load_ft_func=ft_functions.extend_load_ft({
