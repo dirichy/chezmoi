@@ -89,7 +89,7 @@
 - Zsh 路径需在 `/etc/shells` 中才能用 chsh。首次启动 Zsh、Neovim、Yazi 会自动下载插件；Yazi 安装失败时运行 `ya pkg install`，需要自定义提示符时运行 `p10k configure`。
 - Linux 脚本安装 / 启用 greetd，但不写 `/etc/greetd/config.toml`。Hyprland 配置使用原生 Lua，需使用支持此配置格式的版本。keyd 配置只生成在用户缓存目录，不会自动安装到 `/etc/keyd/`。
 - Linux 手机 idle 检测调用 `sudo l2ping`，需无需交互即可运行；壁纸脚本读取 `~/Pictures/wallpaper`，还需确认 hyprpaper 使用的壁纸存在。远程机器需要退出登录后仍运行 user service 时，另行配置 linger。
-- macOS 安装清单不含 Fcitx5.app、Yabai、AeroSpace 和 Alfred。`fcitx5-remote` 链接依赖上述 app 安装位置；Rime 大词库 external 目前只为 Linux Fcitx5 下载。当前 wmux 的 macOS 窗口操作使用 Yabai，`yabairc` 会调用 `sudo yabai --load-sa`。
+- macOS 安装清单不含 Fcitx5.app、Yabai、AeroSpace 和 Alfred。`fcitx5-remote` 链接依赖上述 app 安装位置；虎码和雾凇词典会随输入法配置跨平台通过 Git external 更新。当前 wmux 的 macOS 窗口操作使用 Yabai，`yabairc` 会调用 `sudo yabai --load-sa`。
 - 服务确认被拒绝或在非交互环境中跳过后，可在新 Zsh 中运行 `chezmoi x services --check` 检查、`chezmoi x services` 补做；其他 shell 直接运行 source 中的 `ignore/bin/dotfiles-services`。Linux 管理 config-share、FDU Connect、later；macOS 管理 config-share、FDU Connect、Mihomo。
 - 服务协调脚本在 `chezmoi diff` 时渲染为空，避免每次显示产生噪声；`chezmoi apply` 时仍会正常检查并按需确认服务启停。
 - 配置共享可能包含订阅凭据，CIDR 应只允许自己的客户端访问。系统代理与 shell 代理变量需要分别配置。
@@ -389,6 +389,8 @@ Zsh 配置在 `dot_config/zsh`：
 - `s` 函数使用 autossh 和保活参数连接远端；远端交互式 zsh 会自动调用 `t`
 - `t` 函数选择/创建 tmux session；手动运行时 detach 后返回原 Zsh，SSH 初始化自启时使用 `t --exec` 替换当前 shell；选择列表中按 `q`、输入 session 名时按 `Esc` 可留在当前 shell，自启选择期间按 `Ctrl-C` 会取消 tmux 并继续完成 Zsh 初始化
 - `v` 函数封装 Neovim 打开文件/目录/历史路径
+- `a r`（或 `codex r`）用 fzf 恢复当前目录的 Codex session，`a ra` 显示全部目录；列表内 `Ctrl-D` 切回当前目录，`Ctrl-A` 显示全部，`Esc` 取消。匹配目录使用解析符号链接后的完整路径，不含子目录。选择后以该 session 的目录调用 `codex resume <id> --cd <cwd>`，原生 `codex resume` 保持原样。
+- Session 索引在 `${CODEX_HOME:-~/.codex}/wrapper-resume.sqlite3`，只读同步本地 Codex 数据库中的未归档 CLI/VS Code 会话，不按账号隔离；旧版本没有可用数据库时增量读取 `sessions/`。当前目录优先，再按恢复次数的对数与最近活动时间加权排序（1 小时内 ×4、1 天内 ×2、1 周内 ×0.5、更早 ×0.25）；次数只记录此 picker 的选择。删除索引可重建，但会丢失恢复次数。需要 `fzf`、`python3`，缺少时回退原生 picker。
 
 Tmux 配置在 `dot_config/tmux`：
 
@@ -445,11 +447,90 @@ ya pkg install
 Linux 使用 Fcitx5 + Rime：
 
 - 配置目录：`dot_config/fcitx5`
-- 大文件通过 `.chezmoiexternal.toml` 下载到 `~/.local/share/fcitx5/rime`
-- Rime 方案包括虎码、小鹤双拼（`rime_ice`）和全拼（`rime_ice_full`）；输入 `/schema` 后按 `1`、`2`、`3` 选择，也保留 `F4` 方案菜单
+- 上游由 `.chezmoiexternal.toml` 克隆到 `~/.cache/rime-tiger/upstream` 和 `~/.cache/rime-ice/upstream`，词典由模板读取或链接到 `~/.local/share/fcitx5/rime`
+- Rime 方案包括虎码·常用（`tiger`）、小鹤双拼（`rime_ice`）、全拼（`rime_ice_full`）和虎码·全字集（`tiger_full`）；输入 `;s` 后按 `1`、`2`、`3`、`4` 选择，也保留 `F4` 方案菜单
 - 全拼与双拼共用雾凇词库及用户词典调频数据
 - 虎码使用数字选词，并支持空格、`;`、`'` 和方向键选词
 - `.chezmoiignore` 会按系统忽略不适用的前端配置
+
+虎码上游由 Git external 克隆到 `~/.cache/rime-tiger/upstream`，跟踪 [zhhmn/huma-rime](https://github.com/zhhmn/huma-rime) 的 `master` 分支，刷新间隔为 `24h`。更新使用 `git pull --ff-only`，不再定期下载整个 ZIP，也不需要自定义 SHA 查询脚本。此目录由 chezmoi 管理，不要直接修改。
+
+词典生成在对应 `.tmpl` 文件渲染时完成，不使用 `run_after`，不写入真实输入法目录之外的配置。完整 `apply` 按路径顺序先更新 `.cache/` 下的上游，再渲染 `.local/` 下的词典，因此同一次 apply 使用更新后的码表：
+
+- `tiger.dict.yaml.tmpl` 读取上游完整词典。
+- `tiger_common.dict.yaml.tmpl` 调用 `ignore/bin/rime-tiger-dictionary`：任意编码权重 ≥ 255 的字，其全部编码都保留，原权重和顺序不变，不依赖 `core2022`。阈值为 helper 的 `COMMON_MIN_WEIGHT`。
+- `lua/tiger/simp_table.lua.tmpl` 复用同一上游指纹及常用字典缓存，生成简码推荐表；直接读取生成器返回内容，不依赖常用字典先落盘。
+- `tiger_common.extended.dict.yaml.tmpl` 保留本地扩展词典的全部条目，仅替换导入的词典名称。
+- `opencc` 链接到本地 `shared_opencc`，其中仅链接虎码读音、拆分所需的上游文件；不引入上游旧版 `s2t.json`，简转繁统一使用系统 OpenCC 标准 `s2t`。上游方案、Lua、快捷键和鼠须管皮肤不会覆盖本地配置。网站启动器已移除，不再部署或加载上游 `lua/exe.lua`。
+
+雾凇使用同样的 Git external 更新方式，跟踪 `main`，间隔 `24h`，使用 `git pull --ff-only`。`rime_ice.dict.yaml.tmpl` 读取上游主词典，`cn_dicts` / `en_dicts` 链接上游词库目录，替代固定的 `rime_bigfiles` 压缩包。部件词典 `radical_pinyin.dict.yaml` 和基础部件方案 `radical_pinyin.schema.yaml` 也直接链接上游，随 external 更新；小鹤部件覆盖层、本地主输入方案、Lua 扩展和键位继续自行维护，不会自动开启其余上游功能。全拼和小鹤双拼继续共用 `rime_ice` 词库和用户词典。
+
+虎码与雾凇共用 `shared_emoji/emoji.json` 和生成的 `emoji.txt`。模板调用 `ignore/bin/rime-merge-emoji` 合并两边的 `opencc/emoji.txt`：保留原文字，重叠项优先采用雾凇顺序，再补入虎码候选，按完整 Unicode 字符串精确去重（不合并有无变体选择符、肤色不同的 Emoji）。两套方案的 Emoji 开关统一命名为 `emoji`，首次会话按启动方案设置默认状态（虎码关、雾凇开），之后切方案不重置；全局 `Ctrl+Shift+3` 和虎码 `Ctrl+i` 均操作此开关。雾凇 `others.txt` 中的翻译、别名、化学式等附加转换不自动合入。合并仅在配置渲染时执行，不在按键路径执行。
+
+尚未启用的上游功能与 Emoji 对比见 [Rime 上游功能对照](ignore/rime-upstream-notes.md)。
+
+当前全部功能、公共化结果和待选项见 [Rime 功能全表](ignore/rime-features.md)。四套方案共用日期、计算器和数字金额工具；计算器保留虎码 `=...` / 雾凇 `cC...`，金额转换保留虎码 `S123` / 雾凇 `R123`。日期与时间分别使用 `/d`、`/t`，也能用英文关键词搜索：
+
+| 输入 | 功能 |
+| --- | --- |
+| `/d` | 日期，后续候选提供子命令 |
+| `/de` / `/dc` | 英文 / 中文日期 |
+| `/t` / `/dt` | 时间 / 日期时间（含实际时区） |
+| `/ts` | 时间戳 |
+| `/dw` / `/dm` | 星期 / 英文月份 |
+
+日期映射集中在 `lua/date_commands.lua`，输入更长命令时不会提前提交短命令。`/path`、`/version` 的调试入口及虎码 `/simpstats` 保留。组件按方案加载，`rime.lua` 不预加载扩展；简繁统一使用标准 `s2t`。网站入口已移除。
+
+全拼与小鹤默认开启部件拆字反查和部件辅码，统一使用反引号：开头输入反引号后加部件拼音查字，例如全拼 `` `riyue ``、小鹤 `` `riyt `` 均查“明”；已有拼音后加反引号及部件筛选候选，例如全拼 `` shi`mu ``、小鹤 `` ui`mu `` 筛选“柿”。全拼使用 `radical_pinyin`，小鹤使用 `radical_pinyin_flypy` 的独立拼写索引，共用同一部件词典；这两个辅助方案不加入 F4 的主方案列表。候选置顶 `pin_cand_filter` 仍未启用。
+
+四套方案以 `quick_input` 作为分号命令入口，功能实现仍放在独立模块中：`;s` 切方案，虎码 `;k` 开始 / 结束击键统计；日期时间与符号由 `/` 统一输入。
+
+`/` 打开逐级补全的符号菜单，每层候选注释只显示下一键，模糊结果只显示目标路径。可以直接追加字母进入下一层，也可以用空格选择；子菜单内还可用数字选择，根目录数字用于 `/0` 到 `/10` 的直接查询。退格返回上一层。顶层按内容分类：`a` 箭头（arrows）、`m` 数学（math）、`l` 语言（languages）、`e` 表情（emoji）、`g` 棋牌运动（games）、`n` 自然（nature）、`w` 文字（writing）、`c` 货币（currency）、`u` 单位（units）、`k` 键盘符号（keyboard）、`v` 勾叉（verification），另有 `/d` 日期、`/t` 时间。没有“常用符号”分类；原混合组中容易判断含义的符号已拆出或归入既有分类，剩余特殊标记留在末尾 `/o` 并显示预览。例如：
+
+- `/a` 直接进入箭头，`/vc` / `/vx` 分别进入对号 / 错号。
+- `/l` → `g`（Greek）得到 `/lg` 希腊字母；`G` 为大写。
+- `/l` → `j`（Japanese）→ `h` / `k` 得到 `/ljh` 平假名 / `/ljk` 片假名。
+- `/m` → `f`（fractions）得到 `/mf` 分数。
+
+原混合组的明确入口包括 `/wl` 版权注册、`/wM` 商标、`/wS` 服务商标、`/p` 电话传真、`/r` 回收、`/j` 交通、`/i` 工具、`/s` 科学、`/hw` 警告、`/hm` 医疗、`/ha` 无障碍、`/nr` 宗教、`/nl` 地点、`/gj` 将棋、`/gC` 跳棋、`/gs` 运动、`/vb` 复选框、`/eF` 旗帜。天气、天文、方向手势、几何图形等补入既有分类。也可直接输入 `/phone`、`/copyright`、`/warning`、`/recycle` 等英文关键词查找。
+
+子项优先使用英文助记键；多字母子项输入到一半仍显示匹配提示。候选先显示精确路径对应的字符 / 内容或当前层分类，再补全局英文模糊结果。例如 `/greek`、`/grk` 都能找到“希腊字母”，选择后进入 `/lg`；`/date`、`/time`、`/timestamp` 分别找到日期、时间、时间戳入口。模糊匹配检索路径及英文关键词，完整词、前缀和连续匹配优先，同一符号组不重复列出。中文名称只用于显示。英文关键词参与检索但不显示在注释中；实际符号和日期不再重复附加组名或命令清单，缩短横排候选框。
+
+菜单条目的格式是 `{ "下一键", "显示名称", "数据键或子菜单", "英文关键词" }`；分组的默认关键词在同文件 `group_keywords`，日期映射仍由 `lua/date_commands.lua` 管理。常用组也保留独立短入口：
+
+| 输入 | 符号组 |
+| --- | --- |
+| `/0` … `/10` | 对应数字的各种写法 |
+| `/jt` / `/sx` / `/fs` | 箭头 / 数学 / 分数 |
+| `/b` / `/bd` | 括号 / 标点 |
+| `/hb` / `/u` | 货币 / 单位 |
+| `/bq` / `/tq` / `/yy` | 表情 / 天气 / 音乐 |
+| `/pk` / `/mj` / `/sz` | 扑克 / 麻将 / 骰子 |
+
+完整符号表继续由 `symbols.yaml` 管理，`symbol_*` 为共享数据键，菜单路径集中在 `lua/symbol_menu.lua`；短入口引用同一份数据。拉丁字母变体在 `/lv`，其后追加原字母；数字直接用 `/0` 到 `/10` 打开对应变体，`/mn` 只保留一个去重后的数字总项；符号组按内容归类，没有明确归属的直接放在总菜单末尾并显示符号预览，不设“全部分类”。原 `;x` 及分号符号入口已移除。四套方案均可用 `-` 上一页、`=` 下一页；拼音另保留 Tab / Shift+Tab 翻页，虎码 Tab 仍清屏。计算器中的减号保留为运算符。`;` 单独输入仍提供 `：`、`；` 两个候选。
+
+字母后加分号的快符保留，例如 `e;` 为 `（`、`t;` 为 `【`、`c;` 为 `→`；两个及以上字母后的分号仍二选。虎码 `z` 的重复末字固定二选，连打时优先取未上屏的前一个字，否则取上次提交的末字；`;` 和数字 `2` 都走原生选择。`jj`、`tt` 原样直出仅在小鹤双拼启用，全拼保留简拼。未分配的 `;字母` 仍可原样直出，所有快捷输入均受中文模式及修饰键保护。
+
+四套方案的普通开关在当前 Rime 会话内保留，包括中英文、全半角、标点、Emoji、简繁、虎码读音 / 拆分 / Unicode 提示、简码提醒与记录。`quick_input` 初始化时调用 `schema_switch`，只设置一次首次默认值，切方案后不覆盖；`save_options: []` 不跨重启保存，也不写额外状态文件。下划线开头的手机键盘选项属于 Rime 内部临时选项，仍按方案初始化。前端主动切换中英文或创建新会话时仍可能改变状态。
+
+虎码保留 `echo_translator` 的字面候选，避免空码时候选框消失；不再输出 `◌` 或抑制连续空格。正常字词由原生组件提交；仅在选中候选中存在 `raw` 字面分段时，`quick_input` 调用 `tiger.commit_guard` 拦截空格、逗号和句号，丢弃未转换编码，提交连打中的有效分段。合法英文词条不受影响，显式数字选字仍可提交字面编码。
+
+虎码简码提醒与记录由独立 `tiger.simp_tracker` 处理，`simp_hint`、`simp_record` 两个开关默认开启，可在 F4 菜单中独立关闭。输入 `/simpstats` 查看多打编码次数最多的前 20 项。统计保存在 Rime 用户目录的 `tiger-simp-stats.tsv`，不纳入 chezmoi；只追加单字、实际编码、推荐简码、多按键数和时间，不记录整句。固定四码分段无法对应到单字的提交不统计；推荐表由同一生成器从常用字典提取一码、两码首选字，同字取最短编码；随上游码表更新，不提醒常用字集之外的生僻字。通知通过后台 `notify-send` / `osascript` 发出，尚无冷却或合并；文件追加仍在输入线程执行，统计是多打事件次数，并非包含所有输入的错误率。
+
+生成缓存位于 chezmoi 缓存目录的 `rime-tiger/` 中（跟随 `--cache`），只在上游词典或 helper 内容变化时重建；缓存损坏会重建，并发写入采用原子替换。本地扩展词典由模板单独渲染，修改它无需重新生成基础常用字词典。缓存命中时只读取词典并计算指纹，不解压或压缩。
+
+常用方案不再运行常用字 Lua 过滤器；原来的字集开关和 `Ctrl+h` 字集快捷键已移除，改用 `F4` 或 `;s` 切到全字集。保留编码补全，部分短码的补全候选顺序会与旧过滤方式不同。
+
+`chezmoi diff` / `cat` 不会替 Git external 执行 pull，预览使用本地已有的上游版本。首次使用（或只 apply 输入法子目录之前），先准备上游 checkout；需要预览远端新版本时也可以这样更新：
+
+```bash
+chezmoi apply --refresh-externals=always ~/.cache/rime-tiger/upstream ~/.cache/rime-ice/upstream
+chezmoi diff ~/.local/share/fcitx5/rime
+```
+
+确认后按正常流程应用；也可直接完整 `chezmoi apply`，先更新上游再生成词典。需要提前安装 Git 和 `python3`。删除上游目录后需要重新 clone；没有 checkout 时词典模板会报错，不会静默生成空词典。离线时可从现有 checkout 预览或单独应用输入法目录；刷新 Git 上游需要网络。
+
+此机制用于仓库管理的 Linux / macOS Fcitx5 Rime 目录，不写入鼠须管的 `~/Library/Rime`，不会自动重启或重新部署输入法。
 
 重新部署：
 

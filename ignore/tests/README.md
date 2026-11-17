@@ -20,10 +20,21 @@ It checks:
 - the macOS systemctl wrapper with native `plutil` on macOS only (service calls remain mocked);
 - desktop CLI integration through deterministic commands in `mock-bin`;
 - the caller-provided fallback contract of the chezmoi-only `hyprctl-safe` helper;
+- Tiger/Ice Git external platform gates, same-apply update/render ordering, common-character
+  selection, generated shorthand recommendations independent of destination write order,
+  artifact caching and shared Emoji priority/deduplication with isolated local Git fixtures;
+- shared Rime semicolon date commands, independent scheme configuration, numeric prefixes, calculators
+  schema menu consistency, and session-only option defaults/preservation when `lua` is available;
+- native librime input checks for full-pinyin/Xiaohe radical lookup, auxiliary filtering,
+  semicolon candidates, symbol categories/short aliases, schema switching, and Tiger repeat after numeric/manual commits
+  or during four-code continuous input, fixed second-candidate placement and equivalent
+  semicolon/digit-2 selection, literal empty-code display with space/punctuation cleanup and native normal
+  commits (including valid ASCII dictionary entries) (including supplementary Unicode characters) on Linux with cc, librime development files
+  and librime-lua installed (otherwise skipped; all dictionaries and state are isolated fixtures);
 - Bash syntax for non-template shell scripts;
 - Lua syntax when `luac` is available.
 
-Required dependencies are `chezmoi`, Bash and Python 3; macOS checks also use
+Required dependencies are `chezmoi`, Git, Bash and Python 3.11+ (for `tomllib`); macOS checks also use
 Zsh and the system-provided `plutil`. Linux skips checks that require native macOS
 tools; fully mocked service logic still runs on both platforms. `luac` is optional.
 GUI authorization, application behavior and real service
