@@ -1,0 +1,19 @@
+{{- /* 只列出要提供给输入法的 secret key；名称沿用 gopass，不重复配置元数据。 */ -}}
+{{- $keys := list
+  "phone/1"
+  "phone/2"
+  "phone/wyy1"
+  "phone/wyy2"
+  "id/me"
+  "email/me"
+  "address/home"
+  "fduID"
+-}}
+return {
+{{- range $keys -}}
+  {{- $text := secret . "" -}}
+  {{- if ne $text "" }}
+  { key = {{ includeTemplate "luaString" . }}, text = {{ includeTemplate "luaString" $text }} },
+  {{- end -}}
+{{- end }}
+}

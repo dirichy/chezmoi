@@ -175,7 +175,7 @@ secret 通过 `gopass-safe` 读取：
 command = "{{ joinPath .chezmoi.sourceDir "ignore" "bin" "gopass-safe" }}"
 ```
 
-查找规则是 `chezmoi/<key>`，找不到时使用模板里的默认值。当前使用到的 secret 包括：
+按完整路径 `chezmoi/<key>` 精确读取，不触发模糊查找或自动同步，找不到时使用模板里的默认值。当前使用到的 secret 包括：
 
 - `serverIP`
 - `ikuuu`
@@ -184,6 +184,15 @@ command = "{{ joinPath .chezmoi.sourceDir "ignore" "bin" "gopass-safe" }}"
 - `fduSecret`
 - `maimaiSSpassword`: 个人 Shadowsocks 节点密码
 - `tmuxNotifyToken`: tmux 通知服务的认证 token（还需自行部署通知服务）
+
+新增设备使用自己的 GPG 私钥。在新设备生成含加密子密钥的 GPG 密钥后，执行 `gpg --armor --export <完整指纹> > device-public.asc`，只传递公钥。在已有授权的设备上核对完整指纹，然后运行：
+
+```bash
+./ignore/bin/add-device device-public.asc <完整指纹>
+# 使用特定 gopass 子 store 时，在末尾追加 store 名称。
+```
+
+脚本只接受单个 ASCII-armored 公钥并核对主密钥完整指纹，再导入公钥、调用 gopass 自带的 recipient 授权和重加密。保留 gopass 的确认与信任检查；不会自动设置 ultimate trust。`--nosync` 禁止自动拉取或推送，但 gopass 自身可能创建本地提交。失败时会报告公钥已导入、授权未完成，可检查后重跑；不自动回退已完成操作。审核并手动同步 store 后，新设备用自己的私钥读取它，无需复制其他设备的私钥。本仓库不再使用 git-crypt。
 
 ## Dependencies
 
@@ -483,11 +492,40 @@ Linux 使用 Fcitx5 + Rime：
 
 日期映射集中在 `lua/date_commands.lua`，输入更长命令时不会提前提交短命令。`/path`、`/version` 的调试入口及虎码 `/simpstats` 保留。组件按方案加载，`rime.lua` 不预加载扩展；简繁统一使用标准 `s2t`。网站入口已移除。
 
+私人短语与符号共用 `/` 菜单、逐级导航和英文 fuzzy 搜索。`/q` 列出可用的 gopass 条目名；条目只有一个值时，空格或数字选择后直接上屏，有多个值时才进入下一层选择。实际值保留原文，不受简繁、Emoji 滤镜改写，也不加入拼音词典。
+
+只需在 `dot_local/share/fcitx5/rime/lua/private_quick_phrase_data.lua.tmpl` 的 `$keys` 列表追加一个名字：
+
+```gotemplate
+{{- $keys := list
+  "phone/main"
+  "phone/backup"
+  "fduID"
+-}}
+```
+
+名称相对于 `chezmoi/`，例如 `phone/main` 对应 `gopass insert chezmoi/phone/main`。不再单独维护编码、label、菜单名称或英文关键词：gopass 条目名同时用于精确路径、显示和 fuzzy，目录分隔符、下划线、连字符和 camelCase 会自动分词。显式列表避免把密码、token 等其他 secret 自动暴露给输入法；同一资料只维护一份，`fduID` 同时供 Rime 和 fdu-connect 使用。
+
+| gopass 条目 | 精确入口 | fuzzy 示例 |
+| --- | --- | --- |
+| `chezmoi/phone/main` | `/qphone/main` | `/main` |
+| `chezmoi/phone/backup` | `/qphone/backup` | `/backup` |
+| `chezmoi/phone/dad` | `/qphone/dad` | `/dad` |
+| `chezmoi/fduID` | `/qfduID` | `/fdu` |
+
+可以直接打完整路径，也可以输入 `/qphone/` 等前缀，再选菜单中的条目。路径分隔符可以省略：例如 `phone/work` 也能用 `/phonework` 或 `/phwrk` 搜到，不需要另配别名。`/main` 这样的 fuzzy 查询找到条目后，只有一个值时按一次空格或数字即可直接上屏，不再要求先进入条目。名称支持英文字母、数字、`/`、`_`、`-`，区分大小写的完整名称用于精确入口，fuzzy 不区分大小写。私人路径输入中，数字或分隔符在命中已知未完成路径时继续补全，否则保留选词、翻页等用途；已经进入实际值候选后，数字用于选择。若两个名字存在数字后缀歧义，可从 `/q` 菜单进入。
+
+模板逐条读取列表中的 gopass secret，缺失或不可解密的条目会省略；`.chezmoitemplates/luaString` 对引号、反斜杠和控制字符进行 Lua 字符串转义，资料只作为文本写入明文 Lua 表。列表顺序就是菜单顺序；名称重复时只显示一次。耗时只发生在渲染阶段，Lua 初始化后只查内存，不依赖 gopass、Python 或 Shell。数据文件缺失或格式错误时不加载，不在日志中输出私人资料。
+
+桌面产物 `lua/quick_phrase_data.lua` 权限为 `0600`；dotfiles 只保存名字列表，真实资料在 gopass，产物和 `chezmoi diff` / `cat` 预览仍是明文，不应提交到 Git。修改条目或列表后重新应用短语文件，再手动重新部署 Rime。
+
+部署到支持 Lua 的 fcitx5-android 时，携带渲染后的 `lua/quick_phrase_data.lua`、`lua/quick_phrases.lua`、`lua/quick_phrase_filter.lua` 及现有符号菜单等公共依赖，手机不需要 chezmoi 或 gopass。完整方案的词库和其他资源仍需另行准备，本功能不自动导出整套手机配置，也不自动重载输入法。
+
 全拼与小鹤默认开启部件拆字反查和部件辅码，统一使用反引号：开头输入反引号后加部件拼音查字，例如全拼 `` `riyue ``、小鹤 `` `riyt `` 均查“明”；已有拼音后加反引号及部件筛选候选，例如全拼 `` shi`mu ``、小鹤 `` ui`mu `` 筛选“柿”。全拼使用 `radical_pinyin`，小鹤使用 `radical_pinyin_flypy` 的独立拼写索引，共用同一部件词典；这两个辅助方案不加入 F4 的主方案列表。候选置顶 `pin_cand_filter` 仍未启用。
 
-四套方案以 `quick_input` 作为分号命令入口，功能实现仍放在独立模块中：`;s` 切方案，虎码 `;k` 开始 / 结束击键统计；日期时间与符号由 `/` 统一输入。
+四套方案以 `quick_input` 作为分号命令入口，功能实现仍放在独立模块中：`;s` 切方案，虎码 `;k` 开始 / 结束击键统计；日期时间、符号与私人短语由 `/` 统一输入。
 
-`/` 打开逐级补全的符号菜单，每层候选注释只显示下一键，模糊结果只显示目标路径。可以直接追加字母进入下一层，也可以用空格选择；子菜单内还可用数字选择，根目录数字用于 `/0` 到 `/10` 的直接查询。退格返回上一层。顶层按内容分类：`a` 箭头（arrows）、`m` 数学（math）、`l` 语言（languages）、`e` 表情（emoji）、`g` 棋牌运动（games）、`n` 自然（nature）、`w` 文字（writing）、`c` 货币（currency）、`u` 单位（units）、`k` 键盘符号（keyboard）、`v` 勾叉（verification），另有 `/d` 日期、`/t` 时间。没有“常用符号”分类；原混合组中容易判断含义的符号已拆出或归入既有分类，剩余特殊标记留在末尾 `/o` 并显示预览。例如：
+`/` 打开逐级补全的符号菜单，每层候选注释只显示下一键，模糊结果只显示目标路径。可以直接追加字母进入下一层，也可以用空格选择；只有一个实际值的叶条目选中即上屏，分类和多值条目继续进入下一层。子菜单内还可用数字选择，根目录数字用于 `/0` 到 `/10` 的直接查询。退格返回上一层。顶层按内容分类：`a` 箭头（arrows）、`m` 数学（math）、`l` 语言（languages）、`e` 表情（emoji）、`g` 棋牌运动（games）、`n` 自然（nature）、`w` 文字（writing）、`c` 货币（currency）、`u` 单位（units）、`k` 键盘符号（keyboard）、`v` 勾叉（verification），另有 `/d` 日期、`/t` 时间和 `/q` 私人短语。没有“常用符号”分类；原混合组中容易判断含义的符号已拆出或归入既有分类，剩余特殊标记留在末尾 `/o` 并显示预览。例如：
 
 - `/a` 直接进入箭头，`/vc` / `/vx` 分别进入对号 / 错号。
 - `/l` → `g`（Greek）得到 `/lg` 希腊字母；`G` 为大写。

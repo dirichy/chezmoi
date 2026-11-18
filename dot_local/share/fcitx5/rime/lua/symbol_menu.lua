@@ -78,6 +78,7 @@ local groups = {
 		{ "m", "医疗", "medical", "medical medicine hospital rescue" },
 		{ "a", "无障碍", "accessibility", "accessibility wheelchair disability" },
 	} },
+	{ "q", "私人短语", {}, "phrases snippets personal" },
 }
 
 -- 分组的检索词；叶条目也可直接用第四项自行配置。
@@ -146,7 +147,10 @@ function M.init(env)
 			local key, name, data = table.unpack(definition)
 			local child_code = code .. key
 			local child
-			if type(data) == "table" then
+			if type(data) == "table" and data.phrases then
+				child = { code = child_code, parent = code, phrases = data.phrases }
+				env.symbol_nodes[child_code] = child
+			elseif type(data) == "table" then
 				child = build(child_code, data, code)
 			else
 				child = { code = child_code, parent = code, source = data, values = values(config, data) }
@@ -187,6 +191,7 @@ function M.init(env)
 	fill("/lv", variants)
 	fill("/eg", flags)
 	fill("/ljs", kana)
+	fill("/q", require("quick_phrases").definitions())
 	-- 没有归入上面分类的数据直接列在总菜单末尾，用预览说明内容。
 	local remaining = {}
 	for _, source in ipairs(sources) do
@@ -307,6 +312,16 @@ end
 function M.select(key, env)
 	local context = env.engine.context
 	if context.input:sub(1, 1) ~= "/" then return 2 end
+	-- 私人条目路径可含目录、数字、下划线及连字符；命中已知路径时才续写。
+	if context.input:match("^/q[A-Za-z0-9_/-]*$") and key.keycode >= 0x20 and key.keycode < 0x7f then
+		local char = string.char(key.keycode)
+		local direct = env.symbol_nodes[context.input]
+		if char:match("^[/0-9_-]$") and (not direct or not direct.phrases)
+			and env.symbol_prefixes[context.input .. char] then
+			context:push_input(char)
+			return 1
+		end
+	end
 	-- 根目录数字直接查数字；子菜单的数字仍用于选择分类。
 	if context.input == "/" and key.keycode >= 0x30 and key.keycode <= 0x39 then return 2 end
 	local node = env.symbol_nodes[context.input]
@@ -323,8 +338,26 @@ function M.select(key, env)
 	if not candidate then return 2 end
 	-- Emoji / 简繁滤镜可能替换类型和注释，导航数据放在原始候选类型中。
 	local genuine = candidate:get_genuine()
-	local code = genuine.type:match("^symbol_menu(/[A-Za-z0-9]+)$")
+	if genuine.type == "quick_phrase" then
+		env.engine:commit_text(genuine.text)
+		context:clear()
+		return 1
+	end
+	local code = genuine.type:match("^symbol_menu(/[A-Za-z0-9_/-]+)$")
 	if not code then return 2 end
+	-- 单值叶条目直接上屏；分类和多值条目继续进入下一层。
+	local target = env.symbol_nodes[code]
+	local single
+	if target and target.phrases and #target.phrases == 1 then
+		single = target.phrases[1].text
+	elseif target and target.values and #target.values == 1 then
+		single = target.values[1]
+	end
+	if single then
+		env.engine:commit_text(single)
+		context:clear()
+		return 1
+	end
 	context.input = code
 	return 1
 end
@@ -332,6 +365,13 @@ end
 function M.func(input, segment, env)
 	local list, node = entries(input, env)
 	node = node or (env.symbol_aliases or {})[input]
+	if node and node.phrases then
+		for _, phrase in ipairs(node.phrases) do
+			local candidate = Candidate("quick_phrase", segment.start, segment._end, phrase.text, phrase.label)
+			candidate.quality = 100
+			yield(candidate)
+		end
+	end
 	if node and node.values then
 		for _, text in ipairs(node.values) do
 			local candidate = Candidate("punct", segment.start, segment._end, text, "")

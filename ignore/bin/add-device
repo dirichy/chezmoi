@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+    printf 'Usage: %s PUBLIC_KEY.asc FULL_FINGERPRINT [GOPASS_STORE]\n' "$0"
+    printf 'Run on an authorized device. The key fingerprint must be checked separately.\n'
+    printf 'Imports one armored public key and authorizes it in gopass. No push/pull.\n'
+    printf 'gopass may create local commits while re-encrypting its store.\n'
+}
+
+if [[ ${1:-} == --help || ${1:-} == -h ]]; then usage; exit 0; fi
+if (( $# < 2 || $# > 3 )); then usage >&2; exit 2; fi
+for command in gpg gopass; do
+    command -v "$command" >/dev/null 2>&1 || { printf 'Missing command: %s\n' "$command" >&2; exit 1; }
+done
+
+public_key=$1
+fingerprint=$(printf '%s' "${2#0x}" | tr -d ' ' | tr '[:lower:]' '[:upper:]')
+if [[ ! $fingerprint =~ ^([0-9A-F]{40}|[0-9A-F]{64})$ ]]; then
+    printf 'A full GPG fingerprint is required.\n' >&2
+    exit 2
+fi
+if [[ ! -f $public_key ]] || ! grep -q '^-----BEGIN PGP PUBLIC KEY BLOCK-----' "$public_key" \
+    || grep -q 'PRIVATE KEY BLOCK' "$public_key"; then
+    printf 'Expected an armored public key exported with gpg --armor --export.\n' >&2
+    exit 2
+fi
+
+# Inspect without importing; reject bundles so no unrelated key is imported.
+listing=$(gpg --batch --with-colons --show-keys -- "$public_key")
+key_count=$(printf '%s\n' "$listing" | awk -F: '$1 == "pub" { n++ } END { print n+0 }')
+actual=$(printf '%s\n' "$listing" | awk -F: '$1 == "pub" { primary=1; next } primary && $1 == "fpr" { print $10; exit }')
+if [[ $key_count != 1 || $actual != "$fingerprint" ]]; then
+    printf 'Public key does not contain exactly the expected primary fingerprint. Nothing imported.\n' >&2
+    exit 1
+fi
+if ! printf '%s\n' "$listing" | awk -F: '$1 == "pub" && $2 !~ /^[red]$/ && $12 ~ /[eE]/ { ok=1 } END { exit !ok }'; then
+    printf 'Public key is expired, revoked, disabled, or has no usable encryption key.\n' >&2
+    exit 1
+fi
+
+printf 'Authorizing fingerprint: %s\n' "$fingerprint"
+printf 'gopass will ask for confirmation and may create local commits. Automatic sync is disabled.\n'
+gpg --batch --import -- "$public_key"
+store_args=()
+if (( $# == 3 )); then store_args=(--store "$3"); fi
+# Keep gopass confirmations, trust checks, store selection and re-encryption behavior.
+# Re-running the native operation also retries encryption after a partial failure.
+if ! gopass --nosync recipients add "${store_args[@]}" "$fingerprint"; then
+    printf 'Public key imported, but gopass authorization did not complete. Check the store and rerun this command.\n' >&2
+    exit 1
+fi
+printf 'Authorization command completed. Review the gopass changes, then synchronize the store manually.\n'

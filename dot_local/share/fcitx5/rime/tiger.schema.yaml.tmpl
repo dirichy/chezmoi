@@ -101,6 +101,7 @@ engine:
     - lua_filter@*charset_comment_filter #Unicode分区提示滤镜
     - lua_filter@*unicode_display #Unicode编码显示
     - uniquifier #过滤重复
+    - lua_filter@*quick_phrase_filter # 私人短语保留原文
     # 放在去重之后：即使首选恰好与重复字相同，也保留固定二选入口。
     - lua_filter@*tiger.repeat_last # z 的重复候选固定二选，由原生 selector 提交
 
@@ -175,7 +176,7 @@ recognizer:
   import_preset: default
   patterns:
     schema_switch: "^;s$"
-    punct: "^(;[A-Za-z]+|/([A-Za-z]+|[0-9]|10)?)$" # 分号功能命令、斜杠符号菜单及调试统计入口
+    punct: "^(;[A-Za-z]+|/q[A-Za-z0-9_/-]*|/([A-Za-z]+|[0-9]|10)?)$" # 分号功能命令、斜杠符号菜单及调试统计入口
     # uppercase: "" #中文状态大写锁定直接上屏
     reverse_lookup: "^`[a-z]*'?$"
     # easy_english: "^'[A-Z|a-z]*`?$"

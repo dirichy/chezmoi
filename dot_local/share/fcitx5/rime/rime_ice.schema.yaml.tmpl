@@ -94,6 +94,7 @@ engine:
     - simplifier@traditionalize # 简繁切换
     - lua_filter@*search # 部件拆字辅码，来源由 search/schema 指定
     - uniquifier # 去重
+    - lua_filter@*quick_phrase_filter # 私人短语保留原文
 
 # 日期入口由 lua/date_commands.lua 统一定义。
 
@@ -524,7 +525,7 @@ recognizer:
   import_preset: default # 从 default.yaml 继承通用的
   patterns: # 再增加方案专有的：
     schema_switch: "^;s$"
-    punct: "^(;[A-Za-z]+|/([A-Za-z]+|[0-9]|10)?)$" # 分号功能命令、斜杠符号菜单及调试统计入口
+    punct: "^(;[A-Za-z]+|/q[A-Za-z0-9_/-]*|/([A-Za-z]+|[0-9]|10)?)$" # 分号功能命令、斜杠符号菜单及调试统计入口
     radical_lookup: "^`[a-z]*$" # 仅开头的反引号触发拆字反查
     unicode: "^U[a-f0-9]+" # 脚本将自动获取第 2 个字符 U 作为触发前缀，响应 lua_translator@*unicode，输出 Unicode 字符
     number: "^R[0-9]+[.]?[0-9]*" # 脚本将自动获取第 2 个字符 R 作为触发前缀，响应 lua_translator@*number_translator，数字金额大写

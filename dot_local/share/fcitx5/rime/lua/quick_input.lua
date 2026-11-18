@@ -44,7 +44,7 @@ function M.func(key, env)
 		local digit_prefix = (context.input == "/" and code >= 0x30 and code <= 0x39)
 			or (context.input == "/1" and code == 0x30)
 		-- 任意英文查询都留给菜单匹配；不要求它已经是某个路径的前缀。
-		if (context.input:match("^/[A-Za-z]*$") and letter) or digit_prefix then
+		if ((context.input:match("^/[A-Za-z]*$") or context.input:match("^/q[A-Za-z0-9_/-]*$")) and letter) or digit_prefix then
 			context:push_input(string.char(code))
 			return 1
 		end

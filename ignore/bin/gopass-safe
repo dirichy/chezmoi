@@ -3,11 +3,10 @@ hint=$1
 default=$2
 result=""
 if command -v gopass &> /dev/null; then
-    data=$(gopass find "chezmoi/$hint" 2>/dev/null | head -n 1)
-    result=$(gopass show --password $data 2> /dev/null)
+    result=$(gopass show --password --nofuzzysearch --nosync "chezmoi/$hint" 2>/dev/null)
 fi
 if [ -z "$result" ]; then
-    printf "$default"
+    printf '%s' "$default"
 else
-    printf "$result"
+    printf '%s' "$result"
 fi

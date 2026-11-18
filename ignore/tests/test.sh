@@ -227,7 +227,7 @@ grep -Fq 'http_proxy=http://10.20.30.40:1080' "$tmp_dir/external-only.zshenv" \
 pass 'Mihomo lifecycle and client proxy routing are independent'
 
 assert_ignored "$desktop_list" '.local/share/fcitx5/rime/lua/exe.lua' 'desktop excludes removed website launcher'
-for path in radical_pinyin.dict.yaml radical_pinyin.schema.yaml radical_pinyin_flypy.schema.yaml lua/tiger/repeat_last.lua lua/tiger/commit_guard.lua lua/symbol_menu.lua lua/date_commands.lua lua/menu_keys.lua; do
+for path in lua/quick_phrase_data.lua lua/quick_phrases.lua lua/quick_phrase_filter.lua radical_pinyin.dict.yaml radical_pinyin.schema.yaml radical_pinyin_flypy.schema.yaml lua/tiger/repeat_last.lua lua/tiger/commit_guard.lua lua/symbol_menu.lua lua/date_commands.lua lua/menu_keys.lua; do
     assert_managed "$desktop_list" ".local/share/fcitx5/rime/$path" "desktop includes $path"
     assert_ignored "$headless_list" ".local/share/fcitx5/rime/$path" "headless excludes $path"
     assert_ignored "$skip_list" ".local/share/fcitx5/rime/$path" "skip excludes $path"

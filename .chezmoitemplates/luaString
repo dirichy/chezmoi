@@ -1,0 +1,7 @@
+{{- /* Lua 字符串：先转义反斜杠与引号，再以三位十进制转义控制字符。 */ -}}
+{{- $value := replace "\\" "\\\\" . -}}
+{{- $value = replace "\"" "\\\"" $value -}}
+{{- range $i := until 32 -}}
+  {{- $value = replace (printf "%c" $i) (printf "\\%03d" $i) $value -}}
+{{- end -}}
+{{- printf "\"%s\"" $value -}}
