@@ -21,17 +21,6 @@ return {
 				desc = "Find in current Buffer",
 			},
 			{
-				"<leader>/",
-				function()
-					-- You can pass additional configuration to telescope to change theme, layout, etc.
-					require("telescope.builtin").current_buffer_fuzzy_find(require("telescope.themes").get_dropdown({
-						winblend = 10,
-						previewer = false,
-					}))
-				end,
-				desc = "Find in current Buffer",
-			},
-			{
 				"<leader><space>",
 				function()
 					--HACK:nvim-lastplace is not maintained and don't work when neo-tree opening, so we close neo-tree before using telescope.
