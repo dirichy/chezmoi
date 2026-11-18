@@ -32,9 +32,8 @@ return {
 					csvview.enable(event.buf)
 				end,
 			})
-			if vim.bo.filetype == "csv" then
-				csvview.enable()
-			end
+			-- lazy.nvim replays FileType after loading this plugin. Enable only
+			-- in that callback: a second enable races the asynchronous parser.
 		end,
 	},
 	{
