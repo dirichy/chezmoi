@@ -4,9 +4,35 @@ local root = repo .. "/dot_local/share/fcitx5/rime/lua/"
 package.path = root .. "?.lua;" .. package.path
 
 function Candidate(kind, start, finish, text, comment)
-	return { type = kind, start = start, _end = finish, text = tostring(text), comment = comment }
+	return { type = kind, start = start, _end = finish, text = tostring(text), comment = comment,
+		get_genuine = function(self) return self end }
 end
 yield = coroutine.yield
+
+local function notifier()
+	local connections = {}
+	return {
+		connect = function(_, callback, group)
+			local connection = { callback = callback, group = group or math.huge, active = true }
+			connection.disconnect = function() connection.active = false end
+			connections[#connections + 1] = connection
+			return connection
+		end,
+		emit = function(_, context)
+			table.sort(connections, function(a, b) return a.group < b.group end)
+			for _, connection in ipairs(connections) do
+				if connection.active then connection.callback(context) end
+			end
+		end,
+		count = function()
+			local count = 0
+			for _, connection in ipairs(connections) do
+				if connection.active then count = count + 1 end
+			end
+			return count
+		end,
+	}
+end
 
 local function environment(settings)
 	return { engine = { schema = { config = {
@@ -76,6 +102,7 @@ local function session(emoji_default)
 	local env = environment({ ["session_defaults/emoji"] = emoji_default })
 	local options, properties = {}, {}
 	env.engine.context = {
+		select_notifier = notifier(),
 		get_property = function(_, key) return properties[key] or "" end,
 		set_property = function(_, key, value) properties[key] = value end,
 		set_option = function(_, key, value) options[key] = value end,
@@ -93,6 +120,7 @@ switch_env.engine.schema.config.get_bool = function() return true end
 quick_input.init(switch_env)
 assert(options.emoji and not options.simp_hint and not options.simp_record)
 assert(options.ascii_mode and options.traditionalization and options.chaifen)
+assert(switch_env.engine.context.select_notifier:count() == 2)
 local new_session, new_options = session(true)
 quick_input.init(new_session)
 assert(new_options.emoji and new_options.simp_hint and new_options.simp_record)
@@ -113,6 +141,7 @@ local function shortcut(input, code, flags, caret)
 	local env = { engine = {
 		schema = { schema_id = flags.schema or "rime_ice", config = { get_bool = function() return false end, get_map = function() return nil end } },
 		context = {
+			select_notifier = notifier(),
 			input = input, caret_pos = caret or #input,
 			composition = { back = function() return nil end },
 			get_option = function() return flags.ascii or false end,
@@ -179,6 +208,17 @@ local selected
 switch_env.engine.apply_schema = function(_, id) selected = id end
 switch_env.engine.context.get_option = function() return false end
 switch_env.engine.context.clear = function() switch_env.engine.context.input = "" end
+local current_candidate
+switch_env.engine.context.get_selected_candidate = function() return current_candidate end
+switch_env.engine.context.composition = { back = function() return {
+	selected_index = 0, get_candidate_at = function(_, index) return menu[index + 1] end,
+} end }
+switch_env.engine.context.select = function(ctx, index)
+	current_candidate = menu[index + 1]
+	assert(selected == nil) -- Selecting is delegated to Rime before the action runs.
+	ctx.select_notifier:emit(ctx)
+	return true
+end
 local function selection_key(code, modifier)
 	local key = { keycode = code }
 	for _, flag in ipairs({ "release", "ctrl", "alt", "super" }) do
@@ -187,6 +227,7 @@ local function selection_key(code, modifier)
 	return key
 end
 for index, schema in ipairs(catalog) do
+	selected = nil
 	switch_env.engine.context.input, switch_env.engine.context.caret_pos = ";s", 2
 	assert(quick_input.func(selection_key(string.byte(tostring(index))), switch_env) == 1)
 	assert(selected == schema.id and switch_env.engine.context.input == "")
@@ -196,7 +237,9 @@ for _, flag in ipairs({ "release", "ctrl", "alt", "super" }) do
 	switch_env.engine.context.input, switch_env.engine.context.caret_pos = ";s", 2
 	assert(quick_input.func(selection_key(string.byte("1"), flag), switch_env) == 2 and selected == nil)
 end
-print("Rime quick commands: schema selection and modifier guards passed")
+quick_input.fini(switch_env)
+assert(switch_env.engine.context.select_notifier:count() == 0)
+print("Rime quick commands: selection delegation, callback cleanup and modifier guards passed")
 
 -- Hierarchical paths keep their parent prefix, including partial child keys.
 local symbol_menu = require("symbol_menu")

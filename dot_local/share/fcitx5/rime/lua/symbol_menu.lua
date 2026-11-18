@@ -1,5 +1,4 @@
 -- / 的每一级都追加子项键；符号数据与独立短入口共用 symbols.yaml。
-local menu_index = require("menu_keys")
 local date_commands = require("date_commands")
 local M = {}
 
@@ -309,7 +308,7 @@ local function fuzzy_entries(input, env, exact, direct)
 	return result
 end
 
-function M.select(key, env)
+function M.handle_key(key, env)
 	local context = env.engine.context
 	if context.input:sub(1, 1) ~= "/" then return 2 end
 	-- 私人条目路径可含目录、数字、下划线及连字符；命中已知路径时才续写。
@@ -322,44 +321,25 @@ function M.select(key, env)
 			return 1
 		end
 	end
-	-- 根目录数字直接查数字；子菜单的数字仍用于选择分类。
-	if context.input == "/" and key.keycode >= 0x30 and key.keycode <= 0x39 then return 2 end
 	local node = env.symbol_nodes[context.input]
 	if key.keycode == 0xff08 and node and node.parent then
 		context.input = node.parent
 		return 1
 	end
-	local segment = context.composition:back()
-	if not segment then return 2 end
-	local index = menu_index(key, env.engine.schema, segment.selected_index)
-	if index == nil then return 2 end
-	-- 使用合并后的实际候选，索引不受精确符号、日期或原生候选数量影响。
-	local candidate = segment:get_candidate_at(index)
-	if not candidate then return 2 end
-	-- Emoji / 简繁滤镜可能替换类型和注释，导航数据放在原始候选类型中。
-	local genuine = candidate:get_genuine()
-	if genuine.type == "quick_phrase" then
-		env.engine:commit_text(genuine.text)
-		context:clear()
-		return 1
+	return 2
+end
+
+-- 候选只描述目标；单值上屏和多级导航共用同一个选择事件执行路径。
+function M.action(candidate, env)
+	local code = candidate.type:match("^symbol_menu(/[A-Za-z0-9_/-]+)$")
+	local target = code and env.symbol_nodes[code]
+	if not target then return nil end
+	if target.phrases and #target.phrases == 1 then
+		return { text = target.phrases[1].text }
+	elseif target.values and #target.values == 1 then
+		return { text = target.values[1] }
 	end
-	local code = genuine.type:match("^symbol_menu(/[A-Za-z0-9_/-]+)$")
-	if not code then return 2 end
-	-- 单值叶条目直接上屏；分类和多值条目继续进入下一层。
-	local target = env.symbol_nodes[code]
-	local single
-	if target and target.phrases and #target.phrases == 1 then
-		single = target.phrases[1].text
-	elseif target and target.values and #target.values == 1 then
-		single = target.values[1]
-	end
-	if single then
-		env.engine:commit_text(single)
-		context:clear()
-		return 1
-	end
-	context.input = code
-	return 1
+	return { input = code }
 end
 
 function M.func(input, segment, env)

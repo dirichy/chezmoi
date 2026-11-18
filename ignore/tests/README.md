@@ -26,7 +26,8 @@ It checks:
 - shared Rime semicolon date commands, independent scheme configuration, numeric prefixes, calculators
   schema menu consistency, and session-only option defaults/preservation when `lua` is available;
 - native librime input checks for full-pinyin/Xiaohe radical lookup, auxiliary filtering,
-  semicolon candidates, symbol categories/short aliases, schema switching, and Tiger repeat after numeric/manual commits
+  semicolon candidates, symbol categories/short aliases, shared keyboard/current-page-click/expanded-list-click menu actions,
+  private phrase single-value commits, repeated schema switching followed by normal typing, and Tiger repeat after numeric/manual commits
   or during four-code continuous input, fixed second-candidate placement and equivalent
   semicolon/digit-2 selection, literal empty-code display with space/punctuation cleanup and native normal
   commits (including valid ASCII dictionary entries) (including supplementary Unicode characters) on Linux with cc, librime development files

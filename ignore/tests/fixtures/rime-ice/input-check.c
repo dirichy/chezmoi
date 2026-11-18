@@ -27,6 +27,12 @@ int main(int argc, char **argv) {
   if (!api->deploy_schema(dep)) return 7;
   snprintf(dep,sizeof(dep),"%s/radical_pinyin_flypy.schema.yaml",argv[1]);
   if (!api->deploy_schema(dep)) return 8;
+  // A real deployment builds every main schema before the session can switch between them.
+  const char *schemas[] = {"tiger", "tiger_full", "rime_ice", "rime_ice_full"};
+  for (size_t i = 0; i < sizeof(schemas) / sizeof(schemas[0]); ++i) {
+    snprintf(dep, sizeof(dep), "%s/%s.schema.yaml", argv[1], schemas[i]);
+    if (!api->deploy_schema(dep)) return 10;
+  }
   if (!api->deploy_schema(schema_path)) { fprintf(stderr,"deploy failed\n"); return 3; }
   RimeSessionId session = api->create_session();
   if (!api->select_schema(session, argv[2])) return 4;
@@ -39,7 +45,11 @@ int main(int argc, char **argv) {
     if (code == '\t') code = 0xff09;
     if (code == '\b') code = 0xff08;
     if (code == '\n') code = 0xff0d;
-    api->process_key(session, code, 0);
+    // Model page clicks and expanded-list clicks (including an item beyond page 1).
+    if (code == '\v') api->select_candidate_on_current_page(session, 0);
+    else if (code == '\f') api->select_candidate(session, 0);
+    else if (code == 0x1d) api->select_candidate(session, 8);
+    else api->process_key(session, code, 0);
     RIME_STRUCT(RimeCommit, commit);
     if (api->get_commit(session, &commit)) {
       if (commit.text) strncat(committed, commit.text, sizeof(committed) - strlen(committed) - 1);

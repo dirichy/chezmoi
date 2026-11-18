@@ -59,7 +59,28 @@ with tempfile.TemporaryDirectory(prefix="radical-", dir=temporary) as directory:
     binary = root / "input-check"
     subprocess.run(["cc", str(fixture / "input-check.c"), *flags.stdout.split(), "-ldl", "-o", str(binary)],
                    check=True, capture_output=True)
+    (user / "lua/quick_phrase_data.lua").write_text(
+        'return { {key="phone/main",text="TEST-MAIN"}, '
+        '{key="phone/backup",text="TEST-BACKUP"}, {key="phone2",text="TEST-TWO"}, '
+        + ', '.join(f'{{key="extra/{letter}",text="TEST-EXTRA-{letter.upper()}"}}'
+                    for letter in "abcdefghi") + ' }')
     cases = [
+        *[(schema, keys, expected)
+          for schema in ("tiger", "tiger_full", "rime_ice", "rime_ice_full")
+          for keys, expected in (
+              ("/\v", "←"), ("/\v\v", "commit:←"),
+              ("/greek\v", "α"), ("/greek\v\v", "commit:α"),
+              ("/greek\f\f", "commit:α"), ("/trademark\v", "commit:™"),
+              ("/main\v", "commit:TEST-MAIN"), ("/main\f", "commit:TEST-MAIN"),
+              ("/main ", "commit:TEST-MAIN"), ("/main1", "commit:TEST-MAIN"),
+              ("/q\v", "commit:TEST-MAIN"), ("/qphone/main\v", "commit:TEST-MAIN"),
+              ("/q\x1d", "commit:TEST-EXTRA-F"),
+              ("/qphone2", "TEST-TWO"), ("/qphone21", "commit:TEST-TWO"),
+              ("/d\v", "commit:" + time.strftime("%Y-%m-%d")),
+              (";s\v", "schema:tiger"), (";s\f", "schema:tiger"),
+              (";s\v;s3;s4;s2", "schema:rime_ice"),
+              ("/main\v;s\vabcd ", "commit:TEST-MAIN来"),
+          )],
         ("rime_ice_full", "`riyue", "明"),
         ("rime_ice", "`riyt", "明"),
         ("rime_ice_full", "`mumu", "林"),
@@ -152,4 +173,4 @@ with tempfile.TemporaryDirectory(prefix="radical-", dir=temporary) as directory:
         if result.returncode:
             raise AssertionError(result.stdout + result.stderr)
         print(result.stdout.strip())
-    print("Rime native input: radical lookup, auxiliary filtering, shared commands and Tiger native/pending repeat passed")
+    print("Rime native input: shared keyboard/click menu actions, radical lookup, auxiliary filtering and Tiger native/pending repeat passed")

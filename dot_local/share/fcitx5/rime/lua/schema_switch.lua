@@ -1,26 +1,10 @@
 -- 输入 ;s 后，通过选择自定义候选项切换输入方案。
--- 结构与选择键处理方式来自 librime-lua 官方 sample/lua/switch.lua。
-
-local menu_index = require("menu_keys")
-
-local kAccepted = 1
-local kNoop = 2
-
-local function select(key, env)
-	local context = env.engine.context
-	if context.input ~= ";s" then
-		return kNoop
-	end
-
-	local index = menu_index(key, env.engine.schema, 0)
-	local schema_id = env.schemas[index]
-	if schema_id == nil then
-		return kNoop
-	end
-
-	context:clear()
-	env.engine:apply_schema(Schema(schema_id))
-	return kAccepted
+-- 只描述动作，选择事件和实际切换由 menu_selection 统一处理。
+local function action(candidate, env)
+	if candidate.type ~= "schema_switch" then return nil end
+	local number = tonumber(candidate.comment)
+	local id = number and env.schemas[number - 1]
+	if id then return { schema = id } end
 end
 
 local function init(env)
@@ -41,7 +25,7 @@ end
 
 local function open(env)
 	env.engine.context:push_input("s")
-	return kAccepted
+	return 1
 end
 
-return { init = init, open = open, select = select }
+return { init = init, open = open, action = action }

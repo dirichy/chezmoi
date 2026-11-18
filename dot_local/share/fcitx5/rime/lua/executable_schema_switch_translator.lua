@@ -1,4 +1,4 @@
--- 输入 ;s 时显示可用方案；数字选择由 quick_input 调用 schema_switch 处理。
+-- 输入 ;s 时显示可用方案；点选与按键选择由 menu_selection 统一处理。
 
 local schemas = require("schema_catalog")
 

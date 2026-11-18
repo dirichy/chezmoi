@@ -2,11 +2,13 @@
 local symbols = require("quick_symbols")
 local schema_switch = require("schema_switch")
 local symbol_menu = require("symbol_menu")
+local menu_selection = require("menu_selection")
 local M = {}
 
 function M.init(env)
 	schema_switch.init(env)
 	symbol_menu.init(env)
+	menu_selection.init(env)
 	env.commands = { s = schema_switch.open }
 	env.keystrokes = nil
 	env.commit_guard = nil
@@ -19,6 +21,10 @@ function M.init(env)
 	end
 end
 
+function M.fini(env)
+	menu_selection.fini(env)
+end
+
 function M.func(key, env)
 	if key:release() then return 2 end
 	local context = env.engine.context
@@ -29,12 +35,11 @@ function M.func(key, env)
 			context:push_input("/")
 			return 1
 		end
-		local result = symbol_menu.select(key, env)
+		local result = symbol_menu.handle_key(key, env)
 		if result == 1 then return result end
-		if context.input == ";s" then
-			local result = schema_switch.select(key, env)
-			if result == 1 then return result end
-		elseif context.input == ";" and key.keycode >= string.byte("a") and key.keycode <= string.byte("z") then
+		result = menu_selection.select(key, env)
+		if result == 1 then return result end
+		if context.input == ";" and key.keycode >= string.byte("a") and key.keycode <= string.byte("z") then
 			local command = env.commands[string.char(key.keycode)]
 			if command then return command(env) end
 		end

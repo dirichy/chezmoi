@@ -85,6 +85,7 @@ end
 local function input_session()
 	local output = {}
 	local ctx = { input = "", caret_pos = 0, text = "" }
+	ctx.select_notifier = { connect = function() return { disconnect = function() end } end }
 	function ctx:get_property() return "1" end
 	function ctx:set_property() end
 	function ctx:set_option() end
