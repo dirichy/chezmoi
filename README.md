@@ -426,6 +426,7 @@ Neovim 配置在 `dot_config/nvim`：
 - `lazy.nvim` 自动 bootstrap
 - Lua 模块化配置：options/keymaps/autocmds/plugins
 - LSP、completion、treesitter、debug、UI、LaTeX、Neorg、LeetCode、Firenvim 等插件分组
+- Treesitter 缺失 parser 时异步安装，完成后自动启用相关缓冲区的高亮、折叠和缩进
 - 支持 LuaRocks 路径
 - `PROF=1 nvim` 可启用 snacks profiler
 

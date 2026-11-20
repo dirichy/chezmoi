@@ -37,39 +37,56 @@ return {
 			end
 			local installing = {}
 
+			local function enable_parser(buf, language)
+				if not vim.api.nvim_buf_is_loaded(buf)
+					or vim.bo[buf].filetype == "bigfile"
+					or vim.b[buf].bigfile
+					or vim.treesitter.language.get_lang(vim.bo[buf].filetype) ~= language
+				then
+					return false
+				end
+				if not pcall(vim.treesitter.start, buf, language) then
+					return false
+				end
+				for _, win in ipairs(vim.fn.win_findbuf(buf)) do
+					vim.wo[win].foldexpr = "v:lua.vim.treesitter.foldexpr()"
+					vim.wo[win].foldmethod = "expr"
+					vim.wo[win].foldlevel = 99
+				end
+				vim.bo[buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+				return true
+			end
+
 			local function start_parser(buf, filetype)
 				local language = vim.treesitter.language.get_lang(filetype)
-				local ok = pcall(vim.treesitter.start, buf)
-				if ok then
-					return true
+				if not language or enable_parser(buf, language) or not available[language] then
+					return
 				end
 
-				if not language or not available[language] or installing[language] then
-					return false
+				if installing[language] then
+					installing[language][buf] = true
+					return
 				end
 
-				installing[language] = true
-				local ok_install = pcall(treesitter.install, { language })
-				if not ok_install then
-					installing[language] = nil
-					return false
-				end
-
-				local attempts = 0
-				local function retry()
-					attempts = attempts + 1
-					if not vim.api.nvim_buf_is_valid(buf) then
+				installing[language] = { [buf] = true }
+				-- Leave FileType immediately; await registers a nonblocking completion callback.
+				vim.schedule(function()
+					local ok, task = pcall(treesitter.install, { language })
+					if not ok then
 						installing[language] = nil
 						return
 					end
-					if pcall(vim.treesitter.start, buf) or attempts >= 600 then
+					task:await(vim.schedule_wrap(function(err, success)
+						local buffers = installing[language]
 						installing[language] = nil
-						return
-					end
-					vim.defer_fn(retry, 100)
-				end
-				vim.defer_fn(retry, 100)
-				return false
+						if err or not success then
+							return
+						end
+						for pending_buf in pairs(buffers) do
+							enable_parser(pending_buf, language)
+						end
+					end))
+				end)
 			end
 
 			vim.api.nvim_create_autocmd("FileType", {
@@ -79,14 +96,7 @@ return {
 						return
 					end
 
-					if not start_parser(event.buf, vim.bo[event.buf].filetype) then
-						return
-					end
-
-					vim.wo.foldexpr = "v:lua.vim.treesitter.foldexpr()"
-					vim.wo.foldmethod = "expr"
-					vim.wo.foldlevel = 99
-					vim.bo[event.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+					start_parser(event.buf, vim.bo[event.buf].filetype)
 				end,
 			})
 
