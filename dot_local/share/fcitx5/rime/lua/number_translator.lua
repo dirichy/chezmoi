@@ -118,27 +118,27 @@ local function number_translatorFunc(num)
     if numberPart.dot ~= "" then
         table.insert(result,
             { number2cnChar(numberPart.int, 0, { "万", "亿" }, { "〇", "一", "十", "点" }) .. number2zh(numberPart.dec, 0),
-                "〔数字小写〕" })
+                "小写" })
         table.insert(result,
             { number2cnChar(numberPart.int, 1, { "萬", "億" }, { "〇", "一", "十", "点" }) .. number2zh(numberPart.dec, 1),
-                "〔数字大写〕" })
+                "大写" })
     else
-        table.insert(result, { number2cnChar(numberPart.int, 0, { "万", "亿" }, { "〇", "一", "十", "" }), "〔数字小写〕" })
-        table.insert(result, { number2cnChar(numberPart.int, 1, { "萬", "億" }, { "零", "壹", "拾", "" }), "〔数字大写〕" })
+        table.insert(result, { number2cnChar(numberPart.int, 0, { "万", "亿" }, { "〇", "一", "十", "" }), "小写" })
+        table.insert(result, { number2cnChar(numberPart.int, 1, { "萬", "億" }, { "零", "壹", "拾", "" }), "大写" })
     end
     table.insert(result,
         { number2cnChar(numberPart.int, 0) ..
         decimal_func(numberPart.dec, { [1] = "角", [2] = "分", [3] = "厘", [4] = "毫" },
-            { [0] = "〇", "一", "二", "三", "四", "五", "六", "七", "八", "九" }), "〔金额小写〕" })
+            { [0] = "〇", "一", "二", "三", "四", "五", "六", "七", "八", "九" }), "金额" })
 
     local number2cnCharInt = number2cnChar(numberPart.int, 1)
     local number2cnCharDec = decimal_func(numberPart.dec, { [1] = "角", [2] = "分", [3] = "厘", [4] = "毫" }, { [0] = "零", "壹", "贰", "叁", "肆", "伍", "陆", "柒", "捌", "玖" })
     if string.len(numberPart.int) > 4 and number2cnCharInt:find('^拾[壹贰叁肆伍陆柒捌玖]?') and number2cnCharInt:find('[万亿]')  then -- 简易地规避 utf8 匹配问题
         local number2cnCharInt_var = number2cnCharInt:gsub('^拾', '壹拾')
-        table.insert(result, { number2cnCharInt_var .. number2cnCharDec , "〔金额大写〕"})
+        table.insert(result, { number2cnCharInt_var .. number2cnCharDec , "金额大写"})
         -- 会计书写要求 https://github.com/iDvel/rime-ice/issues/989
     else
-        table.insert(result, { number2cnCharInt .. number2cnCharDec , "〔金额大写〕"})
+        table.insert(result, { number2cnCharInt .. number2cnCharDec , "金额大写"})
     end
     return result
 end

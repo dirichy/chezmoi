@@ -2,8 +2,9 @@
 
 local schemas = require("schema_catalog")
 
-local function schema_switch_translator(input, segment)
-	if input ~= ";s" then
+local function schema_switch_translator(input, segment, env)
+	local prefix = env.engine.schema.config:get_string("input_keys/command_prefix") or ";"
+	if input ~= prefix .. "s" then
 		return
 	end
 

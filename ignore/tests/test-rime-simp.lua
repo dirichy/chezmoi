@@ -94,12 +94,12 @@ local function input_session()
 	function ctx:get_commit_text() return self.text end
 	ctx.commit_history = { back = function() return ctx.history and { text = ctx.history } end }
 	ctx.segments = {}
-	ctx.composition = { toSegmentation = function()
+	ctx.composition = { back = function() return nil end, toSegmentation = function()
 		return { get_segments = function() return ctx.segments end }
 	end }
 	function ctx:clear() self.input, self.caret_pos = "", 0 end
 	local instance = { engine = {
-		schema = { schema_id = "tiger", config = { get_map = function() return nil end } },
+		schema = { schema_id = "tiger", config = { get_string = function() return nil end, get_bool = function() return nil end, get_map = function() return nil end } },
 		context = ctx,
 		commit_text = function(_, text) output[#output + 1] = text; ctx.history = text end,
 	} }

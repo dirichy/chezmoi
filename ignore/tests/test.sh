@@ -136,7 +136,9 @@ PYTHON
 python3 "$tests_dir/test-rime-tiger.py" "$repo_dir" "$tmp_dir"
 pass 'Tiger and Ice Git externals update dictionaries and shared Emoji in one isolated apply'
 
+python3 "$tests_dir/test-rime-deploy.py" "$repo_dir" "$tmp_dir"
 python3 "$tests_dir/test-rime-radical.py" "$repo_dir" "$source_dir" "$tmp_dir"
+python3 "$tests_dir/test-rime-radical.py" "$repo_dir" "$source_dir" "$tmp_dir" android
 
 if command -v lua >/dev/null 2>&1; then
     lua "$tests_dir/test-rime-tools.lua" "$repo_dir"
@@ -227,7 +229,7 @@ grep -Fq 'http_proxy=http://10.20.30.40:1080' "$tmp_dir/external-only.zshenv" \
 pass 'Mihomo lifecycle and client proxy routing are independent'
 
 assert_ignored "$desktop_list" '.local/share/fcitx5/rime/lua/exe.lua' 'desktop excludes removed website launcher'
-for path in lua/quick_phrase_data.lua lua/quick_phrases.lua lua/quick_phrase_filter.lua lua/menu_selection.lua radical_pinyin.dict.yaml radical_pinyin.schema.yaml radical_pinyin_flypy.schema.yaml lua/tiger/repeat_last.lua lua/tiger/commit_guard.lua lua/symbol_menu.lua lua/date_commands.lua lua/menu_keys.lua; do
+for path in lua/command_menu.lua lua/settings_menu.lua lua/quick_phrase_data.lua lua/quick_phrases.lua lua/quick_phrase_filter.lua lua/menu_selection.lua radical_pinyin.dict.yaml radical_pinyin.schema.yaml radical_pinyin_flypy.schema.yaml lua/tiger/repeat_last.lua lua/tiger/commit_guard.lua lua/symbol_menu.lua lua/date_commands.lua lua/menu_keys.lua; do
     assert_managed "$desktop_list" ".local/share/fcitx5/rime/$path" "desktop includes $path"
     assert_ignored "$headless_list" ".local/share/fcitx5/rime/$path" "headless excludes $path"
     assert_ignored "$skip_list" ".local/share/fcitx5/rime/$path" "skip excludes $path"

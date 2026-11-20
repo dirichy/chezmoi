@@ -3,21 +3,25 @@ local symbols = require("quick_symbols")
 local schema_switch = require("schema_switch")
 local symbol_menu = require("symbol_menu")
 local menu_selection = require("menu_selection")
+local settings_menu = require("settings_menu")
 local M = {}
 
 function M.init(env)
+	env.command_prefix = env.engine.schema.config:get_string("input_keys/command_prefix") or ";"
 	schema_switch.init(env)
 	symbol_menu.init(env)
 	menu_selection.init(env)
-	env.commands = { s = schema_switch.open }
+	env.commands = { s = schema_switch.open, o = settings_menu.open }
 	env.keystrokes = nil
 	env.commit_guard = nil
 	local schema = env.engine.schema.schema_id
 	if schema == "tiger" or schema == "tiger_full" then
 		env.commit_guard = require("tiger.commit_guard")
-		env.keystrokes = require("tiger.keystroke_stats")
-		env.keystrokes.init(env)
-		env.commands.k = env.keystrokes.toggle
+		if env.engine.schema.config:get_bool("features/keystroke_stats") ~= false then
+			env.keystrokes = require("tiger.keystroke_stats")
+			env.keystrokes.init(env)
+			env.commands.k = env.keystrokes.toggle
+		end
 	end
 end
 
@@ -39,7 +43,7 @@ function M.func(key, env)
 		if result == 1 then return result end
 		result = menu_selection.select(key, env)
 		if result == 1 then return result end
-		if context.input == ";" and key.keycode >= string.byte("a") and key.keycode <= string.byte("z") then
+		if context.input == env.command_prefix and key.keycode >= string.byte("a") and key.keycode <= string.byte("z") then
 			local command = env.commands[string.char(key.keycode)]
 			if command then return command(env) end
 		end
@@ -64,16 +68,16 @@ function M.func(key, env)
 	local code, input = key.keycode, context.input
 	local schema = env.engine.schema.schema_id
 	local text
-	if code == string.byte(";") then
+	if code == string.byte(env.command_prefix) then
 		if input == "" then
-			context:push_input(";") -- Keep the prefix pending instead of committing punctuation.
+			context:push_input(env.command_prefix) -- Keep the prefix pending instead of committing punctuation.
 			return 1
 		end
 		text = symbols[input]
 	elseif code >= string.byte("a") and code <= string.byte("z") then
 		local char = string.char(code)
-		if input == ";" then
-			text = ";" .. char
+		if input == env.command_prefix then
+			text = env.command_prefix .. char
 		elseif schema == "rime_ice" and ((input == "j" and char == "j") or (input == "t" and char == "t")) then
 			text = input .. char
 		end

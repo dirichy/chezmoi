@@ -1,7 +1,33 @@
+{{- $android := eq .chezmoi.os "android" -}}
 # Rime default settings
 # encoding: utf-8
 
 config_version: "2023-12-18"
+
+# 平台差异在渲染时确定；编码本身保留实际输入键。
+input_keys:
+{{ if $android }}
+  command_prefix: '\'
+  reverse_prefix: '~'
+  command_pattern: '^\\[so]?$'
+  punct_pattern: '^(\\[A-Za-z]+|/q[A-Za-z0-9_/-]*|/([A-Za-z]+|[0-9]|10)?)$'
+  tiger_reverse_pattern: "^~[a-z]*'?$"
+  radical_pattern: '^~[a-z]*$'
+  tiger_alphabet: "\\'zyxwvutsrqponmlkjihgfedcba"
+  pinyin_alphabet: 'zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA~\'
+  select_second: backslash
+{{ else }}
+  command_prefix: ";"
+  reverse_prefix: "`"
+  command_pattern: "^;[so]?$"
+  punct_pattern: "^(;[A-Za-z]+|/q[A-Za-z0-9_/-]*|/([A-Za-z]+|[0-9]|10)?)$"
+  tiger_reverse_pattern: "^`[a-z]*'?$"
+  radical_pattern: "^`[a-z]*$"
+  tiger_alphabet: ";'zyxwvutsrqponmlkjihgfedcba"
+  pinyin_alphabet: "zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA`;"
+  select_second: semicolon
+  backspace: backslash
+{{ end }}
 
 schema_list:
   # - schema: lufs_flypy # 小鹤双拼
@@ -16,19 +42,15 @@ schema_list:
   - schema: tiger
   - schema: tiger_full
   {{- end}}
-  # - schema: tigress
-  # - schema: PY_c
-  # - schema: hello
-  # - schema: lufs_pinyin # 朙月拼音
-  # - schema: math_flypy
-  # - schema: lufs_mspy # 微软双拼
-  # - schema: lufs_dpy # 自然码双拼
-  # - schema: lufs_pyjj # 拼音加加双拼
 
 switcher:
   caption: "[方案菜单]"
+{{ if $android }}
+  hotkeys: []
+{{ else }}
   hotkeys:
     - F4
+{{ end }}
   save_options: [] # 只保留当前会话，不跨重启保存
   fold_options: false
   abbreviate_options: true
@@ -53,7 +75,8 @@ recognizer:
     url: "^(www[.]|https?:|ftp[.:]|mailto:|file:).*$|^[a-z]+[.].+$" # URL 输入
 
     # 响应功能
-    punct: "^(;[A-Za-z]+|/([A-Za-z]+|[0-9]|10)?)$" # 分号功能命令、斜杠符号菜单及调试统计入口
+    punct:
+      __include: default:/input_keys/punct_pattern
     unicode: "^U[a-f0-9]+" # 响应 Unicode
 
 ascii_composer:
@@ -67,9 +90,12 @@ ascii_composer:
     Eisu_toggle: clear
 
 key_binder:
+{{ if not $android }}
   select_first_character: "bracketleft" # lua 选词快捷键，选第一个字
   select_last_character: "bracketright" # lua 选词快捷键，选最后一个字
+{{ end }}
   bindings:
+{{ if not $android }}
     # Tab / Shift + Tab 翻页
     - { when: composing, accept: Tab, send: Page_Down } # Tab 向下翻页
     - { when: composing, accept: Shift+Tab, send: Page_Up } # Shift + Tab 向上翻页
@@ -88,11 +114,13 @@ key_binder:
     # - { when: paging, accept: bracketright, send: Page_Down } # 右括号向下翻页
     # - { when: paging, accept: bracketleft, send: Page_Up } # 左括号向上翻页
 
+{{ end }}
     # 候选操作
     # ; 二选 ' 三选
-    - { when: has_menu, accept: semicolon, send: 2 } # 输入时「;」二选
+    - { when: has_menu, accept: { __include: default:/input_keys/select_second }, send: 2 } # 功能键二选（Android 使用反斜杠）
     - { when: has_menu, accept: apostrophe, send: 3 } # 输入时「'」三选
 
+{{ if not $android }}
     # Rime key bindings
     # numbered mode switch
     # - { when: always, accept: Control+Shift+1, select: .next } # 切换下一个方案
@@ -120,3 +148,4 @@ key_binder:
     # - { when: composing, accept: Control+y, send: Page_Up }
     # - { when: composing, accept: Alt+v, send: Page_Up }
     # - { when: composing, accept: Control+v, send: Page_Down }
+{{ end }}

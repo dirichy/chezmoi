@@ -8,7 +8,8 @@ import sys
 import tempfile
 import time
 
-repo, source, temporary = map(Path, sys.argv[1:])
+repo, source, temporary = map(Path, sys.argv[1:4])
+android = sys.argv[4:] == ["android"]
 if sys.platform != "linux" or not shutil.which("cc") or not shutil.which("pkg-config"):
     print("# skip - native Rime input checks require Linux, cc and pkg-config")
     sys.exit(0)
@@ -40,6 +41,8 @@ with tempfile.TemporaryDirectory(prefix="radical-", dir=temporary) as directory:
                "--config", str(repo / "ignore/tests/fixtures/linux-desktop.toml"),
                "--cache", str(root / "cache"), "--persistent-state", str(root / "state"),
                "--refresh-externals=never", "--no-tty", "cat"]
+    if android:
+        command[1:1] = ["--override-data", '{"chezmoi":{"os":"android"}}']
     for name in ("rime_ice.schema.yaml", "rime_ice_full.schema.yaml", "radical_pinyin_flypy.schema.yaml",
                  "default.yaml", "symbols.yaml", "custom_phrase.txt",
                  "tiger.schema.yaml", "tiger_full.schema.yaml", "tiger.custom.yaml", "tiger_full.custom.yaml",
@@ -47,6 +50,25 @@ with tempfile.TemporaryDirectory(prefix="radical-", dir=temporary) as directory:
         (user / name).write_bytes(subprocess.check_output(command + [str(user / name)]))
     (user / "lua/tiger/simp_table.lua").write_bytes(
         subprocess.check_output(command + [str(user / "lua/tiger/simp_table.lua")]))
+    # Check the generated component lists and bindings as well as their input behavior.
+    def active_config(name):
+        return "\n".join(line.split(" #", 1)[0] for line in (user / name).read_text().splitlines()
+                         if not line.lstrip().startswith("#"))
+
+    default_config = active_config("default.yaml")
+    tiger_config = active_config("tiger.schema.yaml")
+    ice_config = active_config("rime_ice.schema.yaml")
+    for config in (tiger_config, ice_config):
+        assert "lua_translator@*settings_menu" in config
+    for desktop_component in ("tiger.simp_tracker", "tiger.simp_stats", "history_translator",
+                              "lua_filter@*charset_comment_filter", "lua_filter@*unicode_display",
+                              "_keyboard_default", "name: simp_hint", "name: simp_record",
+                              "keystroke_stats: true"):
+        assert (desktop_component in tiger_config) == (not android), desktop_component
+    assert ("lua_processor@*select_character" in ice_config) == (not android)
+    for config in (default_config, tiger_config):
+        assert ("send: Page_" in config) == (not android)
+    assert ("hotkeys: []" in default_config) == android
     for name in ("rime_ice.dict.yaml", "radical_pinyin.schema.yaml", "radical_pinyin.dict.yaml"):
         shutil.copy(upstream / name, user / name)
     # A harmless empty Emoji map keeps the enabled simplifier fully local.
@@ -56,6 +78,8 @@ with tempfile.TemporaryDirectory(prefix="radical-", dir=temporary) as directory:
         '"dict":{"type":"text","file":"emoji.txt"}},'
         '"conversion_chain":[{"dict":{"type":"text","file":"emoji.txt"}}]}')
     (user / "shared_emoji/emoji.txt").write_text("笑\t笑 😄\n")
+    if android:
+        shutil.copytree(user / "shared_emoji", user / "opencc")
     binary = root / "input-check"
     subprocess.run(["cc", str(fixture / "input-check.c"), *flags.stdout.split(), "-ldl", "-o", str(binary)],
                    check=True, capture_output=True)
@@ -79,15 +103,25 @@ with tempfile.TemporaryDirectory(prefix="radical-", dir=temporary) as directory:
               ("/d\v", "commit:" + time.strftime("%Y-%m-%d")),
               (";s\v", "schema:tiger"), (";s\f", "schema:tiger"),
               (";s\v;s3;s4;s2", "schema:rime_ice"),
+              (";o\n", "commit:;o"),
+              (";", "切换方案"), (";\n", "commit:;"),
+              (";\v", "虎码·常用"), ("; ", "虎码·常用"),
+              (";1\v", "schema:tiger"), (";2", "中英文" if schema.startswith("rime_ice") else "简码提醒"),
+              (";\f\v", "schema:tiger"), (";2\b", "切换方案"),
               ("/main\v;s\vabcd ", "commit:TEST-MAIN来"),
           )],
+        ("tiger", ";o", "简码提醒"),
+        ("tiger", ";o\v", "option:simp_hint:1"),
+        ("tiger_full", ";o1;o1", "option:simp_hint:0"),
+        ("rime_ice", ";o\f", "option:ascii_mode:1"),
+        ("rime_ice_full", ";o5;s1", "option:full_shape:1"),
         ("rime_ice_full", "`riyue", "明"),
         ("rime_ice", "`riyt", "明"),
         ("rime_ice_full", "`mumu", "林"),
         ("rime_ice_full", "shi", "是"),
         ("rime_ice_full", "shi`mu", "柿"),
         ("rime_ice", "ui`mu", "柿"),
-        ("rime_ice_full", ";", "："),
+        ("rime_ice_full", ";", "切换方案"),
         ("rime_ice_full", "/d", time.strftime("%Y-%m-%d")),
         ("tiger", "/d", time.strftime("%Y-%m-%d")),
         ("tiger", "/t", "format:time"),
@@ -166,6 +200,36 @@ with tempfile.TemporaryDirectory(prefix="radical-", dir=temporary) as directory:
         ("tiger_full", "aaab2z;", "commit:乙乙"),
         ("tiger_full", "abcdefghz;", "commit:来如如"),
     ]
+    if android:
+        cases = [
+            *[(schema, keys, expected) for schema in ("tiger", "tiger_full", "rime_ice", "rime_ice_full") for keys, expected in (
+              ("\\s", "虎码·常用"), ("\\s3", "schema:rime_ice_full"),
+              ("\\s\v", "schema:tiger"), ("e\\", "commit:（"),
+              ("n\\", "commit:~"),
+              ("\\s\n", "commit:\\s"), ("~abc\n", "commit:~abc"),
+              ("\\o", "中英文"), ("\\o\v", "option:ascii_mode:1"),
+              ("\\o\f", "option:ascii_mode:1"), ("\\o1", "option:ascii_mode:1"),
+              ("\\o\n", "commit:\\o"),
+              ("\\", "切换方案"), ("\\\n", "commit:\\"),
+              ("\\\v", "虎码·常用"), ("\\ ", "虎码·常用"),
+              ("\\1\v", "schema:tiger"), ("\\2", "中英文"),
+              ("\\\f\v", "schema:tiger"), ("\\2\b", "切换方案"),
+              ("/d", time.strftime("%Y-%m-%d")),
+              ("/main\v", "commit:TEST-MAIN"),
+            )],
+            ("rime_ice_full", "~riyue", "明"),
+            ("rime_ice", "~riyt", "明"),
+            ("rime_ice_full", "shi~mu", "柿"),
+            ("rime_ice_full", "shi~mu\n", "commit:shi~mu"),
+            ("rime_ice", "ui~mu\n", "commit:ui~mu"),
+            ("rime_ice", "ui~mu", "柿"),
+            ("tiger", "~ui", "是"),
+            ("tiger_full", "~ui", "是"),
+            ("tiger", "aaab2z\\", "commit:乙乙"),
+            ("tiger_full", "aaab2z\\", "commit:乙乙"),
+            ("tiger", "\\o2\\s2", "option:pinyin:1"),
+            ("rime_ice_full", "\\o5\\s1", "option:full_shape:1"),
+        ]
     # Compile dependencies and exercise the actual processor/segmentor/translator/filter chain.
     for schema, code, expected in cases:
         result = subprocess.run([str(binary), str(user), schema, code, expected,

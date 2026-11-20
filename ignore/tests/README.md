@@ -32,6 +32,12 @@ It checks:
   semicolon/digit-2 selection, literal empty-code display with space/punctuation cleanup and native normal
   commits (including valid ASCII dictionary entries) (including supplementary Unicode characters) on Linux with cc, librime development files
   and librime-lua installed (otherwise skipped; all dictionaries and state are isolated fixtures);
+- the Android template branch selected with `--override-data` on all four schemes: backslash commands/selection,
+  tilde lookup and radical filtering, literal Enter commits preserving the actual input,
+  platform-specific components/key bindings, the function root menu and settings-menu toggles through keyboard and touch,
+  and desktop defaults remaining unchanged;
+- ownership-preserving Android Rime updates through a local fake ADB, including preflight rejection,
+  partial-write rollback and unchanged inode/UID/GID/mode (never accesses a real phone);
 - Bash syntax for non-template shell scripts;
 - Lua syntax when `luac` is available.
 

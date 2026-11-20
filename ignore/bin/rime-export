@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+"""Render a portable Android Rime directory without changing the desktop or phone."""
+
+import argparse
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("output", type=Path, help="new output directory (must not already exist)")
+    parser.add_argument("--config", type=Path, help="chezmoi configuration (defaults to the host configuration)")
+    parser.add_argument("--desktop-home", type=Path, help="home containing the existing upstream checkouts")
+    args = parser.parse_args()
+    repo = Path(__file__).resolve().parents[2]
+    output = args.output.absolute()
+    if output.exists() or output.is_symlink():
+        parser.error("output already exists; choose a new directory")
+    if not output.parent.is_dir():
+        parser.error("output parent directory does not exist")
+    # All intermediate configuration, caches and plaintext phrases stay in a private directory.
+    os.umask(0o077)
+    with tempfile.TemporaryDirectory(prefix="rime-export-") as directory:
+        root = Path(directory)
+        base = ["chezmoi", "--source", str(repo), "--cache", str(root / "cache"),
+                "--persistent-state", str(root / "state"), "--refresh-externals=never", "--no-tty"]
+        if args.config:
+            base += ["--config", str(args.config.resolve())]
+        config = json.loads(subprocess.check_output(base + ["dump-config", "--format", "json"]))
+        desktop = args.desktop_home or Path(config["destDir"])
+        home = root / "home"
+        for name in ("rime-ice", "rime-tiger"):
+            upstream = desktop / ".cache" / name / "upstream"
+            if not upstream.is_dir():
+                parser.error(f"missing local upstream checkout: {upstream}; prepare it on the desktop first")
+            staged = home / ".cache" / name / "upstream"
+            staged.parent.mkdir(parents=True, exist_ok=True)
+            staged.symlink_to(upstream.resolve(), target_is_directory=True)
+        # Copy only Rime and its render helpers: no externals, install scripts or hooks.
+        source = root / "source"
+        rime_source = source / "dot_local/share/fcitx5/rime"
+        shutil.copytree(repo / "dot_local/share/fcitx5/rime", rime_source)
+        shutil.copytree(repo / ".chezmoitemplates", source / ".chezmoitemplates")
+        shutil.copytree(repo / "ignore/bin", source / "ignore/bin")
+        data = config.get("data", {})
+        data.setdefault("features", {})["inputMethod"] = True
+        render_config = root / "chezmoi.json"
+        render_config.write_text(json.dumps({"data": data, "secret": config.get("secret", {})}))
+        rime = home / ".local/share/fcitx5/rime"
+        rime.parent.mkdir(parents=True)
+        command = ["chezmoi", "--source", str(source), "--destination", str(home),
+                   "--config", str(render_config), "--cache", str(root / "cache"),
+                   "--persistent-state", str(root / "state"), "--refresh-externals=never", "--no-tty",
+                   "--override-data", '{"chezmoi":{"os":"android"}}']
+        subprocess.run(command + ["apply", "--include", "dirs,files,symlinks", str(rime)], check=True)
+        exported = root / "exported"
+        exported.mkdir()
+        for item in rime.iterdir():
+            if item.name in {"opencc", "shared_opencc", "shared_emoji"}:
+                continue
+            destination = exported / item.name
+            if item.is_dir():
+                shutil.copytree(item, destination, ignore=shutil.ignore_patterns(".git"))
+            else:
+                shutil.copy2(item, destination)
+        # Dereference desktop links and place every OpenCC mapping in the normal lookup directory.
+        shutil.copytree(rime / "shared_opencc", exported / "opencc")
+        for name in ("emoji.json", "emoji.txt"):
+            shutil.copy2(rime / "shared_emoji" / name, exported / "opencc" / name)
+        for path in exported.rglob("*"):
+            if path.is_symlink():
+                raise RuntimeError("export contains an unresolved symlink")
+            if path.suffix in {".yaml", ".json", ".lua"} and str(root) in path.read_text():
+                raise RuntimeError(f"export contains a temporary path: {path.relative_to(exported)}")
+            if path.suffix == ".json":
+                json.loads(path.read_text())
+            if path.suffix == ".lua" and shutil.which("luac"):
+                subprocess.run(["luac", "-p", str(path)], check=True, capture_output=True)
+        phrases = exported / "lua/quick_phrase_data.lua"
+        phrase_count = sum(line.lstrip().startswith("{ key =") for line in phrases.read_text().splitlines())
+        shutil.copytree(exported, output)
+        print(f"Exported Android Rime configuration to {output}")
+        print(f"Private phrases rendered: {phrase_count} (unavailable entries are silently omitted)")
+        print("Copy this directory's contents into Fcitx5's data/rime using DocumentsUI, then deploy Rime.")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (OSError, subprocess.CalledProcessError, RuntimeError) as error:
+        print(f"rime-export: {error}", file=sys.stderr)
+        sys.exit(1)

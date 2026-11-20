@@ -360,6 +360,8 @@ function M.func(input, segment, env)
 		end
 	end
 	local function emit(entry, quality, hint)
+		-- 私人条目的名字已是完整 gopass 路径，不再在注释中重复。
+		if entry.phrases then hint = "" end
 		local candidate = Candidate("symbol_menu" .. entry.code, segment.start, segment._end, entry.name, hint)
 		candidate.quality = quality
 		yield(candidate)

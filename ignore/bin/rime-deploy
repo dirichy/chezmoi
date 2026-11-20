@@ -1,0 +1,134 @@
+#!/usr/bin/env python3
+"""Update previously imported Android Rime files in place, preserving their ownership."""
+
+import argparse
+import hashlib
+import os
+from pathlib import Path, PurePosixPath
+import shlex
+import shutil
+import subprocess
+import sys
+import tempfile
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--from-dir", type=Path, help="use an existing rime-export directory")
+    parser.add_argument("--serial", help="ADB device selector")
+    parser.add_argument("--remote-dir", default="/sdcard/Android/data/org.fcitx.fcitx5.android/files/data/rime")
+    parser.add_argument("--dry-run", action="store_true", help="check files and show changes without writing")
+    args = parser.parse_args()
+    remote = PurePosixPath(args.remote_dir)
+    if not remote.is_absolute() or ".." in remote.parts or "\n" in str(remote) or "\t" in str(remote):
+        parser.error("remote directory must be an absolute path without parent traversal, tabs or newlines")
+    adb = ["adb"] + (["-s", args.serial] if args.serial else [])
+
+    def shell(script, **kwargs):
+        return subprocess.run(adb + ["shell", "-T", script], check=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs).stdout
+
+    os.umask(0o077)
+    with tempfile.TemporaryDirectory(prefix="rime-deploy-") as directory:
+        temporary = Path(directory)
+        source = args.from_dir
+        if source is None:
+            source = temporary / "exported"
+            subprocess.run([str(Path(__file__).with_name("rime-export")), str(source)], check=True)
+        source = source.resolve(strict=True)
+        if not (source / "default.yaml").is_file() or not (source / "lua/quick_input.lua").is_file():
+            parser.error("source must be a rime-export directory")
+        paths = sorted(path for path in source.rglob("*") if path.is_file())
+        if any(path.is_symlink() for path in source.rglob("*")):
+            parser.error("source must not contain symlinks")
+        for path in paths:
+            relative = path.relative_to(source)
+            if (any(part in {"build", "sync"} or part.endswith(".userdb") for part in relative.parts)
+                    or relative.name in {"user.yaml", "installation.yaml"}
+                    or any(char in str(relative) for char in "\n\t")):
+                parser.error(f"source contains runtime state or an unsupported filename: {relative}")
+        # Read metadata and hashes only. Any missing/unsafe file aborts before the first write.
+        root_owner = shell("stat -c '%u:%g' " + shlex.quote(str(remote))).decode().strip()
+        if root_owner.split(":")[0] in {"0", "2000"}:
+            raise RuntimeError("Rime directory is not app-owned; initialize/import it through DocumentsUI first")
+        names = [str(remote / path.relative_to(source).as_posix()) for path in paths]
+        probe = "for p in " + " ".join(shlex.quote(name) for name in names) + "; do\n" + r'''
+if [ ! -f "$p" ] || [ -L "$p" ]; then
+  printf '%s\tmissing\t-\n' "$p"
+elif [ ! -w "$p" ]; then
+  printf '%s\treadonly\t-\n' "$p"
+else
+  attrs=$(stat -c '%u:%g:%a' "$p") || exit 1
+  sum=$(sha256sum "$p") || exit 1
+  printf '%s\t%s\t%s\n' "$p" "$attrs" "${sum%% *}"
+fi
+done
+'''
+        status = {}
+        for line in shell(probe).decode().splitlines():
+            name, attrs, digest = line.split("\t")
+            status[name] = (attrs, digest)
+        changes, blocked = [], []
+        for path, name in zip(paths, names):
+            attrs, digest = status[name]
+            if attrs in {"missing", "readonly"}:
+                blocked.append(f"{path.relative_to(source)} ({attrs})")
+            elif ":".join(attrs.split(":")[:2]) != root_owner:
+                blocked.append(f"{path.relative_to(source)} (ownership differs from Rime directory)")
+            elif hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+                changes.append((path, name, attrs))
+        if blocked:
+            raise RuntimeError("Import these files through DocumentsUI first; nothing was changed:\n  "
+                               + "\n  ".join(blocked))
+        print(f"Checked {len(paths)} files; {len(changes)} need updating.", flush=True)
+        for path, _, _ in changes:
+            print(f"  {path.relative_to(source)}", flush=True)
+        if args.dry_run:
+            return
+        backups, attempted = {}, []
+        try:
+            for index, (path, name, attrs) in enumerate(changes):
+                quoted = shlex.quote(name)
+                backup = temporary / f"backup-{index}"
+                backup.write_bytes(shell("cat " + quoted))
+                backups[name] = backup
+                current = shell("stat -c '%u:%g:%a' " + quoted).decode().strip()
+                if current != attrs:
+                    raise RuntimeError(f"permissions changed during deployment: {path.relative_to(source)}")
+                attempted.append(name)
+                # Opening the existing inode preserves UID/GID/mode; adb push may replace it.
+                with path.open("rb") as stream:
+                    shell("cat > " + quoted, stdin=stream)
+                current = shell("stat -c '%u:%g:%a' " + quoted).decode().strip()
+                digest = shell("sha256sum " + quoted).decode().split()[0]
+                if current != attrs or digest != hashlib.sha256(path.read_bytes()).hexdigest():
+                    raise RuntimeError(f"verification failed: {path.relative_to(source)}")
+        except (Exception, KeyboardInterrupt):
+            failures = []
+            for name in reversed(attempted):
+                try:
+                    with backups[name].open("rb") as stream:
+                        shell("cat > " + shlex.quote(name), stdin=stream)
+                except Exception:
+                    failures.append(str(PurePosixPath(name).relative_to(remote)))
+            if failures:
+                recovery = Path(tempfile.mkdtemp(prefix="rime-deploy-recovery-"))
+                for name in attempted:
+                    destination = recovery / PurePosixPath(name).relative_to(remote)
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(backups[name], destination)
+                print("Rollback failed for: " + ", ".join(failures), file=sys.stderr)
+                print(f"Original contents saved for recovery: {recovery}", file=sys.stderr)
+            raise
+        print("Updated contents; original owners and permissions preserved. Deploy Rime on the phone to load changes.")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except subprocess.CalledProcessError:
+        print("rime-deploy: ADB/export command failed; check the device connection and permissions.", file=sys.stderr)
+        sys.exit(1)
+    except (OSError, RuntimeError) as error:
+        print(f"rime-deploy: {error}", file=sys.stderr)
+        sys.exit(1)

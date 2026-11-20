@@ -1,3 +1,12 @@
+{{- $android := eq .chezmoi.os "android" -}}
+input_keys:
+  __include: default:/input_keys
+
+features:
+  keystroke_stats: {{ not $android }}
+
+
+
 schema:
   author:
     - {}
@@ -12,10 +21,12 @@ schema:
 
 # 普通开关随会话保留；下划线开头的手机键盘选项由 Rime 按方案初始化。
 switches:
+{{ if not $android }}
   - name: simp_hint
     states: [简码提醒关, 简码提醒开]
   - name: simp_record
     states: [简码统计关, 简码统计开]
+{{ end }}
   - name: ascii_mode
     states: [中文, 西文] #中英文状态
   - name: pinyin #拼音滤镜
@@ -29,6 +40,7 @@ switches:
   #   reset: 0
   - name: traditionalization #简转繁滤镜
     states: [简中, 繁中]
+{{ if not $android }}
   - options: [_keyboard_default, _keyboard_defaultbk, _keyboard_defaultwk]
     reset: 0
     states: [有刻, 半刻, 无刻]
@@ -36,26 +48,32 @@ switches:
     states: [U区关, U区开]
   - name: udpf_switch
     states: [U编关, U编开]
+{{ end }}
   - name: ascii_punct
     states: [。，, ．，]
+{{ if not $android }}
   - options: [_keyboard_default, _keyboard_defaultzj]
     reset: 0
     states: [助记关, 助记开]
   # - name: fanjian  #繁转简滤镜
   #   reset: 0
   #   states: [ 反繁, 反简 ]
+{{ end }}
   - name: full_shape
     states: [半角, 全角]
 
 # Only used when the input session first starts.
 session_defaults:
   emoji: false
+  practice: {{ not $android }}
 
 engine:
   processors:
     - lua_processor@*quick_input # 快符与 ;字母 命令的统一入口
     # - lua_processor@hammerspoon
+{{ if not $android }}
     - lua_processor@*tiger.simp_tracker # 简码提醒与统计的独立组件
+{{ end }}
     - ascii_composer
     - recognizer
     - key_binder
@@ -77,12 +95,18 @@ engine:
     - lua_translator@*symbol_menu # / 逐级符号菜单
     - reverse_lookup_translator #拼音反查
     - table_translator
+{{ if not $android }}
     - lua_translator@*tiger.simp_stats # /simpstats 查看简码统计
-    - lua_translator@*schema_switch_translator # ;s 方案菜单
+{{ end }}
+    - lua_translator@*schema_switch_translator # 方案菜单
+    - lua_translator@*settings_menu # 设置菜单
+    - lua_translator@*command_menu # 功能总菜单
     # - table_translator@easy_english #临时英文
+{{ if not $android }}
     - history_translator@historyDM # 重复上屏 电脑
     - history_translator@historyDM2 # 重复上屏 电脑2
     - history_translator@historyDM3 # 重复上屏 电脑3
+{{ end }}
     - lua_translator@*number_translator # 数字转大写
     - lua_translator@*calc_translator # 简易计算器
     - lua_translator@*date_translator # 公共日期时间工具
@@ -98,8 +122,10 @@ engine:
     - simplifier@pinyin #拼音滤镜
     - simplifier@chaifen #拆分滤镜
     - simplifier@emoji #表情滤镜
+{{ if not $android }}
     - lua_filter@*charset_comment_filter #Unicode分区提示滤镜
     - lua_filter@*unicode_display #Unicode编码显示
+{{ end }}
     - uniquifier #过滤重复
     - lua_filter@*quick_phrase_filter # 私人短语保留原文
     # 放在去重之后：即使首选恰好与重复字相同，也保留固定二选入口。
@@ -127,7 +153,8 @@ translator:
 # 拼音反查
 reverse_lookup:
   dictionary: rime_ice
-  prefix: "`"
+  prefix:
+    __include: default:/input_keys/reverse_prefix
   tips: "〔拼音〕"
   preedit_format:
     - "xform/([nl])v/$1ü/"
@@ -143,22 +170,28 @@ key_binder:
     #- { when: composing, accept: Return, send: Escape } # 回车清屏编码
     #- { accept: space, send: space, when: has_menu } # 有候选时空格上屏首选
     #- { accept: space, send: Escape, when: composing } # 无候选(空码）时空格清屏编码
-    - { accept: semicolon, send: 2, when: has_menu } # 分号次选
+    - { accept: { __include: default:/input_keys/select_second }, send: 2, when: has_menu } # 功能键二选：桌面分号，Android 反斜杠
     # - { accept: F13, toggle: ascii_mode, when: always}
     - { when: has_menu, accept: apostrophe, send: 3 } # 引号三选
+{{ if not $android }}
     - { when: composing, accept: Tab, send: Escape } # tab清屏
     - { when: has_menu, accept: minus, send: Page_Up } # - 上一页
-    - { when: composing, accept: backslash, send: BackSpace } # 反斜杠退格
+    - { when: composing, accept: { __include: default:/input_keys/backspace }, send: BackSpace } # 桌面额外支持反斜杠；Android 只用 Backspace
     - { when: has_menu, accept: equal, send: Page_Down } # = 下一页
+{{ end }}
     # - { when: composing, accept: bracketleft, send: Page_Up } # [ 后翻
     # - { when: composing, accept: bracketright, send: Page_Down } # ] 前翻
+{{ if not $android }}
     - { accept: "Control+o", toggle: traditionalization, when: composing } # 简繁开关
+{{ end }}
     # - { accept: "Control+Shift+O", toggle: fanjian, when: composing }  # 繁简开关
+{{ if not $android }}
     - { accept: "Control+p", toggle: pinyin, when: composing } # PC 拼音开关
     - { accept: "Control+i", toggle: emoji, when: composing } # PC emoji开关
     - { accept: "Control+u", toggle: charset_comment_filter, when: composing } # PC Unicode分区开关
     - { accept: "Control+y", toggle: udpf_switch, when: composing } #PC Unicode编码开关
     - { accept: "Control+j", toggle: chaifen, when: composing } # PC 拆分滤镜开关
+{{ end }}
     # - { when: composing, accept: '&', toggle: emoji } # 手机 emoji开关
     # - { when: composing, accept: '*', toggle: traditionalization } # 手机 繁简开关
     # - { when: composing, accept: '\', toggle: pinyin } # 手机 拼音开关
@@ -167,18 +200,23 @@ key_binder:
     # - { accept: "%", toggle: udpf_switch, when: composing }  #手机 Unicode编码开关
     # - { accept: "+", toggle: udpf_switch, when: composing }  #手机 Unicode编码开关
     # - { when: composing, accept: '"', toggle: chaifen } # 手机 拆分滤镜开关
+{{ if not $android }}
     - { when: has_menu, accept: Right, send: Down } # 右方向键 向后移动焦点
     - { when: has_menu, accept: Left, send: Up } # 左方向键 向前移动焦点
     - { when: always, accept: "Control+period", toggle: ascii_punct } # 中英标点切换
+{{ end }}
     #- { when: always, accept: "Shift+space" , toggle: full_shape } # 全半角切换
 
 recognizer:
   import_preset: default
   patterns:
-    schema_switch: "^;s$"
-    punct: "^(;[A-Za-z]+|/q[A-Za-z0-9_/-]*|/([A-Za-z]+|[0-9]|10)?)$" # 分号功能命令、斜杠符号菜单及调试统计入口
+    schema_switch:
+      __include: default:/input_keys/command_pattern
+    punct:
+      __include: default:/input_keys/punct_pattern
     # uppercase: "" #中文状态大写锁定直接上屏
-    reverse_lookup: "^`[a-z]*'?$"
+    reverse_lookup:
+      __include: default:/input_keys/tiger_reverse_pattern
     # easy_english: "^'[A-Z|a-z]*`?$"
     number: "^S[0-9]+[.]?[0-9]*$" # 保留虎码 S 前缀
     calculator: "^=.+$"
@@ -208,7 +246,7 @@ traditionalization: #⇩四选一
   # opencc_config: s2hk.json    # 简 ➡ 香港繁体
   # opencc_config: s2twp.json  # 简 ➡ 台湾正体（含常用词汇如：软体→軟體、鼠标→滑鼠）
   option_name: traditionalization
-  tips: all #all字词|char字
+  tips: none # 候选本身已显示繁体，不重复提示转换前文字
 
 # ↓繁简滤镜
 fanjian:
@@ -233,9 +271,9 @@ pinyin:
 
 # ↓emoji表情滤镜
 emoji:
-  opencc_config: {{ joinPath .chezmoi.destDir ".local/share/fcitx5/rime/shared_emoji/emoji.json" | quote }}
+  opencc_config: {{ if $android }}emoji.json{{ else }}{{ joinPath .chezmoi.destDir ".local/share/fcitx5/rime/shared_emoji/emoji.json" | quote }}{{ end }}
   option_name: emoji
-  tips: all
+  tips: none # 不重复显示原文字
 
 # 临时英文
 # easy_english:

@@ -97,6 +97,23 @@ assert(candidates(calc, "=1+", calc_tiger, "calculator")[1].comment == "解析�
 assert(#candidates(calc, "=1+2", calc_tiger, "abc") == 0)
 
 local catalog = require("schema_catalog")
+local settings_menu = require("settings_menu")
+local settings_env = environment({
+	["switches/@0/name"] = "emoji", ["switches/@0/states/@0"] = "💀",
+	["switches/@1/name"] = "full_shape", ["switches/@2/name"] = "_keyboard_default",
+	["switches/@3/name"] = "custom", ["switches/@3/states/@0"] = "自定义状态",
+})
+settings_env.engine.schema.config.get_list = function() return { size = 4 } end
+local settings_options = { emoji = false, full_shape = true }
+settings_env.engine.context = { get_option = function(_, name) return settings_options[name] end }
+local setting_candidates = candidates(settings_menu, ";o", settings_env)
+assert(#setting_candidates == 3) -- 内部键盘选项不显示。
+assert(setting_candidates[1].comment == "关" and setting_candidates[2].comment == "全角")
+assert(setting_candidates[3].comment == "自定义状态") -- 未知开关仍使用自身状态说明。
+assert(settings_menu.action(setting_candidates[1], settings_env).value == true)
+settings_options.emoji = true
+assert(candidates(settings_menu, ";o", settings_env)[1].comment == "开")
+assert(settings_menu.action(setting_candidates[1], settings_env).value == false)
 local quick_input = require("quick_input")
 local function session(emoji_default)
 	local env = environment({ ["session_defaults/emoji"] = emoji_default })
@@ -125,7 +142,7 @@ local new_session, new_options = session(true)
 quick_input.init(new_session)
 assert(new_options.emoji and new_options.simp_hint and new_options.simp_record)
 assert(new_options.ascii_mode == nil) -- Does not override frontend language mode.
-local menu = candidates(dofile(root .. "executable_schema_switch_translator.lua"), ";s", {})
+local menu = candidates(dofile(root .. "executable_schema_switch_translator.lua"), ";s", environment({}))
 assert(#catalog == #menu)
 for index, schema in ipairs(catalog) do
 	assert(menu[index].text == schema.name and menu[index].comment == schema.key)
@@ -139,7 +156,14 @@ local function shortcut(input, code, flags, caret)
 	flags = flags or {}
 	local output, cleared, pushed
 	local env = { engine = {
-		schema = { schema_id = flags.schema or "rime_ice", config = { get_bool = function() return false end, get_map = function() return nil end } },
+		schema = { schema_id = flags.schema or "rime_ice", config = {
+			get_string = function(_, name) return flags.mobile and name == "input_keys/command_prefix" and "\\" or nil end,
+			get_bool = function(_, name)
+				if name == "features/keystroke_stats" then return not flags.mobile end
+				return false
+			end,
+			get_map = function() return nil end,
+		} },
 		context = {
 			select_notifier = notifier(),
 			input = input, caret_pos = caret or #input,
@@ -175,7 +199,7 @@ for _, schema in ipairs({ "rime_ice", "rime_ice_full", "tiger", "tiger_full" }) 
 	assert(status == 1 and output == nil and pushed == ";")
 	for codepoint = string.byte("a"), string.byte("z") do
 		local result, text, cleared, pushed = shortcut(";", codepoint, { schema = schema })
-		if codepoint == string.byte("s") then
+		if codepoint == string.byte("s") or codepoint == string.byte("o") then
 			assert(result == 1 and text == nil and pushed == string.char(codepoint))
 		elseif tiger and codepoint == string.byte("k") then
 			assert(result == 1 and text == nil and cleared) -- Tiger's ;k dispatched by quick_input.
@@ -201,6 +225,17 @@ for _, code in ipairs({ 0xff51, 0xff08, 0xffe1 }) do assert(shortcut("j", code) 
 assert(shortcut("j", string.byte("j"), {}, 0) == 2)
 assert(shortcut("a", string.byte("j")) == 2)
 assert(shortcut("", string.byte("j")) == 2)
+for _, schema in ipairs({ "rime_ice", "rime_ice_full", "tiger", "tiger_full" }) do
+	local flags = { schema = schema, mobile = true }
+	local status, output, _, pushed = shortcut("", string.byte("\\"), flags)
+	assert(status == 1 and output == nil and pushed == "\\")
+	assert(select(4, shortcut("\\", string.byte("s"), flags)) == "s")
+	assert(select(2, shortcut("e", string.byte("\\"), flags)) == "（")
+	assert(shortcut("\\s", 0xff0d, flags) == 2) -- Enter remains raw input for the editor.
+	for _, flag in ipairs({ "release", "ctrl", "alt", "super", "ascii" }) do
+		assert(shortcut("", string.byte("\\"), { schema = schema, mobile = true, [flag] = true }) == 2)
+	end
+end
 print("Rime quick input: shared symbols, raw prefixes, Tiger exceptions and Xiaohe-only shortcuts passed")
 
 Schema = function(id) return id end
@@ -237,6 +272,28 @@ for _, flag in ipairs({ "release", "ctrl", "alt", "super" }) do
 	switch_env.engine.context.input, switch_env.engine.context.caret_pos = ";s", 2
 	assert(quick_input.func(selection_key(string.byte("1"), flag), switch_env) == 2 and selected == nil)
 end
+local command_menu = require("command_menu")
+for _, mobile in ipairs({ false, true }) do
+	for _, id in ipairs({ "tiger", "tiger_full", "rime_ice", "rime_ice_full" }) do
+		local prefix = mobile and "\\" or ";"
+		local env = environment({ ["input_keys/command_prefix"] = prefix,
+			["features/keystroke_stats"] = not mobile })
+		env.engine.schema.schema_id = id
+		local root_menu = candidates(command_menu, prefix, env)
+		assert(#root_menu == ((not mobile and id:match("^tiger")) and 3 or 2))
+		assert(root_menu[1].text == "切换方案" and root_menu[1].comment == "s")
+		assert(command_menu.action(root_menu[1], env).input == prefix .. "s")
+		assert(command_menu.action(root_menu[2], env).input == prefix .. "o")
+		assert(#candidates(command_menu, prefix .. "s", env) == 0)
+	end
+end
+switch_env.engine.schema.schema_id = "tiger"
+local root_menu = candidates(command_menu, ";", switch_env)
+local toggles = 0
+switch_env.commands.k = function() toggles = toggles + 1 end
+current_candidate = root_menu[3]
+switch_env.engine.context.select_notifier:emit(switch_env.engine.context)
+assert(toggles == 1 and switch_env.engine.context.input == "")
 quick_input.fini(switch_env)
 assert(switch_env.engine.context.select_notifier:count() == 0)
 print("Rime quick commands: selection delegation, callback cleanup and modifier guards passed")
@@ -255,4 +312,16 @@ assert(candidates(symbol_menu, "/l", menu_env)[1].text == "希腊字母")
 assert(candidates(symbol_menu, "/lg", menu_env)[1].text == "α")
 assert(candidates(symbol_menu, "/lvt", menu_env)[1].text == "th 变体")
 assert(candidates(symbol_menu, "/grk", menu_env)[1].text == "希腊字母")
+local private = { code = "/qphone/work", name = "phone/work", parent = "/q",
+	phrases = { { text = "TEST-PHONE", label = "phone/work" } }, keywords = "phone work" }
+local private_env = { symbol_search = { private }, symbol_nodes = {
+	["/q"] = { children = { private } }, [private.code] = private,
+} }
+for _, query in ipairs({ "/q", "/phonework" }) do
+	local found = candidates(symbol_menu, query, private_env)[1]
+	assert(found.text == "phone/work" and found.comment == "")
+	assert(symbol_menu.action(found, private_env).text == "TEST-PHONE")
+end
+local value = candidates(symbol_menu, private.code, private_env)[1]
+assert(value.text == "TEST-PHONE" and value.comment == "phone/work") -- 值仍可通过条目名辨别。
 print("Rime symbol menu: hierarchical paths, incremental hints and English fuzzy matching passed")

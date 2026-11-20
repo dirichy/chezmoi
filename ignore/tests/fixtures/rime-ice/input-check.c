@@ -86,6 +86,13 @@ int main(int argc, char **argv) {
     ok = strcmp(committed, argv[4] + 7) == 0;
     printf("committed=%s\n", committed);
   }
+  if (strncmp(argv[4], "option:", 7) == 0) {
+    char name[128];
+    int enabled;
+    ok = sscanf(argv[4] + 7, "%127[^:]:%d", name, &enabled) == 2 &&
+      api->get_option(session, name) == enabled && committed[0] == '\0' &&
+      ctx.composition.length == 0;
+  }
   api->free_context(&ctx);
   api->destroy_session(session);
   api->finalize();

@@ -13,8 +13,9 @@ local function init(env)
 	local context = env.engine.context
 	if context:get_property("session_options_initialized") == "" then
 		context:set_option("emoji", env.engine.schema.config:get_bool("session_defaults/emoji") == true)
-		context:set_option("simp_hint", true)
-		context:set_option("simp_record", true)
+		local practice = env.engine.schema.config:get_bool("session_defaults/practice") ~= false
+		context:set_option("simp_hint", practice)
+		context:set_option("simp_record", practice)
 		context:set_property("session_options_initialized", "1")
 	end
 	env.schemas = {}

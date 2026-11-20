@@ -67,4 +67,5 @@ patch:
   # 也可自己把 （ 替换成别的，比如 'xform/（/〔/'
 
   # 让【 】可以直接上屏（对应的重复上屏的功能也没了）
-  speller/alphabet: ";'zyxwvutsrqponmlkjihgfedcba"
+  speller/alphabet:
+    __include: default:/input_keys/tiger_alphabet

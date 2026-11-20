@@ -2,6 +2,8 @@
 local menu_index = require("menu_keys")
 local symbol_menu = require("symbol_menu")
 local schema_switch = require("schema_switch")
+local settings_menu = require("settings_menu")
+local command_menu = require("command_menu")
 local M = {}
 
 function M.init(env)
@@ -14,6 +16,8 @@ function M.init(env)
 		if not candidate then return end
 		local original = candidate:get_genuine()
 		local action = symbol_menu.action(original, env) or schema_switch.action(original, env)
+			or settings_menu.action(original, env)
+			or command_menu.action(original, env)
 		if not action then return end
 		env.menu_pending = { action = action, auto_commit = ctx:get_option("_auto_commit") }
 		ctx:set_option("_auto_commit", false)
@@ -31,6 +35,10 @@ function M.init(env)
 			ctx.input = action.input
 		elseif action.schema then
 			env.engine:apply_schema(Schema(action.schema))
+		elseif action.option then
+			ctx:set_option(action.option, action.value)
+		elseif action.command and env.commands[action.command] then
+			env.commands[action.command](env)
 		end
 	end)
 end
@@ -43,7 +51,10 @@ end
 -- 只把按键转换为选择索引；菜单动作全部交给上面的通知处理。
 function M.select(key, env)
 	local context = env.engine.context
-	if context.input ~= ";s" and context.input:sub(1, 1) ~= "/" then return 2 end
+	if key.keycode == 0xff0d then return 2 end -- 回车保留 editor 的原始编码上屏。
+	local input = context.input
+	if input ~= env.command_prefix and input ~= env.command_prefix .. "s" and input ~= env.command_prefix .. "o"
+		and input:sub(1, 1) ~= "/" then return 2 end
 	-- /0 到 /10 仍是数字符号查询，不是根菜单选词。
 	if context.input == "/" and key.keycode >= 0x30 and key.keycode <= 0x39 then return 2 end
 	local segment = context.composition:back()

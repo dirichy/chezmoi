@@ -1,3 +1,7 @@
+{{- $android := eq .chezmoi.os "android" -}}
+input_keys:
+  __include: default:/input_keys
+
 # Rime schema
 # encoding: utf-8
 
@@ -47,12 +51,15 @@ switches:
 
 session_defaults:
   emoji: true
+  practice: {{ not $android }}
 
 # 输入引擎
 engine:
   processors:
     - lua_processor@*quick_input # 快符与 ;字母 命令的统一入口
+{{ if not $android }}
     - lua_processor@*select_character # 以词定字
+{{ end }}
     - ascii_composer
     - recognizer
     - key_binder
@@ -72,7 +79,9 @@ engine:
     - punct_translator
     - lua_translator@*symbol_menu # / 逐级符号菜单
     - script_translator
-    - lua_translator@*schema_switch_translator # ;s 方案菜单
+    - lua_translator@*schema_switch_translator # 方案菜单
+    - lua_translator@*settings_menu # 设置菜单
+    - lua_translator@*command_menu # 功能总菜单
     - lua_translator@*date_translator # 时间、日期、星期
     - lua_translator@*lunar # 农历
     # - lua_translator@*uuid # UUID
@@ -475,7 +484,7 @@ custom_phrase:
 # Emoji
 emoji:
   option_name: emoji # 对应 switches 中的 name
-  opencc_config: {{ joinPath .chezmoi.destDir ".local/share/fcitx5/rime/shared_emoji/emoji.json" | quote }} # 与虎码共享合并后的 Emoji 映射
+  opencc_config: {{ if $android }}emoji.json{{ else }}{{ joinPath .chezmoi.destDir ".local/share/fcitx5/rime/shared_emoji/emoji.json" | quote }}{{ end }} # 与虎码共享合并后的 Emoji 映射
   inherit_comment: false # 在 corrector.lua 及反查中，emoji 的 comment 显示为空
 
 # 简繁切换
@@ -507,7 +516,8 @@ radical_lookup:
   dictionary: radical_pinyin
   prism: radical_pinyin_flypy
   enable_user_dict: false
-  prefix: "`"
+  prefix:
+    __include: default:/input_keys/reverse_prefix
   tips: "  〔拆字〕"
   comment_format:
     - erase/^.*$//
@@ -524,9 +534,12 @@ search:
 recognizer:
   import_preset: default # 从 default.yaml 继承通用的
   patterns: # 再增加方案专有的：
-    schema_switch: "^;s$"
-    punct: "^(;[A-Za-z]+|/q[A-Za-z0-9_/-]*|/([A-Za-z]+|[0-9]|10)?)$" # 分号功能命令、斜杠符号菜单及调试统计入口
-    radical_lookup: "^`[a-z]*$" # 仅开头的反引号触发拆字反查
+    schema_switch:
+      __include: default:/input_keys/command_pattern
+    punct:
+      __include: default:/input_keys/punct_pattern
+    radical_lookup:
+      __include: default:/input_keys/radical_pattern
     unicode: "^U[a-f0-9]+" # 脚本将自动获取第 2 个字符 U 作为触发前缀，响应 lua_translator@*unicode，输出 Unicode 字符
     number: "^R[0-9]+[.]?[0-9]*" # 脚本将自动获取第 2 个字符 R 作为触发前缀，响应 lua_translator@*number_translator，数字金额大写
     calculator: "^cC.+" # 响应 lua_translator@*calc_translator，计算器。前缀设定项 calculator/prefix
@@ -535,7 +548,8 @@ recognizer:
 # 从 default 继承快捷键
 key_binder:
   import_preset: default # 从 default.yaml 继承通用的
-  search: "`" # 辅码引导符，要添加到 speller/alphabet
+  search:
+    __include: default:/input_keys/reverse_prefix
   # bindings:             # 也可以再增加方案专有的快捷键
 
 # editor 用来定制操作键的行为，以下是默认行为 https://github.com/rime/librime/blob/master/src/rime/gear/editor.cc
@@ -554,9 +568,11 @@ editor:
 # 拼写设定
 speller:
   # 如果不想让什么标点直接上屏，可以加在 alphabet，或者编辑标点符号为两个及以上的映射
-  alphabet: zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA`;
+  alphabet:
+    __include: default:/input_keys/pinyin_alphabet
   # initials 保留反引号作为拆字反查起始键
-  initials: zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA`;
+  initials:
+    __include: default:/input_keys/pinyin_alphabet
   delimiter: " '" # 第一位<空格>是拼音之间的分隔符；第二位<'>表示可以手动输入单引号来分割拼音。
   algebra:
     - erase/^xx$/
