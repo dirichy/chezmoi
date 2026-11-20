@@ -1,0 +1,317 @@
+# Linux installation backend and module/profile definitions.
+prepare_installer() {
+  INSTALL_COMMAND="${INSTALL_COMMAND-{{ .config.install.command }}}"
+  INSTALL_ADMIN="${INSTALL_ADMIN-{{ .config.install.admin }}}"
+  SKIP_SERVICES="${SKIP_SERVICES:-0}"
+  SKIP_LUAROCKS="${SKIP_LUAROCKS:-0}"
+  SUDO_KEEPALIVE_PID=""
+  SUDO_SESSION_STARTED=0
+  INSTALL_COMMAND_WORDS=()
+
+  if [[ -n "$INSTALL_COMMAND" ]]; then
+    read -r -a INSTALL_COMMAND_WORDS <<<"$INSTALL_COMMAND"
+  fi
+}
+
+is_admin_machine() {
+  [[ "$INSTALL_ADMIN" == "true" || "$INSTALL_ADMIN" == "1" || "$INSTALL_ADMIN" == "yes" ]]
+}
+
+install_command_needs_sudo() {
+  [[ "$INSTALL_COMMAND" == "sudo" || "$INSTALL_COMMAND" == sudo\ * ]]
+}
+
+is_arch_like() {
+  command -v pacman >/dev/null 2>&1
+}
+
+parse_package_spec() {
+  local spec="$1"
+
+  PARSED_PACKAGE="${spec%%:*}"
+  if [[ "$spec" == *:* ]]; then
+    PARSED_COMMAND="${spec#*:}"
+  else
+    PARSED_COMMAND=""
+  fi
+}
+
+install_one_package() {
+  local module="$1" package="$3"
+  if [[ -z "$INSTALL_COMMAND" ]]; then
+    printf 'No package install command configured for [%s]: %s\n' "$module" "$package" >&2
+    return 1
+  fi
+  if ! is_admin_machine && install_command_needs_sudo; then
+    printf 'Not an admin user; refusing sudo install command for [%s]: %s\n' "$module" "$package" >&2
+    return 1
+  fi
+  "${INSTALL_COMMAND_WORDS[@]}" "$package"
+}
+
+package_available() {
+  package_installed "$2"
+}
+
+start_sudo_session() {
+  [[ "$SUDO_SESSION_STARTED" == 1 ]] && return
+  is_admin_machine || return 1
+  command -v sudo >/dev/null 2>&1 || return 1
+
+  sudo -v || return 1
+  SUDO_SESSION_STARTED=1
+
+  (
+    while kill -0 "$$" 2>/dev/null; do
+      sleep 60
+      sudo -n -v 2>/dev/null || exit 0
+    done
+  ) &
+  SUDO_KEEPALIVE_PID="$!"
+}
+
+package_installed() {
+  local spec="$1"
+  local package
+  local command_name
+  local base
+  local candidate
+
+  parse_package_spec "$spec"
+  package="$PARSED_PACKAGE"
+  command_name="$PARSED_COMMAND"
+
+  if [[ -n "$command_name" ]] && command -v "$command_name" >/dev/null 2>&1; then
+    printf 'Command "%s" already exists; skipping package "%s".\n' "$command_name" "$package"
+    return 0
+  fi
+
+  local -a candidates=("$package")
+
+  if ! is_arch_like; then
+    return 1
+  fi
+
+  case "$package" in
+    *-git)
+      base="${package%-git}"
+      candidates+=("$base" "$base-bin")
+      ;;
+    *-bin)
+      base="${package%-bin}"
+      candidates+=("$base" "$base-git")
+      ;;
+    *)
+      candidates+=("$package-git" "$package-bin")
+      ;;
+  esac
+
+  for candidate in "${candidates[@]}"; do
+    if pacman -Q "$candidate" >/dev/null 2>&1; then
+      if [[ "$candidate" != "$package" ]]; then
+        printf 'Warning: requested package "%s", but "%s" is already installed; skipping.\n' \
+          "$package" "$candidate" >&2
+      fi
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+install_packages() {
+  local module="$1"
+  shift
+  install_items "$module" package "$@"
+}
+
+enable_system_services() {
+  [[ "$SKIP_SERVICES" == 1 ]] && return
+  if ! is_admin_machine; then
+    printf 'Warning: not an admin user; skipping system services: %s\n' "$*" >&2
+    return
+  fi
+  command -v systemctl >/dev/null 2>&1 || return 0
+  start_sudo_session || {
+    record_failure "system services (sudo unavailable): $*"
+    printf 'Warning: sudo is unavailable; failed to enable system services: %s\n' "$*" >&2
+    return
+  }
+  sudo systemctl enable --now "$@" || record_failure "system services: $*"
+}
+
+enable_user_services() {
+  [[ "$SKIP_SERVICES" == 1 ]] && return
+  command -v systemctl >/dev/null 2>&1 || return 0
+  systemctl --user enable --now "$@" || record_failure "user services: $*"
+}
+
+install_luarocks() {
+  [[ "$SKIP_LUAROCKS" == 1 ]] && return
+
+  printf '\n==> [luarocks]\n'
+  if ! command -v luarocks >/dev/null 2>&1; then
+    record_failure 'luarocks unavailable: luasocket lua-cjson luv'
+    printf 'Warning: luarocks is not installed; please install luasocket lua-cjson luv manually.\n' >&2
+    return
+  fi
+  if ! is_admin_machine; then
+    record_failure 'luarocks requires admin: luasocket lua-cjson luv'
+    printf 'Warning: not an admin user; please install luarocks packages manually: luasocket lua-cjson luv\n' >&2
+    return
+  fi
+  start_sudo_session || {
+    record_failure 'luarocks requires sudo: luasocket lua-cjson luv'
+    printf 'Warning: sudo is unavailable; please install luarocks packages manually: luasocket lua-cjson luv\n' >&2
+    return
+  }
+  sudo luarocks --lua-version=5.1 install luasocket || record_failure "luarock: luasocket"
+  sudo luarocks --lua-version=5.1 install lua-cjson || record_failure "luarock: lua-cjson"
+  sudo luarocks --lua-version=5.1 install luv || record_failure "luarock: luv"
+}
+
+module_core() {
+  install_packages core \
+    chezmoi:chezmoi git:git gnupg:gpg zsh:zsh tmux:tmux gopass:gopass msmtp:msmtp curl:curl python:python3
+}
+
+module_shell() {
+  install_packages shell \
+    neovim:nvim vim:vim yazi:yazi lazygit:lazygit bottom:btm duf:duf dust:dust bashmount:bashmount uv:uv \
+    github-cli:gh autossh:autossh gcc:cc make:make tree-sitter-cli:tree-sitter \
+    ripgrep:rg fd:fd jq:jq fzf:fzf zoxide:zoxide thefuck:thefuck lsd:lsd tldr:tldr
+}
+
+module_system() {
+  if ! is_admin_machine; then
+    printf '\n==> [system]\n'
+    printf 'Warning: not an admin user; skipping system packages and services.\n' >&2
+    return
+  fi
+
+  install_packages system \
+    keyd:keyd networkmanager:nmcli udisken:udisken openssh:ssh
+
+  enable_system_services keyd NetworkManager tailscaled sshd
+  enable_user_services udisken
+}
+
+module_desktop() {
+  install_packages desktop \
+    hyprland:Hyprland hyprpaper:hyprpaper hypridle:hypridle greetd:greetd mako:mako kitty:kitty waybar-git:waybar wofi:wofi \
+    xorg-xrdb xdg-desktop-portal xdg-desktop-portal-gtk \
+    xdg-desktop-portal-hyprland xwaylandvideobridge \
+    wl-clipboard:wl-copy grim:grim slurp:slurp brightnessctl:brightnessctl ddcutil:ddcutil \
+    pipewire pipewire-audio pipewire-pulse pipewire-alsa wireplumber \
+    bluez bluez-utils:bluetoothctl blueman:blueman-manager pavucontrol:pavucontrol gopass-jsonapi:gopass-jsonapi
+
+  enable_system_services greetd bluetooth
+  enable_user_services hyprpaper hypridle waybar
+}
+
+module_font_and_im() {
+  install_packages font-and-im \
+    fcitx5 fcitx5-rime fcitx5-configtool android-tools:adb \
+    noto-fonts-cjk noto-fonts-emoji ttf-nerd-fonts-symbols-mono \
+    ttf-sarasa-gothic maplemono-ttf
+}
+
+module_proxy() {
+  install_packages proxy mihomo:mihomo tailscale:tailscale fdu-connect-git:fdu-connect\
+
+}
+
+module_apps() {
+  install_packages apps \
+    zen-browser-bin:zen-browser mpv:mpv imv:imv sioyek-git:sioyek zathura:zathura zathura-pdf-mupdf \
+    linuxqq-nt-bwrap:qq wechat-universal-bwrap:wechat-universal \
+    sunshine:sunshine moonlight-qt:moonlight calcurse:calcurse
+}
+
+module_dev() {
+  install_packages dev \
+    go:go ruby:ruby php:php julia:julia cargo:cargo lua:lua lua51 luajit:luajit luarocks:luarocks lua-language-server:lua-language-server \
+    tree-sitter-cli:tree-sitter pkgconf:pkgconf ffmpeg:ffmpeg imagemagick:magick
+
+  install_luarocks
+}
+
+module_latex() {
+  install_packages latex \
+    biber:biber pandoc-cli:pandoc texlive-binextra texlive-latex texlive-latexextra \
+    texlive-latexrecommended texlive-luatex texlive-xetex texlive-mathscience \
+    texlive-pictures texlive-fontsrecommended texlive-fontsextra \
+    texlive-langchinese texlive-langcjk texlive-langenglish
+}
+
+has_nvidia_gpu() {
+  local vendor_file
+
+  for vendor_file in /sys/class/drm/card*/device/vendor; do
+    if [[ -r "$vendor_file" ]] && [[ "$(<"$vendor_file")" == 0x10de ]]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+module_nvidia() {
+  if ! is_admin_machine; then
+    printf '\n==> [nvidia]\n'
+    printf 'Warning: not an admin user; skipping NVIDIA driver packages and services.\n' >&2
+    return
+  fi
+
+  if ! has_nvidia_gpu; then
+    printf 'No NVIDIA GPU detected; skipping NVIDIA packages.\n'
+    return
+  fi
+
+  install_packages nvidia \
+    nvidia-open:nvidia-smi nvidia-settings:nvidia-settings nvtop:nvtop
+
+  enable_system_services nvidia-suspend.service nvidia-resume.service nvidia-hibernate.service
+}
+
+module_extra() {
+  install_packages extra \
+    ayugram-desktop:ayugram-desktop \
+    cmatrix:cmatrix genact:genact lolcat:lolcat \
+    majsoul-plus-bin:majsoul-plus steam:steam \
+    libreoffice-fresh:libreoffice foliate:foliate rnote:rnote koreader-bin:koreader \
+    fastfetch:fastfetch
+}
+
+profile_headless() {
+  run_modules core shell system
+}
+
+profile_minimal() {
+  run_modules core shell system font_and_im
+}
+
+profile_desktop() {
+  run_modules core shell system desktop font_and_im proxy apps
+}
+
+profile_devbox() {
+  run_modules core shell system dev
+}
+
+profile_full() {
+  profile_devbox
+  run_modules desktop font_and_im proxy apps nvidia latex
+}
+
+profile_everything() {
+  profile_full
+  run_modules extra
+}
+
+install_template_dependencies() {
+{{ if .config.features.inputMethod }}
+  install_packages templates python:python3
+{{ end }}
+  return 0
+}

@@ -83,8 +83,8 @@
 ### 安装与配置说明
 
 - 初始化答案保存在本机 chezmoi 配置中，可用 `chezmoi edit-config` 检查 `[data]`。直接修改 profile 不会重新推导已有 features/apps；模板默认值不会覆盖 `prompt*Once` 保存的答案。`INSTALL_PROFILE` / `INSTALL_MODULES` 只改变依赖安装，不改变配置文件集合。
-- Linux 包名主要面向 Arch，其他发行版需要核对包名。脚本不会安装 paru；安装失败可能只输出警告。macOS 安装脚本固定使用 Homebrew，缺少时自动安装，需具备相应权限。
-- 初始化的代理地址不会提前启动代理；启用后 shell 会使用该地址。缺失 secret 会使用默认值；下载加密 store 后仍需解密私钥。macOS 安装清单不含 gopass。在 apply 后补齐 secret 时需再次 apply。
+- Linux 包名主要面向 Arch，其他发行版需要核对包名。脚本不会安装 paru；核心安装失败会在 before 阶段汇总报错，可选安装失败只会在 after 阶段汇总警告。macOS 安装脚本固定使用 Homebrew，缺少时自动安装，需具备相应权限。
+- 初始化的代理地址不会提前启动代理；启用后 shell 会使用该地址。缺失 secret 会使用默认值；下载加密 store 后仍需解密私钥。macOS 核心安装包含 gopass 和 GnuPG。在 apply 后补齐 secret 时需再次 apply。
 - 个人 SSH 地址 / 用户名 / 路由器匹配在 `dot_ssh/config.tmpl`，代理节点 / DNS / 路由在 `dot_config/mihomo/config.yaml.tmpl`。Linux 的 GRUB 项、DDC 输入值、OpenRGB profile，以及 macOS 的 Wi-Fi 名称和应用路径需按本机调整。
 - Zsh 路径需在 `/etc/shells` 中才能用 chsh。首次启动 Zsh、Neovim、Yazi 会自动下载插件；Yazi 安装失败时运行 `ya pkg install`，需要自定义提示符时运行 `p10k configure`。
 - Linux 脚本安装 / 启用 greetd，但不写 `/etc/greetd/config.toml`。Hyprland 配置使用原生 Lua，需使用支持此配置格式的版本。keyd 配置只生成在用户缓存目录，不会自动安装到 `/etc/keyd/`。
@@ -198,12 +198,16 @@ command = "{{ joinPath .chezmoi.sourceDir "ignore" "bin" "gopass-safe" }}"
 
 依赖安装脚本：
 
-- Arch Linux: `run_onchange_after_install-packages-linux.sh.tmpl`
-- macOS: `run_onchange_after_install-packages-macos.sh.tmpl`
+- Arch Linux: `run_onchange_before_install-core-linux.sh.tmpl` + `run_onchange_after_install-packages-linux.sh.tmpl`
+- macOS: `run_onchange_before_install-core-macos.sh.tmpl` + `run_onchange_after_install-packages-macos.sh.tmpl`
 
-Linux 安装脚本默认按当前发行版给出安装命令，例如 Arch/Manjaro 使用 `paru -S --needed --noconfirm --skipreview`，Debian/Ubuntu 使用 `sudo apt-get install -y`，Fedora 使用 `sudo dnf install -y`。其它发行版可以在 init 时填写 `install.command`，例如 `sudo apk add` 或 `sudo xbps-install -Sy`。安装会逐包执行，单个包失败只会 warning，不会中断整个 module。
+Linux/macOS 的两个阶段均由 `.chezmoitemplates/install-common` 调度，统一使用兼容 macOS 自带 Bash 3.2 的语法，共用模块选择、逐包安装与失败汇总逻辑；`.chezmoitemplates/install-packages-linux` 和 `install-packages-macos` 保留各自的安装后端、软件包清单和 profile 组合。before 安装所选 profile/modules 的 `core` 模块，并根据配置额外准备模板所需的 Python 3（Rime）和 Lua（macOS Karabiner）；即使 custom 未选 core，也会检查这些模板依赖。逐包尝试完成后统一列出失败项，存在核心失败则返回非零，停止后续 apply。after 负责其余模块，逐包继续安装，最后汇总失败项并返回成功，不阻断 apply。Homebrew / Xcode 等初始化错误也按所属阶段处理。`skip` 仍跳过所有安装。
 
-包名仍以当前配置使用的名字为主；非 Arch 系统遇到包名不匹配时，安装脚本会 warning 并继续，用户再按提示手动安装。
+安装脚本使用 `run_onchange`，成功退出的可选安装不会因为缺包而自动重试；请按汇总提示手动补装，或用 `chezmoi state delete-bucket --bucket=scriptState` 清除脚本记录后重新 apply（这也会重跑其他已记录脚本）。首次安装前的 `chezmoi diff` / `--dry-run` 不执行 before 脚本，仍需自行先准备 Python 3 / Lua 才能渲染依赖它们的模板。
+
+Linux 安装脚本默认按当前发行版给出安装命令，例如 Arch/Manjaro 使用 `paru -S --needed --noconfirm --skipreview`，Debian/Ubuntu 使用 `sudo apt-get install -y`，Fedora 使用 `sudo dnf install -y`。其它发行版可以在 init 时填写 `install.command`，例如 `sudo apk add` 或 `sudo xbps-install -Sy`。安装会逐包执行，单个包失败不会中断整个 module，最终退出状态取决于所在阶段。
+
+包名仍以当前配置使用的名字为主；非 Arch 系统遇到包名不匹配时，安装脚本会记录失败并继续，用户再按汇总提示手动安装。
 
 Linux 模块支持 `package:command` 形式声明软检测命令。脚本会先检查 `command` 是否存在；存在就认为这项能力已经可用，不再尝试安装 `package`。这适合共享机器、系统级预装软件，或软件来自不同包管理器的场景。
 
@@ -228,6 +232,8 @@ macOS 主要依赖通过 Homebrew 安装：
 - CLI: `git`, `neovim`, `tmux`, `yazi`, `fzf`, `zoxide`, `mihomo`, `jq`, `gh`
 - GUI: Hammerspoon, Karabiner-Elements, Kitty, Sioyek, Tailscale, EasyDict
 - 字体: JetBrains Mono Nerd Font
+
+Rime 的 `font-and-im` 模块还包含手机部署所需的 ADB（Linux `android-tools` / macOS `android-platform-tools`）。Linux `shell` 模块包含 Neovim 自动编译 Treesitter parser 所需的 GCC、Make 和 Treesitter CLI。
 
 macOS 安装脚本会先检测是否能访问 Google；不能访问时使用清华 Homebrew 镜像。
 

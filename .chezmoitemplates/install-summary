@@ -1,0 +1,26 @@
+# Collect failures until this phase finishes. Optional installation must not abort apply.
+record_failure() {
+  FAILURES+=("$1")
+  FAILURE_COUNT=$((FAILURE_COUNT + 1))
+}
+
+finish_install() {
+  local result=$?
+  trap - EXIT
+  if [[ -n "${SUDO_KEEPALIVE_PID:-}" ]]; then
+    kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
+  fi
+  if ((result != 0)); then
+    record_failure "Installer stopped unexpectedly (exit $result); see diagnostics above."
+  fi
+  if ((FAILURE_COUNT > 0)); then
+    printf '\nInstallation failures (%s):\n' "$INSTALL_PHASE" >&2
+    printf '  - %s\n' "${FAILURES[@]}" >&2
+    if [[ "$INSTALL_PHASE" == before ]]; then
+      exit 1
+    fi
+    printf 'Optional installation failed; continuing apply. Please install missing packages manually.\n' >&2
+  fi
+  exit 0
+}
+trap finish_install EXIT

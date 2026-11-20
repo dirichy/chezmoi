@@ -15,7 +15,9 @@ It checks:
 
 - the managed file set for `desktop`, `headless`, and `skip` profiles on the current platform;
 - rendering of every managed file and template in those profiles;
-- macOS LaunchAgent plist parsing, Karabiner JSON, and rendered installer Zsh syntax;
+- macOS LaunchAgent plist parsing, Karabiner JSON, and rendered installer Bash syntax;
+- Linux and macOS installer Bash syntax and ShellCheck (when available), mocked package failures,
+  shared module selection, before/after exit status and isolated apply/render ordering;
 - Linux and macOS service lifecycle behavior through mocks on either platform;
 - the macOS systemctl wrapper with native `plutil` on macOS only (service calls remain mocked);
 - desktop CLI integration through deterministic commands in `mock-bin`;

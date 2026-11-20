@@ -1,0 +1,164 @@
+# Homebrew installation backend and macOS module/profile definitions.
+prepare_installer() {
+  if ! command -v xcode-select >/dev/null 2>&1 || ! xcode-select -p >/dev/null 2>&1; then
+    printf 'Xcode Command Line Tools are required. Install them first, then run this script again.\n' >&2
+    exit 1
+  fi
+
+  if ! command -v brew >/dev/null 2>&1 && [[ ! -x /opt/homebrew/bin/brew && ! -x /usr/local/bin/brew ]]; then
+    printf 'Homebrew is not installed. Installing it now.\n'
+    if curl --max-time 5 -fsSL https://www.google.com >/dev/null 2>&1; then
+      installer=$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)
+      NONINTERACTIVE=1 /bin/bash -c "$installer"
+    else
+      export HOMEBREW_API_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api"
+      export HOMEBREW_BOTTLE_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles"
+      export HOMEBREW_BREW_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git"
+      export HOMEBREW_CORE_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git"
+      export HOMEBREW_INSTALL_FROM_API=1
+      installer=$(curl -fsSL https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/install/raw/HEAD/install.sh)
+      NONINTERACTIVE=1 /bin/bash -c "$installer"
+    fi
+  fi
+
+  if command -v brew >/dev/null 2>&1; then
+    BREW="$(command -v brew)"
+  elif [[ -x /opt/homebrew/bin/brew ]]; then
+    BREW=/opt/homebrew/bin/brew
+  elif [[ -x /usr/local/bin/brew ]]; then
+    BREW=/usr/local/bin/brew
+  else
+    printf 'Homebrew installation did not produce a usable brew command.\n' >&2
+    exit 1
+  fi
+
+  brew_env=$($BREW shellenv)
+  eval "$brew_env"
+  export HOMEBREW_NO_AUTO_UPDATE=1
+  export HOMEBREW_NO_INSTALL_CLEANUP=1
+}
+
+formula_installed() {
+  local package="$1"
+  local base
+  local candidate
+  local -a candidates=("$package")
+  case "$package" in
+    *-git) base="${package%-git}"; candidates+=("$base" "$base-bin") ;;
+    *-bin) base="${package%-bin}"; candidates+=("$base" "$base-git") ;;
+    *) candidates+=("$package-git" "$package-bin") ;;
+  esac
+  for candidate in "${candidates[@]}"; do
+    if $BREW list --formula --versions "$candidate" >/dev/null 2>&1; then
+      if [[ "$candidate" != "$package" ]]; then
+        printf 'Warning: requested formula "%s", but "%s" is already installed; skipping.\n' \
+          "$package" "$candidate" >&2
+      fi
+      return 0
+    fi
+  done
+  return 1
+}
+
+cask_installed() {
+  $BREW list --cask --versions "$1" >/dev/null 2>&1
+}
+
+package_available() {
+  local kind="$1"
+  PARSED_PACKAGE="$2"
+  if [[ "$kind" == cask ]]; then
+    cask_installed "$2"
+  else
+    formula_installed "$2"
+  fi
+}
+
+install_one_package() {
+  if [[ "$2" == cask ]]; then
+    "$BREW" install --cask "$3"
+  else
+    "$BREW" install "$3"
+  fi
+}
+
+install_formulae() {
+  local module="$1"
+  shift
+  install_items "$module" formula "$@"
+}
+
+install_casks() {
+  local module="$1"
+  shift
+  install_items "$module" cask "$@"
+}
+
+module_core() {
+  install_formulae core chezmoi openssh python git gopass gnupg
+}
+
+module_shell() {
+  install_formulae shell \
+    git neovim jq lazygit autossh curl fd ffmpeg fzf gcc gh lsd lua luajit \
+    perl stow texlive tex-fmt tldr tmux tree-sitter wget xz yazi yarn npm \
+    zoxide mpv pinentry-mac
+}
+
+module_font_and_im() {
+  install_casks font-and-im font-jetbrains-mono-nerd-font android-platform-tools
+}
+
+module_proxy() {
+  install_formulae proxy mihomo
+}
+
+module_desktop() {
+  install_casks desktop \
+    hammerspoon karabiner-elements kitty easydict keycastr mac-mouse-fix \
+    maccy sioyek tailscale-app rar platypus
+}
+
+module_dev() {
+  install_formulae dev yarn npm tree-sitter
+}
+
+module_extra() {
+  install_casks extra telegram tailscale
+}
+
+profile_headless() {
+  run_modules core shell
+}
+
+profile_minimal() {
+  run_modules core shell font_and_im
+}
+
+profile_desktop() {
+  run_modules core shell font_and_im proxy desktop
+}
+
+profile_devbox() {
+  run_modules core shell font_and_im proxy dev
+}
+
+profile_full() {
+  profile_devbox
+  run_modules desktop
+}
+
+profile_everything() {
+  profile_full
+  run_modules extra
+}
+
+install_template_dependencies() {
+{{ if .config.features.inputMethod }}
+  install_formulae templates python
+{{ end }}
+{{ if .config.features.macDesktop }}
+  install_formulae templates lua
+{{ end }}
+  return 0
+}

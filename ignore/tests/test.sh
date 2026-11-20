@@ -133,6 +133,9 @@ shutil.copytree(sys.argv[1], sys.argv[2], ignore=shutil.ignore_patterns('.git'))
 Path(sys.argv[2], '.chezmoiexternal.toml').write_text('')
 PYTHON
 
+python3 "$tests_dir/test-installers.py" "$repo_dir" "$tmp_dir"
+pass 'installers aggregate failures and respect before/after boundaries'
+
 python3 "$tests_dir/test-rime-tiger.py" "$repo_dir" "$tmp_dir"
 pass 'Tiger and Ice Git externals update dictionaries and shared Emoji in one isolated apply'
 
@@ -258,6 +261,8 @@ if [[ $fixture_os == linux ]]; then
     assert_managed "$desktop_list" '.local/share/config-share/surfingkeys/config.js' 'desktop shares Surfingkeys config'
     assert_ignored "$desktop_list" '.local/bin/dotfiles-services' 'repository helpers stay out of the deployed bin directory'
     assert_ignored "$desktop_list" '.hammerspoon/init.lua' 'Linux excludes Hammerspoon'
+    assert_managed "$desktop_list" 'install-core-linux.sh' 'Linux includes core before script'
+    assert_ignored "$desktop_list" 'install-core-macos.sh' 'Linux excludes macOS core script'
     assert_managed "$desktop_list" 'install-packages-linux.sh' 'Linux includes Linux install script'
     assert_ignored "$desktop_list" 'install-packages-macos.sh' 'Linux excludes macOS install script'
     assert_ignored "$desktop_list" '.config/fdu-connect/config.toml' 'disabled fdu-connect is excluded'
@@ -283,10 +288,11 @@ else
     for path in .hammerspoon/init.lua .config/karabiner/karabiner.json .config/yabai/yabairc .config/aerospace/aerospace.toml Library/LaunchAgents/mihomo.plist Library/LaunchAgents/config-share.plist Library/LaunchAgents/fdu-connect.plist .config/fdu-connect/config.toml .local/bin/fcitx5-remote; do
         assert_managed "$desktop_list" "$path" "macOS desktop includes $path"
     done
+    assert_managed "$desktop_list" 'install-core-macos.sh' 'macOS includes core before script'
     assert_managed "$desktop_list" 'install-packages-macos.sh' 'macOS includes macOS install script'
     for profile in desktop headless skip; do
         list="$tmp_dir/managed-$profile.txt"
-        for path in .config/hypr/hyprland.lua .config/waybar/config.jsonc .config/systemd/user/later.path .local/bin/later .config/sunshine/sunshine.conf install-packages-linux.sh; do
+        for path in .config/hypr/hyprland.lua .config/waybar/config.jsonc .config/systemd/user/later.path .local/bin/later .config/sunshine/sunshine.conf install-packages-linux.sh install-core-linux.sh; do
             assert_ignored "$list" "$path" "macOS $profile excludes $path"
         done
     done
@@ -335,8 +341,8 @@ for profile in ('desktop', 'headless', 'skip'):
         assert data['Label'] == path.stem, path
         assert data['ProgramArguments'], path
         assert data['RunAtLoad'] is True, path
-    install = rendered / 'install-packages-macos.sh'
-    subprocess.run(['zsh', '-n', str(install)], check=True)
+    for name in ('install-core-macos.sh', 'install-packages-macos.sh'):
+        subprocess.run(['bash', '-n', str(rendered / name)], check=True)
 rendered = root / 'rendered-desktop'
 with (rendered / '.config/karabiner/karabiner.json').open() as stream:
     assert json.load(stream)['profiles']
