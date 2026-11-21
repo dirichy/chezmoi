@@ -57,6 +57,7 @@
 | --- | --- |
 | `machine profile` | 按下表选择；默认 `desktop` |
 | `administrator on this machine` | 是否具备管理员权限；无权限选 `false`，缺失依赖需要自行准备 |
+| `prefer chezmoi downloads...` | 两边都能管理下载时是否优先使用 chezmoi；默认 `true`，目前用于选择 Zsh 插件的下载方式 |
 | `package install command` | Linux 确认包管理命令；留空则只提示手动安装缺失包。macOS 安装脚本固定使用 Homebrew |
 | `install modules` | 仅 `custom` 询问，填写逗号分隔模块；Linux 支持 `core,shell,system,font-and-im,desktop,proxy,apps,dev,latex,nvidia,extra`，macOS 支持 `core,shell,font-and-im,proxy,desktop,dev,extra` |
 | `use proxy for shell and desktop apps` | 是否让 shell、Hyprland 和系统代理使用代理地址，默认关闭；与 Mihomo 的安装和服务启用相互独立 |
@@ -86,7 +87,7 @@
 - Linux 包名主要面向 Arch，其他发行版需要核对包名。脚本不会安装 paru；核心安装失败会在 before 阶段汇总报错，可选安装失败只会在 after 阶段汇总警告。macOS 安装脚本固定使用 Homebrew，缺少时自动安装，需具备相应权限。
 - 初始化的代理地址不会提前启动代理；启用后 shell 会使用该地址。缺失 secret 会使用默认值；下载加密 store 后仍需解密私钥。macOS 核心安装包含 gopass 和 GnuPG。在 apply 后补齐 secret 时需再次 apply。
 - 个人 SSH 地址 / 用户名 / 路由器匹配在 `dot_ssh/config.tmpl`，代理节点 / DNS / 路由在 `dot_config/mihomo/config.yaml.tmpl`。Linux 的 GRUB 项、DDC 输入值、OpenRGB profile，以及 macOS 的 Wi-Fi 名称和应用路径需按本机调整。
-- Zsh 路径需在 `/etc/shells` 中才能用 chsh。首次启动 Zsh、Neovim、Yazi 会自动下载插件；Yazi 安装失败时运行 `ya pkg install`，需要自定义提示符时运行 `p10k configure`。
+- Zsh 路径需在 `/etc/shells` 中才能用 chsh。Zsh 插件默认由 chezmoi external 在 apply 时下载；`downloads.preferChezmoi = false` 时改由 Antidote 在首次启动时下载。Neovim、Yazi 首次启动会自动下载插件。Yazi 安装失败时运行 `ya pkg install`，需要自定义提示符时运行 `p10k configure`。
 - Linux 脚本安装 / 启用 greetd，但不写 `/etc/greetd/config.toml`。Hyprland 配置使用原生 Lua，需使用支持此配置格式的版本。keyd 配置只生成在用户缓存目录，不会自动安装到 `/etc/keyd/`。
 - Linux 手机 idle 检测调用 `sudo l2ping`，需无需交互即可运行；壁纸脚本读取 `~/Pictures/wallpaper`，还需确认 hyprpaper 使用的壁纸存在。远程机器需要退出登录后仍运行 user service 时，另行配置 linger。
 - macOS 安装清单不含 Fcitx5.app、Yabai、AeroSpace 和 Alfred。`fcitx5-remote` 链接依赖上述 app 安装位置；虎码和雾凇词典会随输入法配置跨平台通过 Git external 更新。当前 wmux 的 macOS 窗口操作使用 Yabai，`yabairc` 会调用 `sudo yabai --load-sa`。
@@ -152,6 +153,7 @@ Profile 会展开成几组本机数据：
 - `install.command`: Linux 包安装命令，脚本按空白拆成命令参数，并逐个把包名追加到命令后执行；可被 `INSTALL_COMMAND` 临时覆盖
 - `install.admin`: 是否是这台机器上的管理员，可被 `INSTALL_ADMIN` 临时覆盖；非管理员会跳过系统模块、驱动模块、system 级 service 和所有 sudo 操作
 - `features.*`: 是否启用某类配置，例如 `inputMethod`, `linuxDesktop`, `macDesktop`, `proxy`
+- `downloads.preferChezmoi`: 两边都能管理下载时，是否优先由 chezmoi 管理；默认 `true`，目前用于 Zsh 插件，不是全局下载开关
 - `apps.<name>.enabled`: 是否落下某个软件的配置
 - `apps.<name>.profile`: 同一软件在不同机器 profile 下的配置变体入口
 
@@ -250,7 +252,7 @@ dot_config/wofi/                   Wofi 启动器
 dot_config/systemd/user/           Linux user services
 dot_config/nvim/                   Neovim 配置
 dot_config/tmux/                   Tmux 配置和 helper 脚本
-dot_config/zsh/                    Zsh/antidote 配置
+dot_config/zsh/                    Zsh 配置与显式插件加载
 dot_config/yazi/                   Yazi 文件管理器
 dot_config/mihomo/                 Mihomo/Clash Meta 代理配置
 dot_config/fcitx5/                 Fcitx5/Rime 配置
@@ -396,13 +398,41 @@ Yabai 功能：
 
 Zsh 配置在 `dot_config/zsh`：
 
-- Antidote 管理 zsh 插件
+- `downloads.preferChezmoi` 选择插件下载方式；两种方式共用 `plugin-repos.txt` 清单和 `plugins.zsh` 加载顺序
 - Powerlevel10k prompt
 - fzf-tab、zsh-autosuggestions、history substring search、syntax highlighting
 - `zoxide` 接管 `cd`
 - 常用别名和一字母命令
 
 Vi 模式会在进入普通模式时记住输入法状态并临时切换英文（`temp_ascii`），回到插入模式、提交或取消命令时恢复（`restore`）；重复进入普通模式不会覆盖保存的状态。本地 Linux/macOS 直接调用 `fcitx5-remote`，遵循当前 shell 的命令查找规则，允许通过函数或 PATH 中的 wrapper 自定义；命令缺失时跳过。本地查询和切换由后台 worker 串行处理，不阻塞 ZLE；恢复也异步执行，因此命令启动时输入法可能仍在恢复中。Fcitx5 Rime 两个平台均设为切换时上屏原始输入（`Commit raw input`），不提交候选预览；该设置对其他输入法切换也生效。SSH 会话通过 Kitty 的 `SetUserVar=im` 协议控制客户端输入法，需要客户端启用本仓库的 `im-control.py` watcher；经过 tmux 时需允许 passthrough（本仓库已开启）。
+
+`downloads.preferChezmoi` 表示管理方式的偏好，不表示是否允许下载。没有此字段的旧配置默认按 `true` 处理；目前只有 Zsh 使用它，其他 external 和软件自己的下载机制保持原样。可在 `chezmoi edit-config` 中设置：
+
+```toml
+[data.downloads]
+preferChezmoi = true
+# 同一表中保留已有 githubMirror / githubMirrorPrefix。
+```
+
+`true` 时，所有 profile（包括 `skip`）通过 chezmoi `git-repo` external 下载到 `~/.config/zsh/plugins/`，刷新间隔为一周（`168h`），使用浅克隆和 `git pull --ff-only`。刷新只在运行 chezmoi 时发生，需要立即更新时可运行 `chezmoi apply -R ~/.config/zsh`。
+
+`false` 时，chezmoi 不声明 Zsh 插件 external；Zsh 使用 `~/.config/zsh/.antidote/` 中的 Antidote，将插件下载到同目录下的 `.antidote-plugins/`，已有插件不会在每次启动时联网更新。手动运行 `antidote update` 更新插件和管理器。Antidote 只负责下载，不生成或加载 `.zsh_plugins.zsh` 缓存；安装管理器使用临时目录，下载期间使用自动释放的文件锁，没有有效 HEAD 的残留 checkout 会保留到 `.cache/` 后重试。Git checkout 已有有效 HEAD 但工作区损坏时，仍需检查后手动修复。
+
+两种方式的仓库清单来自 `.chezmoitemplates/zsh-plugin-repos`，加载顺序在 `dot_config/zsh/plugins.zsh`。切换偏好后需要 apply，旧后端的插件目录保留，不自动删除；缺失插件会提示，但不会中止其余 Zsh 配置。
+
+单独配置 Zsh 的机器可以复制**已部署的整个** `~/.config/zsh/`，包括隐藏文件和当前后端下载的插件（不是仓库中的 `dot_config/zsh/` 模板）。接收端不需要 chezmoi；Antidote 模式的管理器也包含在该目录内。可先用下面的方式启动，或把第二行加入接收端的 `~/.zshenv`，作为持久入口（保留原有内容）：
+
+```zsh
+ZDOTDIR="$HOME/.config/zsh" zsh
+. "$HOME/.config/zsh/.zshenv"
+```
+
+目标机需安装 Zsh；完整体验还需 `fzf`、`zoxide`、Neovim、tmux 等所用命令，复制目录不会安装程序。macOS 插件仓库也会在 Linux 下载，但只在 macOS 加载，方便跨平台复制。部署的 `.zshenv` 中代理和 TERM 策略仍来自原机器的模板数据，复制后请按目标机器调整；Homebrew 路径在启动时按平台检测。自定义提示符 `.p10k.zsh` 也应一起复制。
+
+历史记录默认改存为 `$ZDOTDIR/.zsh_history`，补全和语法高亮缓存放在 `$ZDOTDIR/.cache/`；其他工具仍遵循各自的数据/缓存路径。旧历史通常在 `~/.local/share/zsh/history`，需要保留时请在关闭其他 Zsh 后自行迁移；跨机复制时可排除历史和缓存，缓存会重建。旧 `.zsh_plugins.zsh`、其 `.zwc` 以及 `~/.cache/antidote/` 不再使用，未自动删除，以便核对后自行清理；`.antidote/` 仅在 Antidote 模式下使用。
+
+其他 Shell 工具：
+
 - `s` 函数使用 autossh 和保活参数连接远端；远端交互式 zsh 会自动调用 `t`
 - `t` 函数选择/创建 tmux session；手动运行时 detach 后返回原 Zsh，SSH 初始化自启时使用 `t --exec` 替换当前 shell；选择列表中按 `q`、输入 session 名时按 `Esc` 可留在当前 shell，自启选择期间按 `Ctrl-C` 会取消 tmux 并继续完成 Zsh 初始化
 - `v` 函数封装 Neovim 打开文件/目录/历史路径

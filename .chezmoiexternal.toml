@@ -1,3 +1,16 @@
+# Zsh plugins: keep checkouts beside the configuration so the directory is portable.
+# Zsh is managed for every profile; only the preferred downloader changes.
+{{ if eq (includeTemplate "preferChezmoiDownloads" .) "true" }}
+{{ range $repo := splitList "\n" (trim (includeTemplate "zsh-plugin-repos" .)) }}
+[".config/zsh/plugins/{{ base $repo }}"]
+type = "git-repo"
+url = "https://github.com/{{ $repo }}.git"
+refreshPeriod = "168h"
+clone.args = ["--depth=1", "--single-branch"]
+pull.args = ["--ff-only"]
+{{ end }}
+{{ end }}
+
 # macOS desktop automation.
 {{ if and (eq .chezmoi.os "darwin") .apps.hammerspoon.enabled }}
 {{ template "hammerspoon_installspoon" "Caffeine" }}

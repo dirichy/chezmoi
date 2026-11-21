@@ -1,0 +1,6 @@
+# Preferred download manager; plugin loading is shared by both backends.
+{{ if eq (includeTemplate "preferChezmoiDownloads" .) "true" -}}
+_zsh_plugin_backend=chezmoi
+{{ else -}}
+_zsh_plugin_backend=antidote
+{{ end -}}

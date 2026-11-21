@@ -79,6 +79,7 @@
 .config/waybar/themes/catppuccin-mocha.css
 .config/yazi/scripts/update_config.sh
 .config/zsh/.zshrc.d/onecharcmd.zsh
+.config/zsh/.zsh_plugins.txt
 .hammerspoon/_loop.lua
 .hammerspoon/applaucher.lua
 .hammerspoon/binder.lua

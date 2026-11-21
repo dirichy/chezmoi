@@ -16,6 +16,7 @@
 {{- $installCommandDefault = "brew install" -}}
 {{- end -}}
 {{- $installCommand := promptStringOnce . "install.command" "package install command" $installCommandDefault -}}
+{{- $preferChezmoiDownloads := promptBoolOnce . "downloads.preferChezmoi" "prefer chezmoi downloads when the software can also manage them" true -}}
 {{- $customModules := "" -}}
 {{- if eq $profile "custom" -}}
 {{- $customModules = promptStringOnce . "install.modules" "install modules" "core,shell" -}}
@@ -92,6 +93,9 @@ phoneBluetoothMac = {{ ( promptStringOnce . "phoneBluetoothMac" "Your mobile Blu
 
 [data.waybar]
 hostnameSymbol = {{ $waybarHostnameSymbol | quote }}
+
+[data.downloads]
+preferChezmoi = {{ $preferChezmoiDownloads }}
 
 [data.proxy]
 address = {{ $proxyAddress | quote }}

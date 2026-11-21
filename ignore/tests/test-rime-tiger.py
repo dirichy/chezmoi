@@ -3,6 +3,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+import json
 import runpy
 import shutil
 import subprocess
@@ -117,6 +118,9 @@ with tempfile.TemporaryDirectory(prefix="rime-tiger-test-", dir=sys.argv[2]) as 
     shutil.copy(repo / "dot_local/share/fcitx5/rime/lua/tiger/simp_table.lua.tmpl", target / "lua/tiger")
     (source / ".chezmoiignore").write_text("ignore\n")
     (source / ".chezmoiexternal.toml").write_text("")
+    (source / ".chezmoitemplates").mkdir()
+    for name in ("preferChezmoiDownloads", "zsh-plugin-repos"):
+        shutil.copy(repo / ".chezmoitemplates" / name, source / ".chezmoitemplates" / name)
     config = root / "config.toml"
     config.write_bytes((repo / "ignore/tests/fixtures/linux-desktop.toml").read_bytes())
     (root / "home").mkdir()
@@ -140,7 +144,18 @@ with tempfile.TemporaryDirectory(prefix="rime-tiger-test-", dir=sys.argv[2]) as 
     assert ".cache/rime-tiger/upstream" not in tomllib.loads(render_external())
     assert ".cache/rime-ice/upstream" not in tomllib.loads(render_external())
     config.write_bytes((repo / "ignore/tests/fixtures/linux-desktop.toml").read_bytes())
-    (source / ".chezmoiexternal.toml").write_text(rendered.replace(
+    # Only install the Rime externals under test, never unrelated downloads.
+    fixture_external = []
+    for name, settings in ((".cache/rime-tiger/upstream", entry),
+                           (".cache/rime-ice/upstream", ice_entry)):
+        fixture_external.append(f'[{json.dumps(name)}]')
+        for key, value in settings.items():
+            if isinstance(value, dict):
+                for nested_key, nested_value in value.items():
+                    fixture_external.append(f'{key}.{nested_key} = {json.dumps(nested_value)}')
+            else:
+                fixture_external.append(f'{key} = {json.dumps(value)}')
+    (source / ".chezmoiexternal.toml").write_text("\n".join(fixture_external).replace(
         entry["url"], upstream.as_uri()).replace(ice_entry["url"], ice.as_uri()))
     def apply(*paths):
         # Deliberately isolated destination, state, source and local Git remote.

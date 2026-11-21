@@ -3,6 +3,8 @@
 # .zshrc - Zsh file loaded on interactive shell sessions.
 #
 
+export ZDOTDIR=${ZDOTDIR:-${${(%):-%N}:A:h}}
+
 # Enable Powerlevel10k instant prompt. Should stay close to the top of .zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
@@ -10,7 +12,7 @@
 # Lazy-load (autoload) Zsh function files from a directory.
 ZFUNCDIR=${ZDOTDIR:-$HOME}/.zfunctions
 fpath=($ZFUNCDIR $fpath)
-autoload -Uz $ZFUNCDIR/*(.:t)
+autoload -Uz $ZFUNCDIR/*(N.:t)
 setopt interactivecomments
 
 # for gopass
@@ -33,20 +35,23 @@ export FZF_DEFAULT_OPTS=" \
 --color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8 \
 --color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc \
 --color=marker:#b4befe,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8 \
---color=selected-bg:#45475a \
 --multi"
+
+# selected-bg was introduced in fzf 0.52.0.
+if (( $+commands[fzf] )); then
+    autoload -Uz is-at-least
+    _fzf_version=$(fzf --version 2>/dev/null)
+    if [[ -n $_fzf_version ]] && is-at-least 0.52.0 "${_fzf_version%% *}"; then
+        FZF_DEFAULT_OPTS+=' --color=selected-bg:#45475a'
+    fi
+    unset _fzf_version
+fi
 
 # Set any zstyles you might use for configuration.
 [[ ! -f ${ZDOTDIR:-$HOME}/.zstyles ]] || source ${ZDOTDIR:-$HOME}/.zstyles
 
-# Clone antidote if necessary.
-if [[ ! -d ${ZDOTDIR:-$HOME}/.antidote ]]; then
-    git clone --depth=1 https://github.com/mattmc3/antidote ${ZDOTDIR:-$HOME}/.antidote || return 1
-fi
-
-# Create an amazing Zsh config using antidote plugins.
-source "${ZDOTDIR:-$HOME}/.antidote/antidote.zsh" || return 1
-antidote load "${ZDOTDIR:-$HOME}/.zsh_plugins.txt" || return 1
+# Load plugins using the download backend selected by host data.
+source "$ZDOTDIR/plugins.zsh"
 
 # Source anything in .zshrc.d.
 for _rc in ${ZDOTDIR:-$HOME}/.zshrc.d/*.zsh(N); do

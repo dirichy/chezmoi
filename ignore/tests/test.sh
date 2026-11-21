@@ -200,6 +200,13 @@ if [[ $fixture_os == linux ]]; then
         assert_ignored "$list" '.local/bin/fcitx5-remote' 'Linux excludes the macOS Fcitx5.app symlink'
     done
 fi
+for list in "$desktop_list" "$headless_list" "$skip_list"; do
+    assert_managed "$list" '.config/zsh/plugins.zsh' 'Zsh includes explicit plugin loading'
+    assert_managed "$list" '.config/zsh/plugin-backend.zsh' 'Zsh includes the preferred download backend'
+    assert_managed "$list" '.config/zsh/plugin-repos.txt' 'Zsh includes the shared plugin repository list'
+    assert_managed "$list" '.config/zsh/plugin-manager.zsh' 'Zsh includes the optional plugin downloader'
+    assert_ignored "$list" '.config/zsh/.zsh_plugins.txt' 'Zsh excludes the Antidote manifest'
+done
 pass 'all fixture profiles evaluate .chezmoiignore'
 
 render_target desktop "$tests_dir/fixtures/$fixture_os-desktop.toml" '.config/fcitx5/conf/rime.conf' "$tmp_dir/rime-switch.conf"

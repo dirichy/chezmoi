@@ -1,0 +1,5 @@
+{{- $prefer := true -}}
+{{- if and (hasKey . "downloads") (hasKey .downloads "preferChezmoi") -}}
+{{- $prefer = .downloads.preferChezmoi -}}
+{{- end -}}
+{{- $prefer -}}

@@ -1,21 +1,17 @@
 #!/bin/zsh
 # .zshenv - Zsh environment file, loaded always.
-# NOTE: .zshenv needs to live at ~/.zshenv, not in $ZDOTDIR!
-# Set ZDOTDIR if you want to re-home Zsh.
-export ZDOTDIR=${ZDOTDIR:-$HOME/.config/zsh}
+# ~/.zshenv sources this file; a standalone copy can also use ZDOTDIR directly.
+export ZDOTDIR=${ZDOTDIR:-${${(%):-%N}:A:h}}
 export XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}
 export XDG_DATA_HOME=${XDG_DATA_HOME:-$HOME/.local/share}
 export XDG_CACHE_HOME=${XDG_CACHE_HOME:-$HOME/.cache}
-export ZDOTDIR=${ZDOTDIR:-$XDG_CONFIG_HOME/zsh}
-{{- $brewPrefix := "/usr/local" -}}
-{{- if eq .chezmoi.arch "arm64" -}}
-{{- $brewPrefix = "/opt/homebrew" -}}
-{{- end -}}
-{{- if eq .chezmoi.os "darwin"}}
-export C_INCLUDE_PATH="{{$brewPrefix}}/include:$C_INCLUDE_PATH"
-export LIBRARY_PATH="{{$brewPrefix}}/lib:$LIBRARY_PATH"
-export LD_LIBRARY_PATH="{{$brewPrefix}}/lib:$LD_LIBRARY_PATH"
-{{- end}}
+if [[ $OSTYPE == darwin* ]]; then
+    _zsh_brew_prefix=/usr/local
+    [[ ! -d /opt/homebrew ]] || _zsh_brew_prefix=/opt/homebrew
+    export C_INCLUDE_PATH="$_zsh_brew_prefix/include:$C_INCLUDE_PATH"
+    export LIBRARY_PATH="$_zsh_brew_prefix/lib:$LIBRARY_PATH"
+    export LD_LIBRARY_PATH="$_zsh_brew_prefix/lib:$LD_LIBRARY_PATH"
+fi
 
 
 # Ensure path arrays do not contain duplicates.
@@ -40,7 +36,8 @@ esac
 {{- if .features.proxy }}
 export https_proxy=http://{{ .proxy.address }} http_proxy=http://{{ .proxy.address }} #all_proxy=socks5://{{ .proxy.address }}
 {{- end }}
-{{- if eq .chezmoi.os "darwin"}}
-path=({{$brewPrefix}}/bin /Users/Shared/opt/bin $path $HOME/Library/Python/3.9/bin)
-{{- end}}
+if [[ $OSTYPE == darwin* ]]; then
+    path=("$_zsh_brew_prefix/bin" /Users/Shared/opt/bin $path $HOME/Library/Python/3.9/bin)
+    unset _zsh_brew_prefix
+fi
 export PATH
