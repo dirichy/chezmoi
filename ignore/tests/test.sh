@@ -202,6 +202,11 @@ if [[ $fixture_os == linux ]]; then
 fi
 pass 'all fixture profiles evaluate .chezmoiignore'
 
+render_target desktop "$tests_dir/fixtures/$fixture_os-desktop.toml" '.config/fcitx5/conf/rime.conf' "$tmp_dir/rime-switch.conf"
+grep -Fqx 'SwitchInputMethodBehavior="Commit raw input"' "$tmp_dir/rime-switch.conf" \
+    || fail 'Rime switching must commit raw input instead of the candidate preview'
+pass 'Rime commits raw input when switching input methods'
+
 mihomo_only_fixture="$tests_dir/fixtures/proxy-mihomo-only.toml"
 mihomo_external_fixture="$tests_dir/fixtures/proxy-mihomo-and-external.toml"
 external_only_fixture="$tests_dir/fixtures/proxy-external-only.toml"

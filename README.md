@@ -402,7 +402,7 @@ Zsh 配置在 `dot_config/zsh`：
 - `zoxide` 接管 `cd`
 - 常用别名和一字母命令
 
-Vi 模式会在进入普通模式时记住输入法状态并临时切换英文（`temp_ascii`），回到插入模式、提交或取消命令时恢复（`restore`）；重复进入普通模式不会覆盖保存的状态。本地 Linux/macOS 直接调用 `fcitx5-remote`，遵循当前 shell 的命令查找规则，允许通过函数或 PATH 中的 wrapper 自定义；命令缺失时跳过。SSH 会话通过 Kitty 的 `SetUserVar=im` 协议控制客户端输入法，需要客户端启用本仓库的 `im-control.py` watcher；经过 tmux 时需允许 passthrough（本仓库已开启）。
+Vi 模式会在进入普通模式时记住输入法状态并临时切换英文（`temp_ascii`），回到插入模式、提交或取消命令时恢复（`restore`）；重复进入普通模式不会覆盖保存的状态。本地 Linux/macOS 直接调用 `fcitx5-remote`，遵循当前 shell 的命令查找规则，允许通过函数或 PATH 中的 wrapper 自定义；命令缺失时跳过。本地查询和切换由后台 worker 串行处理，不阻塞 ZLE；恢复也异步执行，因此命令启动时输入法可能仍在恢复中。Fcitx5 Rime 两个平台均设为切换时上屏原始输入（`Commit raw input`），不提交候选预览；该设置对其他输入法切换也生效。SSH 会话通过 Kitty 的 `SetUserVar=im` 协议控制客户端输入法，需要客户端启用本仓库的 `im-control.py` watcher；经过 tmux 时需允许 passthrough（本仓库已开启）。
 - `s` 函数使用 autossh 和保活参数连接远端；远端交互式 zsh 会自动调用 `t`
 - `t` 函数选择/创建 tmux session；手动运行时 detach 后返回原 Zsh，SSH 初始化自启时使用 `t --exec` 替换当前 shell；选择列表中按 `q`、输入 session 名时按 `Esc` 可留在当前 shell，自启选择期间按 `Ctrl-C` 会取消 tmux 并继续完成 Zsh 初始化
 - `v` 函数封装 Neovim 打开文件/目录/历史路径
