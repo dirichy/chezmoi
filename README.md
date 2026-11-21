@@ -406,6 +406,8 @@ Zsh 配置在 `dot_config/zsh`：
 
 Vi 模式会在进入普通模式时记住输入法状态并临时切换英文（`temp_ascii`），回到插入模式、提交或取消命令时恢复（`restore`）；重复进入普通模式不会覆盖保存的状态。本地 Linux/macOS 直接调用 `fcitx5-remote`，遵循当前 shell 的命令查找规则，允许通过函数或 PATH 中的 wrapper 自定义；命令缺失时跳过。本地查询和切换由后台 worker 串行处理，不阻塞 ZLE；恢复也异步执行，因此命令启动时输入法可能仍在恢复中。Fcitx5 Rime 两个平台均设为切换时上屏原始输入（`Commit raw input`），不提交候选预览；该设置对其他输入法切换也生效。SSH 会话通过 Kitty 的 `SetUserVar=im` 协议控制客户端输入法，需要客户端启用本仓库的 `im-control.py` watcher；经过 tmux 时需允许 passthrough（本仓库已开启）。
 
+Esc 等待时间由 Zsh 的 `KEYTIMEOUT` 控制，单位为 10ms：本地或 tmux 内设为 `1`（10ms），SSH 且不在 tmux 内设为 `5`（50ms）。通过 `SSH_TTY` / `SSH_CONNECTION` 和 `TMUX` 在 shell 启动时判断；已有 tmux pane 重新 attach 不会重新计算。tmux 自身的 `escape-time` 保持 40ms。
+
 `downloads.preferChezmoi` 表示管理方式的偏好，不表示是否允许下载。没有此字段的旧配置默认按 `true` 处理；目前只有 Zsh 使用它，其他 external 和软件自己的下载机制保持原样。可在 `chezmoi edit-config` 中设置：
 
 ```toml
