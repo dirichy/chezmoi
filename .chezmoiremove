@@ -37,6 +37,7 @@
 .config/nvim/lua/plugins/chinese.lua
 .config/nvim/lua/plugins/externaltools.lua
 .config/nvim/lua/plugins/keyflow.lua
+.config/nvim/lua/plugins/lilypond.lua
 .config/nvim/lua/plugins/luarocks.lua
 .config/nvim/lua/plugins/neorg.lua
 .config/nvim/lua/plugins/neotree.lua
