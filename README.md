@@ -481,6 +481,8 @@ Linux 使用 Fcitx5 + Rime：
 - `tiger_common.extended.dict.yaml.tmpl` 保留本地扩展词典的全部条目，仅替换导入的词典名称。
 - `opencc` 链接到本地 `shared_opencc`，其中仅链接虎码读音、拆分所需的上游文件；不引入上游旧版 `s2t.json`，简转繁统一使用系统 OpenCC 标准 `s2t`。上游方案、Lua、快捷键和鼠须管皮肤不会覆盖本地配置。网站启动器已移除，不再部署或加载上游 `lua/exe.lua`。
 
+虎码拼音反查的候选注释优先使用当前方案码表中的真实整词码；没有整词码时逐字显示虎码，字间用空格分开，同字多码用 `/` 分开。`?` 表示该字未收录在当前方案码表中。拼音提示开关只作用于正常虎码输入，反查时保留虎码提示。
+
 雾凇使用同样的 Git external 更新方式，跟踪 `main`，间隔 `24h`，使用 `git pull --ff-only`。`rime_ice.dict.yaml.tmpl` 读取上游主词典，`cn_dicts` / `en_dicts` 链接上游词库目录，替代固定的 `rime_bigfiles` 压缩包。部件词典 `radical_pinyin.dict.yaml` 和基础部件方案 `radical_pinyin.schema.yaml` 也直接链接上游，随 external 更新；小鹤部件覆盖层、本地主输入方案、Lua 扩展和键位继续自行维护，不会自动开启其余上游功能。全拼和小鹤双拼继续共用 `rime_ice` 词库和用户词典。
 
 虎码与雾凇共用 `shared_emoji/emoji.json` 和生成的 `emoji.txt`。模板调用 `ignore/bin/rime-merge-emoji` 合并两边的 `opencc/emoji.txt`：保留原文字，重叠项优先采用雾凇顺序，再补入虎码候选，按完整 Unicode 字符串精确去重（不合并有无变体选择符、肤色不同的 Emoji）。两套方案的 Emoji 开关统一命名为 `emoji`，首次会话按启动方案设置默认状态（虎码关、雾凇开），之后切方案不重置；全局 `Ctrl+Shift+3` 和虎码 `Ctrl+i` 均操作此开关。雾凇 `others.txt` 中的翻译、别名、化学式等附加转换不自动合入。合并仅在配置渲染时执行，不在按键路径执行。

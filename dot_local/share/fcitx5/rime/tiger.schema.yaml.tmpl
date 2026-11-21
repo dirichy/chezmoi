@@ -117,7 +117,7 @@ engine:
     # - charset_filter@gbk
     # - charset_filter@gb2312
     - simplifier@traditionalization #简繁滤镜
-    # - reverse_lookup_filter@reverse_lookup #反查词典滤镜
+    - lua_filter@*tiger.reverse_comment # 反查词组补逐字虎码，优先保留真实整词码
     # - simplifier@fanjian #繁简滤镜
     - simplifier@pinyin #拼音滤镜
     - simplifier@chaifen #拆分滤镜
@@ -258,6 +258,7 @@ pinyin:
   opencc_config: pinyin.json
   option_name: pinyin
   show_in_comment: true #作为注解在后面显示
+  excluded_types: [reverse_lookup] # 拼音反查应显示虎码
   comment_format:
     - "xform/&nbsp;/ /"
     # - "xform/^/ /"
@@ -267,7 +268,6 @@ pinyin:
     - tiger
     - tiger_full
     - tigress
-    - reverse_lookup
 
 # ↓emoji表情滤镜
 emoji:

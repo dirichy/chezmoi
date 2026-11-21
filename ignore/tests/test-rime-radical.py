@@ -80,6 +80,13 @@ with tempfile.TemporaryDirectory(prefix="radical-", dir=temporary) as directory:
     (user / "shared_emoji/emoji.txt").write_text("笑\t笑 😄\n")
     if android:
         shutil.copytree(user / "shared_emoji", user / "opencc")
+    # A local reading dictionary makes the pinyin switch observable in real filters.
+    (user / "opencc").mkdir(exist_ok=True)
+    (user / "opencc/pinyin.json").write_text(
+        '{"name":"fixture-pinyin","segmentation":{"type":"mmseg",'
+        '"dict":{"type":"text","file":"pinyin.txt"}},'
+        '"conversion_chain":[{"dict":{"type":"text","file":"pinyin.txt"}}]}')
+    (user / "opencc/pinyin.txt").write_text("来\tlai\n的\tde\n来的\tlai de\n")
     binary = root / "input-check"
     subprocess.run(["cc", str(fixture / "input-check.c"), *flags.stdout.split(), "-ldl", "-o", str(binary)],
                    check=True, capture_output=True)
@@ -230,6 +237,18 @@ with tempfile.TemporaryDirectory(prefix="radical-", dir=temporary) as directory:
             ("tiger", "\\o2\\s2", "option:pinyin:1"),
             ("rime_ice_full", "\\o5\\s1", "option:full_shape:1"),
         ]
+    prefix = "~" if android else "`"
+    cases += [
+        (schema, prefix + code, ("pinyin:" if enabled else "") + "comment:" + text + "\t" + comment)
+        for schema in ("tiger", "tiger_full")
+        for enabled in (False, True)
+        for code, text, comment in (
+            ("ld", "来", "abcd"), ("ldde", "来的", "abcd u"),
+            ("jide", "𠮷的", "ijkl u"), ("zuci", "组词", "z"),
+            ("ldlb", "来林", "abcd ?"), ("yide", "一的", "f/fi u"),
+        )
+    ]
+    cases += [(schema, "abcd", "pinyin:comment:来\tlai") for schema in ("tiger", "tiger_full")]
     # Compile dependencies and exercise the actual processor/segmentor/translator/filter chain.
     for schema, code, expected in cases:
         result = subprocess.run([str(binary), str(user), schema, code, expected,
