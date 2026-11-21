@@ -401,6 +401,8 @@ Zsh 配置在 `dot_config/zsh`：
 - fzf-tab、zsh-autosuggestions、history substring search、syntax highlighting
 - `zoxide` 接管 `cd`
 - 常用别名和一字母命令
+
+Vi 模式会在进入普通模式时记住输入法状态并临时切换英文（`temp_ascii`），回到插入模式、提交或取消命令时恢复（`restore`）；重复进入普通模式不会覆盖保存的状态。本地 Linux/macOS 直接调用 `fcitx5-remote`，遵循当前 shell 的命令查找规则，允许通过函数或 PATH 中的 wrapper 自定义；命令缺失时跳过。SSH 会话通过 Kitty 的 `SetUserVar=im` 协议控制客户端输入法，需要客户端启用本仓库的 `im-control.py` watcher；经过 tmux 时需允许 passthrough（本仓库已开启）。
 - `s` 函数使用 autossh 和保活参数连接远端；远端交互式 zsh 会自动调用 `t`
 - `t` 函数选择/创建 tmux session；手动运行时 detach 后返回原 Zsh，SSH 初始化自启时使用 `t --exec` 替换当前 shell；选择列表中按 `q`、输入 session 名时按 `Esc` 可留在当前 shell，自启选择期间按 `Ctrl-C` 会取消 tmux 并继续完成 Zsh 初始化
 - `v` 函数封装 Neovim 打开文件/目录/历史路径
@@ -613,7 +615,7 @@ chezmoi diff ~/.local/share/fcitx5/rime
 fcitx5-remote -r
 ```
 
-macOS 使用 Fcitx5.app 时，`~/.local/bin/fcitx5-remote` 是到 app 内二进制的 symlink。
+macOS 使用 Fcitx5.app 时，`~/.local/bin/fcitx5-remote` 是到 app 内二进制的 symlink，仅在 macOS 启用输入法配置时生成。Linux 使用系统安装的 `fcitx5-remote`，不生成此链接。旧配置已在 Linux 留下的链接不会因 ignore 规则自动删除。Linux 用户需手动清理：先用 `readlink ~/.local/bin/fcitx5-remote` 确认目标为 `/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote`，再运行 `unlink ~/.local/bin/fcitx5-remote`；保留自己安装的程序或 wrapper。
 
 ## Proxy And Network
 

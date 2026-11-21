@@ -72,6 +72,7 @@ Library/LaunchAgents/fdu-connect.plist
 
 # macOS-only files.
 {{ if ne .chezmoi.os "darwin" }}
+.local/bin/fcitx5-remote
 install-packages-macos.sh
 install-core-macos.sh
 .gnupg/gpg-agent.conf

@@ -195,6 +195,11 @@ skip_list="$tmp_dir/managed-skip.txt"
 managed_list desktop >"$desktop_list"
 managed_list headless >"$headless_list"
 managed_list skip >"$skip_list"
+if [[ $fixture_os == linux ]]; then
+    for list in "$desktop_list" "$headless_list" "$skip_list"; do
+        assert_ignored "$list" '.local/bin/fcitx5-remote' 'Linux excludes the macOS Fcitx5.app symlink'
+    done
+fi
 pass 'all fixture profiles evaluate .chezmoiignore'
 
 mihomo_only_fixture="$tests_dir/fixtures/proxy-mihomo-only.toml"
