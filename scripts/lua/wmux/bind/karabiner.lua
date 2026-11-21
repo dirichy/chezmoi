@@ -86,7 +86,7 @@ function karabiner.mod2int(mods)
 	return ret
 end
 
-local JSON = require("cjson")
+local JSON = require("wmux.vendor.json")
 local function print_json(value)
 	local json = JSON.encode(value)
 	local has_jq = os.execute("command -v jq >/dev/null 2>&1")

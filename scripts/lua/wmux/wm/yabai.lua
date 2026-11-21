@@ -1,5 +1,5 @@
 local SHELL = require("wmux.shell")
-local JSON = require("cjson")
+local JSON = require("wmux.vendor.json")
 local function yabai_m(cmd)
 	return SHELL.new("/opt/homebrew/bin/yabai -m " .. cmd)
 end

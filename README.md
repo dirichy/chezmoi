@@ -237,6 +237,8 @@ macOS 主要依赖通过 Homebrew 安装：
 
 Rime 的 `font-and-im` 模块还包含手机部署所需的 ADB（Linux `android-tools` / macOS `android-platform-tools`）。Linux `shell` 模块包含 Neovim 自动编译 Treesitter parser 所需的 GCC、Make 和 Treesitter CLI。
 
+wmux 使用随仓库分发的纯 Lua JSON 编解码器 [rxi/json.lua v0.1.2](https://github.com/rxi/json.lua/tree/v0.1.2)，源码和 MIT 许可保存在 `scripts/lua/wmux/vendor/json.lua`。Karabiner 模板渲染和 Yabai 查询不依赖 lua-cjson / LuaRocks，首次渲染只需已有的 Lua 解释器。
+
 macOS 安装脚本会先检测是否能访问 Google；不能访问时使用清华 Homebrew 镜像。
 
 ## Repository Map
