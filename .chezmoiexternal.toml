@@ -11,17 +11,35 @@ pull.args = ["--ff-only"]
 {{ end }}
 {{ end }}
 
+# Mihomo Geo data. In native mode Mihomo downloads and refreshes these itself.
+{{ if and .apps.mihomo.enabled (eq (includeTemplate "preferChezmoiDownloads" .) "true") }}
+{{ range $name := list "GeoIP.dat" "GeoSite.dat" "Country.mmdb" }}
+{{ $url := printf "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/release/%s" (lower $name) }}
+[".config/mihomo/{{ $name }}"]
+type = "file"
+refreshPeriod = "24h"
+urls = {{ includeTemplate "githubDownloadURLs" (dict "config" $ "url" $url) }}
+{{ end }}
+{{ end }}
+
 # macOS desktop automation.
 {{ if and (eq .chezmoi.os "darwin") .apps.hammerspoon.enabled }}
-{{ template "hammerspoon_installspoon" "Caffeine" }}
-{{ template "hammerspoon_installspoon" "EmmyLua" }}
+{{ range $name := list "Caffeine" "EmmyLua" }}
+{{ $url := printf "https://raw.githubusercontent.com/Hammerspoon/Spoons/master/Spoons/%s.spoon.zip" $name }}
+[".hammerspoon/Spoons/{{ $name }}.spoon"]
+type = "archive"
+stripComponents = 1
+refreshPeriod = "24h"
+urls = {{ includeTemplate "githubDownloadURLs" (dict "config" $ "url" $url) }}
+{{ end }}
 {{ end }}
 
 # FDU VPN helper.
 {{ if and (eq .chezmoi.os "darwin") .features.fduConnect }}
 [".local/bin/fdu-connect"]
 type = "archive-file"
-url = "https://ghfast.top/https://github.com/AkiraSalvare/fdu-connect/releases/download/0.1.0/fdu-connect-darwin-arm64.zip"
+url = {{ includeTemplate "githubDownloadURL" (dict "config" . "url" "https://github.com/AkiraSalvare/fdu-connect/releases/download/0.1.0/fdu-connect-darwin-arm64.zip") | quote }}
+urls = {{ includeTemplate "githubDownloadURLs" (dict "config" . "url" "https://github.com/AkiraSalvare/fdu-connect/releases/download/0.1.0/fdu-connect-darwin-arm64.zip") }}
 path = "fdu-connect"
 executable = true
 {{ end }}

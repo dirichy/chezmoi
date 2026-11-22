@@ -136,6 +136,9 @@ PYTHON
 python3 "$tests_dir/test-installers.py" "$repo_dir" "$tmp_dir"
 pass 'installers aggregate failures and respect before/after boundaries'
 
+python3 "$tests_dir/test-downloads.py" "$repo_dir" "$tmp_dir"
+pass 'download mirrors, public probes and opt-in scheduling work offline'
+
 python3 "$tests_dir/test-rime-tiger.py" "$repo_dir" "$tmp_dir"
 pass 'Tiger and Ice Git externals update dictionaries and shared Emoji in one isolated apply'
 

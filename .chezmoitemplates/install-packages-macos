@@ -8,7 +8,7 @@ prepare_installer() {
   if ! command -v brew >/dev/null 2>&1 && [[ ! -x /opt/homebrew/bin/brew && ! -x /usr/local/bin/brew ]]; then
     printf 'Homebrew is not installed. Installing it now.\n'
     if curl --max-time 5 -fsSL https://www.google.com >/dev/null 2>&1; then
-      installer=$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)
+      installer=$(curl -fsSL {{ includeTemplate "githubDownloadURL" (dict "config" .config "url" "https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh") | quote }})
       NONINTERACTIVE=1 /bin/bash -c "$installer"
     else
       export HOMEBREW_API_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api"

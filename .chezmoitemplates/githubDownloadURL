@@ -1,0 +1,8 @@
+{{- $prefix := "https://ghfast.top/" -}}
+{{- if and (hasKey .config "downloads") (hasKey .config.downloads "githubMirrorPrefix") -}}
+{{- $prefix = .config.downloads.githubMirrorPrefix -}}
+{{- end -}}
+{{- if and (ne $prefix "") (not (regexMatch `^https://[A-Za-z0-9.-]+(:[0-9]+)?(/[^@?#[:space:]]*)?/$` $prefix)) -}}
+{{- fail "downloads.githubMirrorPrefix must be empty (direct) or an HTTPS URL prefix ending in /" -}}
+{{- end -}}
+{{- printf "%s%s" $prefix .url -}}

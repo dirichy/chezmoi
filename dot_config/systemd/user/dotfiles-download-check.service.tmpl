@@ -1,0 +1,9 @@
+[Unit]
+Description=Check dotfiles public download URLs
+Documentation=file:{{ .chezmoi.sourceDir }}/README.md
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/env python3 {{ joinPath .chezmoi.sourceDir "ignore/bin/check-downloads" | quote }}
+TimeoutStartSec=10min
+UMask=0077

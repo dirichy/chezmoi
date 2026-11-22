@@ -18,6 +18,10 @@ It checks:
 - macOS LaunchAgent plist parsing, Karabiner JSON, and rendered installer Bash syntax;
 - Linux and macOS installer Bash syntax and ShellCheck (when available), mocked package failures,
   shared module selection, before/after exit status and isolated apply/render ordering;
+- GitHub mirror init choices/defaults, public download rendering without secrets, bounded-response
+  validation through mocks, and an opt-in Linux-only download-check timer (no public network requests);
+- external URL fallback using local files, and Geo external entries/native auto-update settings
+  following the download preference on Linux and macOS (rendering only; no database downloads);
 - Linux and macOS service lifecycle behavior through mocks on either platform;
 - the macOS systemctl wrapper with native `plutil` on macOS only (service calls remain mocked);
 - desktop CLI integration through deterministic commands in `mock-bin`;

@@ -13,6 +13,10 @@ tools
 .local/share/fcitx5/rime/tiger-simp-stats.tsv
 
 # Config groups controlled by host data.
+{{ if or (ne .chezmoi.os "linux") (not (and (hasKey .features "downloadChecks") .features.downloadChecks)) }}
+.config/systemd/user/dotfiles-download-check.service
+.config/systemd/user/dotfiles-download-check.timer
+{{ end }}
 {{ if not .features.cli }}
 .local/bin/later
 .config/systemd/user/later.path

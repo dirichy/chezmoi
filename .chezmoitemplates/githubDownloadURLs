@@ -1,0 +1,9 @@
+{{- $primary := includeTemplate "githubDownloadURL" . -}}
+{{- $urls := list $primary -}}
+{{- /* Explicit direct mode stays direct. Other modes have public mirror fallbacks. */ -}}
+{{- if ne $primary .url -}}
+{{- range list "https://gh-proxy.com/" "https://ghproxy.net/" "https://ghfast.top/" "" -}}
+{{- $urls = append $urls (printf "%s%s" . $.url) -}}
+{{- end -}}
+{{- end -}}
+{{- uniq $urls | toJson -}}

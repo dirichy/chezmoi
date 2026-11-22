@@ -88,12 +88,12 @@ proxy-providers:
 # --------------------------------------------------
 
 {{- define "fudan-rule" }}
-  {{ . }}:
+  {{ .name }}:
     type: http
     behavior: domain
     format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/dirichy/mihomo_fudan_rule/refs/heads/main/{{ . }}.list"
-    path: ./rule_provider/{{ . }}.list
+    url: {{ includeTemplate "githubDownloadURL" (dict "config" .config "url" (printf "https://raw.githubusercontent.com/dirichy/mihomo_fudan_rule/refs/heads/main/%s.list" .name)) | quote }}
+    path: ./rule_provider/{{ .name }}.list
 {{- end }}
 {{- define "quixotic-rule" }}
   {{ .name }}{{ .behavior }}:
@@ -101,16 +101,16 @@ proxy-providers:
     interval: 600
     behavior: {{ .behavior }}
     format: text
-    url: "https://ghfast.top/https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/{{ .behavior }}/{{ .name }}.list"
+    url: {{ includeTemplate "githubDownloadURL" (dict "config" .config "url" (printf "https://raw.githubusercontent.com/QuixoticHeart/rule-set/refs/heads/ruleset/meta/%s/%s.list" .behavior .name)) | quote }}
     path: ./rule_provider/{{ .behavior }}/{{ .name }}.list
 {{- end }}
-{{- define "rule-domain" }}{{ template "quixotic-rule" (dict "name" . "behavior" "domain") }}{{ end }}
-{{- define "rule-ipcidr" }}{{ template "quixotic-rule" (dict "name" . "behavior" "ipcidr") }}{{ end }}
+{{- define "rule-domain" }}{{ template "quixotic-rule" (dict "name" .name "behavior" "domain" "config" .config) }}{{ end }}
+{{- define "rule-ipcidr" }}{{ template "quixotic-rule" (dict "name" .name "behavior" "ipcidr" "config" .config) }}{{ end }}
 
 # 规则订阅
 rule-providers:
-{{- template "fudan-rule" "fudan-direct" }}
-{{- template "fudan-rule" "fudan" }}
+{{- template "fudan-rule" (dict "name" "fudan-direct" "config" $) }}
+{{- template "fudan-rule" (dict "name" "fudan" "config" $) }}
   # 秋风广告拦截规则
   # https://awavenue.top
   # 由于 Anti-AD 误杀率高，本项目已在 1.11-241024 版本更换秋风广告规则
@@ -119,63 +119,63 @@ rule-providers:
     behavior: domain
     format: yaml
     path: ./rule_provider/AWAvenue-Ads.yaml
-    url: "https://ghfast.top/https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/refs/heads/main/Filters/AWAvenue-Ads-Rule-Clash-Classical.yaml"
+    url: {{ includeTemplate "githubDownloadURL" (dict "config" . "url" "https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/refs/heads/main/Filters/AWAvenue-Ads-Rule-Clash.yaml") | quote }}
     interval: 600
   # 使用对应类型的模板添加规则；provider 名保持为「规则名 + 类型」。
-{{- template "rule-domain" "ai" }}
-{{- template "rule-domain" "apns" }}
-{{- template "rule-ipcidr" "apns" }}
-{{- template "rule-domain" "apple-cn" }}
-{{- template "rule-domain" "apple-proxy" }}
-{{- template "rule-domain" "apple" }}
-{{- template "rule-ipcidr" "apple" }}
-{{- template "rule-domain" "cdn" }}
-{{- template "rule-domain" "cn" }}
-{{- template "rule-ipcidr" "cn" }}
-{{- template "rule-domain" "bilibili" }}
-{{- template "rule-ipcidr" "bilibili" }}
-{{- template "rule-domain" "dmca" }}
-{{- template "rule-ipcidr" "dmca" }}
-{{- template "rule-domain" "dmm" }}
-{{- template "rule-ipcidr" "dmm" }}
-{{- template "rule-domain" "games-cn" }}
-{{- template "rule-domain" "games" }}
-{{- template "rule-ipcidr" "games" }}
-{{- template "rule-domain" "ecommerce" }}
-{{- template "rule-ipcidr" "ecommerce" }}
-{{- template "rule-domain" "forum" }}
-{{- template "rule-domain" "gfw" }}
-{{- template "rule-ipcidr" "gfw" }}
-{{- template "rule-domain" "gits" }}
-{{- template "rule-domain" "google" }}
-{{- template "rule-ipcidr" "google" }}
-{{- template "rule-domain" "googlefcm" }}
-{{- template "rule-ipcidr" "googlefcm" }}
-{{- template "rule-domain" "httpdns" }}
-{{- template "rule-ipcidr" "httpdns" }}
-{{- template "rule-domain" "iplocation-proxy" }}
-{{- template "rule-ipcidr" "iplocation-proxy" }}
-{{- template "rule-domain" "iplocation-direct" }}
-{{- template "rule-domain" "microsoft-cn" }}
-{{- template "rule-domain" "microsoft" }}
-{{- template "rule-domain" "onedrive" }}
-{{- template "rule-domain" "paypal" }}
-{{- template "rule-domain" "private" }}
-{{- template "rule-ipcidr" "private" }}
-{{- template "rule-domain" "proxy" }}
-{{- template "rule-ipcidr" "proxy" }}
-{{- template "rule-domain" "socialmedia-cn" }}
-{{- template "rule-ipcidr" "socialmedia-cn" }}
-{{- template "rule-domain" "socialmedia" }}
-{{- template "rule-ipcidr" "socialmedia" }}
-{{- template "rule-domain" "speedtest" }}
-{{- template "rule-domain" "spotify" }}
-{{- template "rule-ipcidr" "spotify" }}
-{{- template "rule-domain" "tiktok" }}
-{{- template "rule-domain" "tld-proxy" }}
-{{- template "rule-domain" "youtube" }}
-{{- template "rule-ipcidr" "youtube" }}
-{{- template "rule-domain" "fake-ip-filter" }}
+{{- template "rule-domain" (dict "name" "ai" "config" $) }}
+{{- template "rule-domain" (dict "name" "apns" "config" $) }}
+{{- template "rule-ipcidr" (dict "name" "apns" "config" $) }}
+{{- template "rule-domain" (dict "name" "apple-cn" "config" $) }}
+{{- template "rule-domain" (dict "name" "apple-proxy" "config" $) }}
+{{- template "rule-domain" (dict "name" "apple" "config" $) }}
+{{- template "rule-ipcidr" (dict "name" "apple" "config" $) }}
+{{- template "rule-domain" (dict "name" "cdn" "config" $) }}
+{{- template "rule-domain" (dict "name" "cn" "config" $) }}
+{{- template "rule-ipcidr" (dict "name" "cn" "config" $) }}
+{{- template "rule-domain" (dict "name" "bilibili" "config" $) }}
+{{- template "rule-ipcidr" (dict "name" "bilibili" "config" $) }}
+{{- template "rule-domain" (dict "name" "dmca" "config" $) }}
+{{- template "rule-ipcidr" (dict "name" "dmca" "config" $) }}
+{{- template "rule-domain" (dict "name" "dmm" "config" $) }}
+{{- template "rule-ipcidr" (dict "name" "dmm" "config" $) }}
+{{- template "rule-domain" (dict "name" "games-cn" "config" $) }}
+{{- template "rule-domain" (dict "name" "games" "config" $) }}
+{{- template "rule-ipcidr" (dict "name" "games" "config" $) }}
+{{- template "rule-domain" (dict "name" "ecommerce" "config" $) }}
+{{- template "rule-ipcidr" (dict "name" "ecommerce" "config" $) }}
+{{- template "rule-domain" (dict "name" "forum" "config" $) }}
+{{- template "rule-domain" (dict "name" "gfw" "config" $) }}
+{{- template "rule-ipcidr" (dict "name" "gfw" "config" $) }}
+{{- template "rule-domain" (dict "name" "gits" "config" $) }}
+{{- template "rule-domain" (dict "name" "google" "config" $) }}
+{{- template "rule-ipcidr" (dict "name" "google" "config" $) }}
+{{- template "rule-domain" (dict "name" "googlefcm" "config" $) }}
+{{- template "rule-ipcidr" (dict "name" "googlefcm" "config" $) }}
+{{- template "rule-domain" (dict "name" "httpdns" "config" $) }}
+{{- template "rule-ipcidr" (dict "name" "httpdns" "config" $) }}
+{{- template "rule-domain" (dict "name" "iplocation-proxy" "config" $) }}
+{{- template "rule-ipcidr" (dict "name" "iplocation-proxy" "config" $) }}
+{{- template "rule-domain" (dict "name" "iplocation-direct" "config" $) }}
+{{- template "rule-domain" (dict "name" "microsoft-cn" "config" $) }}
+{{- template "rule-domain" (dict "name" "microsoft" "config" $) }}
+{{- template "rule-domain" (dict "name" "onedrive" "config" $) }}
+{{- template "rule-domain" (dict "name" "paypal" "config" $) }}
+{{- template "rule-domain" (dict "name" "private" "config" $) }}
+{{- template "rule-ipcidr" (dict "name" "private" "config" $) }}
+{{- template "rule-domain" (dict "name" "proxy" "config" $) }}
+{{- template "rule-ipcidr" (dict "name" "proxy" "config" $) }}
+{{- template "rule-domain" (dict "name" "socialmedia-cn" "config" $) }}
+{{- template "rule-ipcidr" (dict "name" "socialmedia-cn" "config" $) }}
+{{- template "rule-domain" (dict "name" "socialmedia" "config" $) }}
+{{- template "rule-ipcidr" (dict "name" "socialmedia" "config" $) }}
+{{- template "rule-domain" (dict "name" "speedtest" "config" $) }}
+{{- template "rule-domain" (dict "name" "spotify" "config" $) }}
+{{- template "rule-ipcidr" (dict "name" "spotify" "config" $) }}
+{{- template "rule-domain" (dict "name" "tiktok" "config" $) }}
+{{- template "rule-domain" (dict "name" "tld-proxy" "config" $) }}
+{{- template "rule-domain" (dict "name" "youtube" "config" $) }}
+{{- template "rule-ipcidr" (dict "name" "youtube" "config" $) }}
+{{- template "rule-domain" (dict "name" "fake-ip-filter" "config" $) }}
 
 mode: rule
 # ipv6 支持
@@ -203,14 +203,17 @@ external-controller: :9090
 external-ui: ui
 
 geodata-mode: true
+# 默认交给 chezmoi external；选择软件自行管理时启用 Mihomo 的更新器。
+geo-auto-update: {{ ne (includeTemplate "preferChezmoiDownloads" .) "true" }}
+geo-update-interval: 24
 
 # Geo 数据库下载地址
 # 源地址 https://github.com/MetaCubeX/meta-rules-dat
 # 可以更换镜像站但不要更换其他数据库，可能导致无法启动
 geox-url:
-  geoip: "https://ghfast.top/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat"
-  geosite: "https://ghfast.top/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat"
-  mmdb: "https://ghfast.top/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country.mmdb"
+  geoip: {{ includeTemplate "githubDownloadURL" (dict "config" . "url" "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/release/geoip.dat") | quote }}
+  geosite: {{ includeTemplate "githubDownloadURL" (dict "config" . "url" "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/release/geosite.dat") | quote }}
+  mmdb: {{ includeTemplate "githubDownloadURL" (dict "config" . "url" "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/release/country.mmdb") | quote }}
 
 # 进程匹配模式
 # 路由器上请设置为 off

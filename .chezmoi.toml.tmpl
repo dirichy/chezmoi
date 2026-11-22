@@ -17,6 +17,18 @@
 {{- end -}}
 {{- $installCommand := promptStringOnce . "install.command" "package install command" $installCommandDefault -}}
 {{- $preferChezmoiDownloads := promptBoolOnce . "downloads.preferChezmoi" "prefer chezmoi downloads when the software can also manage them" true -}}
+{{- $githubMirror := promptChoiceOnce . "downloads.githubMirror" "GitHub download mirror" (list "ghfast" "direct" "custom") "ghfast" -}}
+{{- $githubMirrorPrefix := "https://ghfast.top/" -}}
+{{- if eq $githubMirror "direct" -}}
+{{- $githubMirrorPrefix = "" -}}
+{{- else if eq $githubMirror "custom" -}}
+{{- $githubMirrorPrefix = printf "%s/" (trimSuffix "/" (trim (promptStringOnce . "downloads.githubMirrorPrefix" "GitHub mirror HTTPS prefix (prepended to the original URL)" "https://ghfast.top/"))) -}}
+{{- end -}}
+{{- $unused := includeTemplate "githubDownloadURL" (dict "config" (dict "downloads" (dict "githubMirrorPrefix" $githubMirrorPrefix)) "url" "https://github.com/") -}}
+{{- $downloadChecks := false -}}
+{{- if and (eq .chezmoi.os "linux") (ne $profile "skip") -}}
+{{- $downloadChecks = promptBoolOnce . "features.downloadChecks" "run scheduled download checks on this machine (enable on one always-on host only)" false -}}
+{{- end -}}
 {{- $customModules := "" -}}
 {{- if eq $profile "custom" -}}
 {{- $customModules = promptStringOnce . "install.modules" "install modules" "core,shell" -}}
@@ -96,6 +108,8 @@ hostnameSymbol = {{ $waybarHostnameSymbol | quote }}
 
 [data.downloads]
 preferChezmoi = {{ $preferChezmoiDownloads }}
+githubMirror = {{ $githubMirror | quote }}
+githubMirrorPrefix = {{ $githubMirrorPrefix | quote }}
 
 [data.proxy]
 address = {{ $proxyAddress | quote }}
@@ -117,6 +131,7 @@ command = {{ $installCommand | quote }}
 admin = {{ $adminUser }}
 
 [data.features]
+downloadChecks = {{ $downloadChecks }}
 cli = {{ ne $profile "skip" }}
 systemServices = {{ $hasSystemServices }}
 desktop = {{ $isDesktop }}

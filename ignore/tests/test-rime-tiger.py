@@ -119,7 +119,7 @@ with tempfile.TemporaryDirectory(prefix="rime-tiger-test-", dir=sys.argv[2]) as 
     (source / ".chezmoiignore").write_text("ignore\n")
     (source / ".chezmoiexternal.toml").write_text("")
     (source / ".chezmoitemplates").mkdir()
-    for name in ("preferChezmoiDownloads", "zsh-plugin-repos"):
+    for name in ("preferChezmoiDownloads", "zsh-plugin-repos", "githubDownloadURL", "githubDownloadURLs"):
         shutil.copy(repo / ".chezmoitemplates" / name, source / ".chezmoitemplates" / name)
     config = root / "config.toml"
     config.write_bytes((repo / "ignore/tests/fixtures/linux-desktop.toml").read_bytes())

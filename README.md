@@ -58,6 +58,8 @@
 | `machine profile` | 按下表选择；默认 `desktop` |
 | `administrator on this machine` | 是否具备管理员权限；无权限选 `false`，缺失依赖需要自行准备 |
 | `prefer chezmoi downloads...` | 两边都能管理下载时是否优先使用 chezmoi；默认 `true`，目前用于选择 Zsh 插件的下载方式 |
+| `GitHub download mirror` | `ghfast`（默认）、`direct` 或 `custom`；自定义镜像填写拼接在原始 URL 前面的 HTTPS 前缀 |
+| `run scheduled download checks...` | 仅 Linux 非 `skip` profile 询问，默认关闭；只在一台常开主机上启用 |
 | `package install command` | Linux 确认包管理命令；留空则只提示手动安装缺失包。macOS 安装脚本固定使用 Homebrew |
 | `install modules` | 仅 `custom` 询问，填写逗号分隔模块；Linux 支持 `core,shell,system,font-and-im,desktop,proxy,apps,dev,latex,nvidia,extra`，macOS 支持 `core,shell,font-and-im,proxy,desktop,dev,extra` |
 | `use proxy for shell and desktop apps` | 是否让 shell、Hyprland 和系统代理使用代理地址，默认关闭；与 Mihomo 的安装和服务启用相互独立 |
@@ -240,6 +242,42 @@ Rime 的 `font-and-im` 模块还包含手机部署所需的 ADB（Linux `android
 wmux 使用随仓库分发的纯 Lua JSON 编解码器 [rxi/json.lua v0.1.2](https://github.com/rxi/json.lua/tree/v0.1.2)，源码和 MIT 许可保存在 `scripts/lua/wmux/vendor/json.lua`。Karabiner 模板渲染和 Yabai 查询不依赖 lua-cjson / LuaRocks，首次渲染只需已有的 Lua 解释器。
 
 macOS 安装脚本会先检测是否能访问 Google；不能访问时使用清华 Homebrew 镜像。
+
+### 下载镜像与链接检查
+
+init 可选择 `ghfast`（默认 `https://ghfast.top/`）、官方直连 `direct` 或自定义 HTTPS 前缀。此前没有 `downloads` 数据的机器继续使用 ghfast。已有机器用 `chezmoi edit-config` 修改本机数据，例如切换官方直连：
+
+```toml
+[data.downloads]
+githubMirror = "direct"
+githubMirrorPrefix = ""
+```
+
+真正用于生成 URL 的是 `githubMirrorPrefix`；修改后重新 apply。镜像只负责 GitHub 文件下载，覆盖 Spoon、FDU Connect 安装包、Mihomo Geo / 规则和 Homebrew 的官方安装脚本分支；Homebrew 的清华镜像分支保持独立。Git 克隆、插件管理器和私有订阅不经过此选项。Spoon 在 external 中用小循环列出，跟踪 `master` 下的 ZIP，每 24 小时刷新；Geo 跟踪 MetaCubeX 的 `release` 数据分支。镜像地址失效时，可以切换直连或其他镜像，无需修改多处模板。
+
+Spoon 和 FDU Connect 的 archive external 默认通过 `urls` 按顺序回退：本机选定镜像 → `gh-proxy.com` → `ghproxy.net` → ghfast → 官方地址（重复地址去重）。选择 `direct` 时只使用官方地址。外部地址全部失败仍会由 chezmoi 报错，可用 `chezmoi apply --keep-going` 继续处理其他目标，最终保留失败状态。这里的回退针对下载失败，不应把它当成内容校验的替代。
+
+手动检查入口会渲染两个平台的公共 HTTP 下载链接，不调用 secret、不访问个人密码库或订阅，也不执行 apply / 安装。检查以最多 4 KiB 的请求探测 HTTP 状态、空响应、HTML 错误页和 ZIP 文件头，不下载完整 Geo 数据，也不等同于完整文件校验：
+
+```bash
+./ignore/bin/check-downloads                 # 检查本机选择的镜像，失败时非零退出
+./ignore/bin/check-downloads --direct        # 对照检查官方地址，帮助区分镜像与上游问题
+./ignore/bin/check-downloads --list          # 只列出链接，不联网
+./ignore/bin/check-downloads --filter spoon # 只检查 Spoon
+```
+
+脚本需要 Python 3.11+ 和 chezmoi。默认回归测试仍离线；`check-downloads` 是单独的联网操作，网络超时会报告失败，但不能据此认定上游文件已删除。
+
+定时检查只需在一台常开 Linux 主机 / 服务器上开启。init 时选择下载检查，或者在已有 `[data.features]` 中设置 `downloadChecks = true`，apply 后才会生成对应的 service / timer；其他机器默认不生成。不会通过服务协调脚本自动启用此 timer。在选定主机上手动启用：
+
+```bash
+systemctl --user daemon-reload
+systemctl --user enable --now dotfiles-download-check.timer
+systemctl --user start dotfiles-download-check.service # 可选：立即检查一次
+journalctl --user -u dotfiles-download-check.service
+```
+
+timer 每天触发一次，随机延迟最多一小时，并补做关机期间错过的执行。结果保留在 journal，失败时 service 进入 failed 状态，不会自动通知或修改配置。若需退出登录后仍运行 user timer，另行配置用户 linger。检查使用这台机器的镜像设置，覆盖仓库内两个平台的公共资源；无需在每台客户端重复运行。设为 `false` 前先手动禁用 timer：`systemctl --user disable --now dotfiles-download-check.timer`。
 
 ## Repository Map
 
@@ -661,6 +699,17 @@ Mihomo 配置在 `dot_config/mihomo/config.yaml.tmpl`：
 - Fudan、广告、AI、Apple、Bilibili 等规则 provider
 - Linux 通过 user service 或手动启动
 - macOS 通过 LaunchAgent 启动
+
+Geo 使用与 Zsh 相同的 `downloads.preferChezmoi` 选项：
+
+| 设置 | Geo 数据的下载与更新 |
+| --- | --- |
+| `true`（默认；旧配置缺少该字段时也按 true） | chezmoi external 管理 `GeoIP.dat`、`GeoSite.dat`、`Country.mmdb`，24 小时刷新，使用镜像回退；关闭 Mihomo 自动更新 |
+| `false` | external 不声明 Geo 文件；Mihomo 按 `geox-url` 自行下载，并每 24 小时自动更新 |
+
+不再使用专用 Geo 下载 helper、manifest 或启动包装。HTTP 403 等下载错误由 external 按 HTTP 状态处理；`chezmoi apply --keep-going` 可继续其他目标，最终保留失败状态。切换模式不会主动删除已有数据库，复制配置时也可把已有数据库一起复制。
+
+Hammerspoon 另有官方收录的 [SpoonInstall](https://www.hammerspoon.org/Spoons/SpoonInstall.html)，它自身也是需先安装的 Spoon，`hs.loadSpoon()` 只负责加载。当前只使用两个 Spoon，继续由 external 中的小循环管理，暂不为了模式切换再引入管理器。
 
 FDU Connect：
 
