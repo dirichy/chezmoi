@@ -1,0 +1,51 @@
+services:
+  old:
+    build:
+      context: .
+      target: old
+    networks:
+      lan:
+        ipv4_address: 172.30.247.2
+      internet: {}
+    volumes:
+      - ../../..:/source:ro
+      - public-exchange:/exchange
+    environment:
+      OLD_IP: 172.30.247.2
+    healthcheck:
+      test: ["CMD", "test", "-f", "/exchange/old-ready"]
+      interval: 3s
+      timeout: 2s
+      retries: 60
+
+  new:
+    build:
+      context: .
+      target: new
+    networks:
+      lan:
+        ipv4_address: 172.30.247.3
+    volumes:
+      - ../../..:/source:ro
+      - public-exchange:/exchange
+    environment:
+      OLD_IP: 172.30.247.2
+      CARGO_BUILD_JOBS: '2'
+      MAKEFLAGS: '-j2'
+      GOMAXPROCS: '2'
+    depends_on:
+      old:
+        condition: service_healthy
+
+networks:
+  internet: {}
+  lan:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.247.0/24
+
+# Only public device keys, a host public key and coordination markers are shared.
+# Private HOME directories and GPG agents remain in their respective containers.
+volumes:
+  public-exchange: {}

@@ -1,0 +1,40 @@
+name: Install through another device
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/install-lan.yml'
+      - 'install.sh'
+      - '.chezmoi*'
+      - '.chezmoitemplates/**'
+      - 'ignore/bin/**'
+      - 'ignore/tests/install-lan/**'
+      - 'dot_ssh/**'
+      - 'run_*.tmpl'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: install-lan-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  arch-install:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Install with isolated old and new devices
+        run: bash ignore/tests/install-lan/run.sh
+      - name: Upload test logs (no keyrings or stores)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: install-lan-logs
+          path: ignore/tests/install-lan/artifacts/*.log
+          if-no-files-found: warn
+          retention-days: 7

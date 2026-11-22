@@ -76,3 +76,11 @@ chezmoi secret and forwards a local HTTP request through real Mihomo. No externa
 resources are downloaded. This test is intentionally separate from the default
 suite because it starts listeners and agents and needs all of those dependencies.
 The default suite mocks paru bootstrap and verifies it never runs in check-only mode.
+
+For an actual network-restricted Arch installation including **real paru build and
+installation**, see [install-lan/README.md](install-lan/README.md). The matching
+GitHub Actions workflow uses old/new device containers and cuts off the temporary
+LAN proxy after fetching the permanent upstream address from an encrypted store's
+subscription link. It is separate from `test.sh` because it downloads/installs
+actual packages in disposable containers and needs Docker, network access and
+substantial build time.

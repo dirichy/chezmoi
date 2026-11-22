@@ -218,6 +218,7 @@ for list in "$desktop_list" "$headless_list" "$skip_list"; do
 done
 for list in "$desktop_list" "$headless_list" "$skip_list"; do
     assert_ignored "$list" 'install.sh' 'standalone installer stays out of the destination'
+    assert_ignored "$list" '.github/workflows/install-lan.yml' 'CI workflows stay out of the destination'
     for path in install-core-linux.sh install-core-macos.sh install-packages-linux.sh install-packages-macos.sh; do
         assert_ignored "$list" "$path" 'apply does not install packages'
     done

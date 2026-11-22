@@ -235,6 +235,8 @@ command = "{{ joinPath .chezmoi.sourceDir "ignore" "bin" "gopass-safe" }}"
 
 脚本只接受单个 ASCII-armored 公钥并核对主密钥完整指纹，再导入公钥、调用 gopass 自带的 recipient 授权和重加密。保留 gopass 的确认与信任检查；不会自动设置 ultimate trust。`--nosync` 禁止自动拉取或推送，但 gopass 自身可能创建本地提交。失败时会报告公钥已导入、授权未完成，可检查后重跑；不自动回退已完成操作。审核并手动同步 store 后，新设备用自己的私钥读取它，无需复制其他设备的私钥。本仓库不再使用 git-crypt。
 
+安装链路另有 [双设备 GitHub Actions 测试](ignore/tests/install-lan/README.md)：新设备没有直连外网，真实编译安装 paru，依次完成 SSH/GPG 授权，再从假密码库的订阅链接取得长期代理，关闭临时代理后验证下载、装包和 apply。可在 Actions 手动运行，也可本机用 Docker 执行测试入口。
+
 ## Dependencies
 
 `install.sh` 只做一次性引导，不承载日常功能。它安装 chezmoi、初始化仓库、调用公共依赖安装能力，再执行普通 apply。以后新增能力放进对应配置、公共包清单或 `run_*`，不要求已有机器重跑入口。

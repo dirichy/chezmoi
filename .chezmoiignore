@@ -5,6 +5,7 @@
 {{- $configShareItems = default "" .configShare.items -}}
 {{- end -}}
 # Repository-only files.
+.github
 *.md
 *.log
 ignore
