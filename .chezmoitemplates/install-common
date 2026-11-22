@@ -2,9 +2,9 @@
 # Shared installation flow; keep compatible with the Bash 3.2 shipped by macOS.
 set -euo pipefail
 
-INSTALL_PHASE={{ .phase | quote }}
 INSTALL_PROFILE="${INSTALL_PROFILE-{{ .config.install.profile }}}"
 INSTALL_MODULES="${INSTALL_MODULES:-{{ .config.install.modules }}}"
+INSTALL_CHECK_ONLY={{ if and (hasKey . "checkOnly") .checkOnly }}1{{ else }}0{{ end }}
 FAILURES=()
 FAILURE_COUNT=0
 
@@ -22,6 +22,10 @@ install_items() {
     fi
     package="$PARSED_PACKAGE"
     missing=$((missing + 1))
+    if [[ "$INSTALL_CHECK_ONLY" == 1 ]]; then
+      record_failure "[$module $kind] $package"
+      continue
+    fi
     printf 'Installing %s: %s\n' "$kind" "$package"
     if ! install_one_package "$module" "$kind" "$package"; then
       record_failure "[$module $kind] $package"
@@ -51,9 +55,6 @@ run_modules() {
       printf 'Unknown module: %s\n' "$module" >&2
       exit 2
     fi
-    if [[ "$INSTALL_PHASE" == before && "$module" != core ]] || [[ "$INSTALL_PHASE" == after && "$module" == core ]]; then
-      continue
-    fi
     "module_$module"
   done
 }
@@ -66,9 +67,7 @@ if [[ "$INSTALL_PROFILE" == skip ]]; then
 fi
 
 prepare_installer
-if [[ "$INSTALL_PHASE" == before ]]; then
-  install_template_dependencies
-fi
+install_template_dependencies
 
 if [[ -n "$INSTALL_MODULES" ]]; then
   # Split only on commas and whitespace; never expand glob patterns or evaluate shell code.

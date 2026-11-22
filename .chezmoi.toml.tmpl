@@ -157,7 +157,7 @@ enabled = {{ and (eq .chezmoi.os "linux") $isDesktop }}
 profile = {{ ternary "everything" "desktop" $isEverything | quote }}
 
 [data.apps.mihomo]
-enabled = {{ or $isDesktop $isDevbox $isFull $isEverything $isCustomProxy }}
+enabled = {{ ne $profile "skip" }}
 profile = {{ ternary "gui" "headless" $isDesktop | quote }}
 
 [data.apps.sunshine]

@@ -1,17 +1,11 @@
+{{- if and (ne .chezmoi.command "diff") (ne (env "DOTFILES_SKIP_HOOKS") "1") -}}
 #!/bin/sh
-
 set -eu
 
-if ! command -v git >/dev/null 2>&1; then
-	printf '%s\n' 'chezmoi: git not found; skipping repository hook configuration' >&2
-	exit 0
+source_dir={{ .chezmoi.sourceDir | quote }}
+if command -v git >/dev/null 2>&1 && git -C "$source_dir" rev-parse --git-dir >/dev/null 2>&1; then
+    if [ "$(git -C "$source_dir" config --get core.hooksPath || true)" != .githooks ]; then
+        git -C "$source_dir" config core.hooksPath .githooks || printf 'Warning: failed to configure repository hooks.\n' >&2
+    fi
 fi
-
-if ! git -C "$CHEZMOI_SOURCE_DIR" rev-parse --git-dir >/dev/null 2>&1; then
-	printf '%s\n' 'chezmoi: source directory is not a Git repository; skipping hooks' >&2
-	exit 0
-fi
-
-if ! git -C "$CHEZMOI_SOURCE_DIR" config core.hooksPath .githooks; then
-	printf '%s\n' 'chezmoi: warning: failed to configure core.hooksPath' >&2
-fi
+{{ end -}}

@@ -13,6 +13,15 @@ local source_dir
 source_dir=$(command chezmoi source-path) || return
 
 case $tool in
+    packages)
+        "$source_dir/ignore/bin/dotfiles-packages" "$@"
+        ;;
+    identity)
+        local identity_name identity_email
+        identity_name=$(command chezmoi execute-template '{{ .name }}') || return
+        identity_email=$(command chezmoi execute-template '{{ .email }}') || return
+        "$source_dir/ignore/bin/dotfiles-identity" --name "$identity_name" --email "$identity_email" "$@"
+        ;;
     services)
         "$source_dir/ignore/bin/dotfiles-services" "$@"
         ;;
@@ -20,6 +29,8 @@ case $tool in
         print 'Usage: chezmoi x <tool> [arguments]'
         print ''
         print 'Tools:'
+        print '  packages    Install missing dependencies (--check to inspect only)'
+        print '  identity    Prepare device keys and join the existing password store'
         print '  services    Check and reconcile managed user services'
         ;;
     *)

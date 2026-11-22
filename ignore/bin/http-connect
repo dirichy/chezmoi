@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+"""SSH ProxyCommand using the install process's temporary HTTP(S) proxy."""
+
+import base64
+import os
+import select
+import socket
+import ssl
+import sys
+from urllib.parse import unquote, urlsplit
+
+
+def main():
+    host, port = sys.argv[1:]
+    proxy = urlsplit(os.environ["BOOTSTRAP_PROXY"])
+    if proxy.scheme not in ("http", "https") or not proxy.hostname:
+        raise ValueError("Expected an HTTP(S) bootstrap proxy")
+    connection = socket.create_connection((proxy.hostname, proxy.port or (443 if proxy.scheme == "https" else 80)), timeout=30)
+    if proxy.scheme == "https":
+        connection = ssl.create_default_context().wrap_socket(connection, server_hostname=proxy.hostname)
+    target = f"[{host}]:{port}" if ":" in host else f"{host}:{port}"
+    headers = [f"CONNECT {target} HTTP/1.1", f"Host: {target}"]
+    if proxy.username is not None:
+        credentials = f"{unquote(proxy.username)}:{unquote(proxy.password or '')}"
+        headers.append("Proxy-Authorization: Basic " + base64.b64encode(credentials.encode()).decode())
+    connection.sendall(("\r\n".join(headers) + "\r\n\r\n").encode())
+    response = b""
+    while b"\r\n\r\n" not in response:
+        part = connection.recv(4096)
+        if not part or len(response) > 65536:
+            raise OSError("Proxy closed the connection before completing CONNECT")
+        response += part
+    header, remainder = response.split(b"\r\n\r\n", 1)
+    status = header.split(b"\r\n", 1)[0].split()
+    if len(status) < 2 or status[1] != b"200":
+        raise OSError("Proxy CONNECT failed (HTTP " + (status[1].decode(errors="replace") if len(status) > 1 else "unknown") + ")")
+    sys.stdout.buffer.write(remainder)
+    sys.stdout.buffer.flush()
+    connection.settimeout(None)
+    inputs = [connection, sys.stdin.buffer]
+    while True:
+        ready = [connection] if isinstance(connection, ssl.SSLSocket) and connection.pending() else select.select(inputs, [], [])[0]
+        if connection in ready:
+            part = connection.recv(65536)
+            if not part:
+                return
+            sys.stdout.buffer.write(part)
+            sys.stdout.buffer.flush()
+        if sys.stdin.buffer in ready:
+            part = os.read(sys.stdin.fileno(), 65536)
+            if part:
+                connection.sendall(part)
+            else:
+                inputs.remove(sys.stdin.buffer)
+                connection.shutdown(socket.SHUT_WR)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (OSError, ValueError, KeyError) as error:
+        print(f"SSH proxy: {error}", file=sys.stderr)
+        sys.exit(1)

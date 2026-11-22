@@ -50,7 +50,7 @@ enabled = false
 profile = "desktop"
 
 [data.apps.mihomo]
-enabled = false
+enabled = true
 profile = "headless"
 
 [data.apps.sunshine]

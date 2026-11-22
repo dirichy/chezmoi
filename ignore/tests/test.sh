@@ -118,8 +118,8 @@ syntax_checks() {
 
 require_command chezmoi
 require_command python3
+require_command zsh
 if [[ $fixture_os == macos ]]; then
-    require_command zsh
     require_command plutil
 fi
 
@@ -134,7 +134,13 @@ Path(sys.argv[2], '.chezmoiexternal.toml').write_text('')
 PYTHON
 
 python3 "$tests_dir/test-installers.py" "$repo_dir" "$tmp_dir"
-pass 'installers aggregate failures and respect before/after boundaries'
+pass 'manual package installers skip available items and aggregate failures'
+
+python3 "$tests_dir/test-install-entry.py" "$repo_dir" "$tmp_dir"
+pass 'standalone installation bootstraps safely and retries missing steps'
+
+python3 "$tests_dir/test-maintenance.py" "$repo_dir" "$tmp_dir"
+pass 'apply owns ongoing maintenance without rerunning the installer'
 
 python3 "$tests_dir/test-downloads.py" "$repo_dir" "$tmp_dir"
 pass 'download mirrors, public probes and opt-in scheduling work offline'
@@ -210,6 +216,16 @@ for list in "$desktop_list" "$headless_list" "$skip_list"; do
     assert_managed "$list" '.config/zsh/plugin-manager.zsh' 'Zsh includes the optional plugin downloader'
     assert_ignored "$list" '.config/zsh/.zsh_plugins.txt' 'Zsh excludes the Antidote manifest'
 done
+for list in "$desktop_list" "$headless_list" "$skip_list"; do
+    assert_ignored "$list" 'install.sh' 'standalone installer stays out of the destination'
+    for path in install-core-linux.sh install-core-macos.sh install-packages-linux.sh install-packages-macos.sh; do
+        assert_ignored "$list" "$path" 'apply does not install packages'
+    done
+    for path in configure-chezmoi-git-hooks.sh reconcile-user-services.sh check-dependencies.sh prepare-app-resources.sh; do
+        assert_managed "$list" "$path" 'apply manages routine maintenance'
+    done
+done
+assert_managed "$headless_list" '.config/mihomo/config.yaml' 'headless includes the core proxy configuration'
 pass 'all fixture profiles evaluate .chezmoiignore'
 
 render_target desktop "$tests_dir/fixtures/$fixture_os-desktop.toml" '.config/fcitx5/conf/rime.conf' "$tmp_dir/rime-switch.conf"
@@ -238,17 +254,45 @@ render_target mihomo-and-external "$mihomo_external_fixture" '.config/zsh/.zshen
 render_target mihomo-and-external "$mihomo_external_fixture" '.config/mihomo/config.yaml' "$tmp_dir/mihomo-and-external.yaml"
 render_target external-only "$external_only_fixture" '.config/zsh/.zshenv' "$tmp_dir/external-only.zshenv"
 
-if grep -Fq 'http_proxy=' "$tmp_dir/mihomo-only.zshenv"; then
-    fail 'Mihomo-only setup must not export client proxy variables'
-fi
+# Inspect daily proxy exports in a clean environment.
+assert_proxy_environment() {
+    local rendered=$1 expected=$2 output
+    # shellcheck disable=SC2016 # The child Zsh expands this script.
+    output=$(env -i HOME="$tmp_dir/proxy-home" ZDOTDIR="$tmp_dir/proxy-home/.config/zsh" \
+        PATH="$PATH" TERM=xterm-256color \
+        zsh -dfc '
+            source "$1" || exit
+            for key in http_proxy https_proxy; do
+                if [[ -n $2 ]]; then
+                    [[ ${parameters[$key]-} == *export* && ${(P)key} == "$2" ]] || exit 1
+                else
+                    (( ! ${+parameters[$key]} )) || exit 1
+                fi
+            done
+            for key in all_proxy ALL_PROXY HTTP_PROXY HTTPS_PROXY; do
+                (( ! ${+parameters[$key]} )) || exit 1
+            done
+        ' zsh "$rendered" "$expected" 2>&1) \
+        || fail "client proxy environment: ${rendered##*/} (expected '$expected'): $output"
+}
+mkdir -p "$tmp_dir/proxy-home"
+assert_proxy_environment "$tmp_dir/mihomo-only.zshenv" ''
+assert_proxy_environment "$tmp_dir/mihomo-and-external.zshenv" 'http://10.20.30.40:1080'
+assert_proxy_environment "$tmp_dir/external-only.zshenv" 'http://10.20.30.40:1080'
+# The maintenance Zsh must ignore both existing and partially deployed startup files.
+mkdir -p "$tmp_dir/proxy-home/.config/zsh"
+printf 'exit 91\n' >"$tmp_dir/proxy-home/.zshenv"
+printf 'exit 92\n' >"$tmp_dir/proxy-home/.config/zsh/.zshenv"
+printf 'exit 93\n' >"$tmp_dir/proxy-home/.config/zsh/.zshrc"
+# shellcheck disable=SC2016 # Child Zsh evaluates this script.
+env -i HOME="$tmp_dir/proxy-home" ZDOTDIR="$tmp_dir/proxy-home/.config/zsh" PATH="$PATH" \
+    http_proxy=http://proxy.example:7890 https_proxy=http://proxy.example:7890 \
+    zsh -dfc '[[ $http_proxy == http://proxy.example:7890 && $https_proxy == http://proxy.example:7890 ]]' \
+    || fail 'maintenance Zsh ignores user configuration and inherits proxy settings'
 grep -Fq 'mixed-port: 7890' "$tmp_dir/mihomo-only.yaml" \
     || fail 'Mihomo-only setup keeps the Mihomo listen port'
-grep -Fq 'http_proxy=http://10.20.30.40:1080' "$tmp_dir/mihomo-and-external.zshenv" \
-    || fail 'Mihomo plus external proxy exports the external proxy address'
 grep -Fq 'mixed-port: 7890' "$tmp_dir/mihomo-and-external.yaml" \
     || fail 'external proxy port must not change the Mihomo listen port'
-grep -Fq 'http_proxy=http://10.20.30.40:1080' "$tmp_dir/external-only.zshenv" \
-    || fail 'external proxy works when Mihomo is disabled'
 pass 'Mihomo lifecycle and client proxy routing are independent'
 
 assert_ignored "$desktop_list" '.local/share/fcitx5/rime/lua/exe.lua' 'desktop excludes removed website launcher'
@@ -281,10 +325,6 @@ if [[ $fixture_os == linux ]]; then
     assert_managed "$desktop_list" '.local/share/config-share/surfingkeys/config.js' 'desktop shares Surfingkeys config'
     assert_ignored "$desktop_list" '.local/bin/dotfiles-services' 'repository helpers stay out of the deployed bin directory'
     assert_ignored "$desktop_list" '.hammerspoon/init.lua' 'Linux excludes Hammerspoon'
-    assert_managed "$desktop_list" 'install-core-linux.sh' 'Linux includes core before script'
-    assert_ignored "$desktop_list" 'install-core-macos.sh' 'Linux excludes macOS core script'
-    assert_managed "$desktop_list" 'install-packages-linux.sh' 'Linux includes Linux install script'
-    assert_ignored "$desktop_list" 'install-packages-macos.sh' 'Linux excludes macOS install script'
     assert_ignored "$desktop_list" '.config/fdu-connect/config.toml' 'disabled fdu-connect is excluded'
 
     assert_managed "$headless_list" '.config/nvim/init.lua' 'headless retains Neovim'
@@ -308,8 +348,6 @@ else
     for path in .hammerspoon/init.lua .config/karabiner/karabiner.json .config/yabai/yabairc .config/aerospace/aerospace.toml Library/LaunchAgents/mihomo.plist Library/LaunchAgents/config-share.plist Library/LaunchAgents/fdu-connect.plist .config/fdu-connect/config.toml .local/bin/fcitx5-remote; do
         assert_managed "$desktop_list" "$path" "macOS desktop includes $path"
     done
-    assert_managed "$desktop_list" 'install-core-macos.sh' 'macOS includes core before script'
-    assert_managed "$desktop_list" 'install-packages-macos.sh' 'macOS includes macOS install script'
     for profile in desktop headless skip; do
         list="$tmp_dir/managed-$profile.txt"
         for path in .config/hypr/hyprland.lua .config/waybar/config.jsonc .config/systemd/user/later.path .local/bin/later .config/sunshine/sunshine.conf install-packages-linux.sh install-core-linux.sh; do
@@ -361,8 +399,6 @@ for profile in ('desktop', 'headless', 'skip'):
         assert data['Label'] == path.stem, path
         assert data['ProgramArguments'], path
         assert data['RunAtLoad'] is True, path
-    for name in ('install-core-macos.sh', 'install-packages-macos.sh'):
-        subprocess.run(['bash', '-n', str(rendered / name)], check=True)
 rendered = root / 'rendered-desktop'
 with (rendered / '.config/karabiner/karabiner.json').open() as stream:
     assert json.load(stream)['profiles']
@@ -372,7 +408,7 @@ assert args[args.index('--allowed-cidr') + 1] == '192.168.50.0/24'
 assert args[args.index('--port') + 1] == '18080'
 assert args[0].endswith('/.local/libexec/config-share-server')
 PYTHON
-    pass 'macOS plists, Karabiner JSON and rendered install scripts validate'
+    pass 'macOS plists and Karabiner JSON validate'
 fi
 
 service_calls="$tmp_dir/dotfiles-service-calls"

@@ -9,6 +9,7 @@
 *.log
 ignore
 tools
+install.sh
 .config/fcitx5/conf/cached_layouts
 .local/share/fcitx5/rime/tiger-simp-stats.tsv
 
@@ -77,8 +78,6 @@ Library/LaunchAgents/fdu-connect.plist
 # macOS-only files.
 {{ if ne .chezmoi.os "darwin" }}
 .local/bin/fcitx5-remote
-install-packages-macos.sh
-install-core-macos.sh
 .gnupg/gpg-agent.conf
 .hammerspoon
 .config/karabiner
@@ -101,8 +100,6 @@ Library
 
 # Linux-only files.
 {{ if ne .chezmoi.os "linux" }}
-install-packages-linux.sh
-install-core-linux.sh
 .cache/rsync_to_root
 .config/hypr
 .config/mako

@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+# Manual device enrollment. Private keys are generated locally, never imported.
+# Compatible with macOS Bash 3.2.
+set -euo pipefail
+umask 077
+
+name=""
+email=""
+repo=${DOTFILES_GOPASS_REPO:-}
+prepare_only=0
+yes=0
+fingerprint=""
+while (($#)); do
+    case "$1" in
+        --prepare) prepare_only=1; shift ;;
+        --yes) yes=1; shift ;;
+        --name|--email|--store|--gpg-key)
+            (($# >= 2)) || exit 2
+            case "$1" in
+                --name) name=$2 ;;
+                --email) email=$2 ;;
+                --store) repo=$2 ;;
+                --gpg-key) fingerprint=$2 ;;
+            esac
+            shift 2 ;;
+        --help|-h)
+            printf 'Usage: %s --name NAME --email EMAIL [--store GIT_URL] [--gpg-key FINGERPRINT] [--prepare] [--yes]\n' "$0"
+            printf 'Generate/reuse local device keys, export public keys, then clone/check the root gopass store.\n'
+            printf '--prepare stops after exporting public keys; --yes never bypasses decryption checks.\n'
+            exit 0 ;;
+        *) printf 'Unknown identity option: %s\n' "$1" >&2; exit 2 ;;
+    esac
+done
+for tool in ssh-keygen ssh git gpg gopass python3; do
+    command -v "$tool" >/dev/null 2>&1 || { printf 'Missing identity dependency: %s\n' "$tool" >&2; exit 1; }
+done
+[[ -n $name && -n $email ]] || { printf 'Name and email are required.\n' >&2; exit 2; }
+state=${XDG_DATA_HOME:-$HOME/.local/share}/dotfiles
+store=${XDG_DATA_HOME:-$HOME/.local/share}/gopass/stores/root
+export GNUPGHOME=${GNUPGHOME:-$HOME/.gnupg}
+mkdir -p "$HOME/.ssh" "$GNUPGHOME" "$state"
+chmod 700 "$HOME/.ssh" "$GNUPGHOME" "$state"
+ssh_key=$HOME/.ssh/id_ed25519
+if [[ ! -f $ssh_key && -f $HOME/.ssh/id_rsa ]]; then ssh_key=$HOME/.ssh/id_rsa; fi
+if [[ ! -f $ssh_key ]]; then
+    printf 'Creating a device SSH key; choose its passphrase when prompted.\n'
+    ssh-keygen -t ed25519 -f "$ssh_key" -C "$email"
+fi
+if [[ ! -f $ssh_key.pub ]]; then ssh-keygen -y -f "$ssh_key" >"$ssh_key.pub"; fi
+
+if [[ -z $fingerprint && -f $state/gpg-fingerprint ]]; then fingerprint=$(cat "$state/gpg-fingerprint"); fi
+if [[ -z $fingerprint ]]; then
+    keys=$(gpg --with-colons --list-secret-keys -- "$email" 2>/dev/null || true)
+    count=$(printf '%s\n' "$keys" | awk -F: '$1=="sec" {n++} END {print n+0}')
+    if ((count > 1)); then
+        printf 'Multiple GPG keys match this email; select one with --gpg-key FULL_FINGERPRINT.\n' >&2
+        exit 1
+    fi
+    if ((count == 0)); then
+        printf 'Creating a device GPG key with an encryption subkey; choose its passphrase in pinentry.\n'
+        gpg --batch --quick-generate-key "$name <$email>" future-default default 2y
+        keys=$(gpg --with-colons --list-secret-keys -- "$email")
+    fi
+    fingerprint=$(printf '%s\n' "$keys" | awk -F: '$1=="sec" {primary=1; next} primary && $1=="fpr" {print $10; exit}')
+fi
+[[ $fingerprint =~ ^([0-9A-Fa-f]{40}|[0-9A-Fa-f]{64})$ ]] || { printf 'Expected a full GPG fingerprint.\n' >&2; exit 2; }
+gpg --list-secret-keys -- "$fingerprint" >/dev/null 2>&1
+gpg --armor --export -- "$fingerprint" >"$state/device-public.asc"
+printf '%s\n' "$fingerprint" >"$state/gpg-fingerprint"
+printf 'SSH public key: %s\nGPG public key: %s\nGPG fingerprint: %s\n' "$ssh_key.pub" "$state/device-public.asc" "$fingerprint"
+printf 'Add the SSH public key to GitHub. On an authorized device, verify the fingerprint and run:\n'
+printf '  ignore/bin/add-device device-public.asc %s\nThen synchronize the password store from that authorized device.\n' "$fingerprint"
+if [[ $prepare_only == 1 ]]; then exit 0; fi
+
+if [[ -z $repo ]] && git -C "$store" rev-parse --git-dir >/dev/null 2>&1; then
+    repo=$(git -C "$store" remote get-url origin)
+fi
+if [[ -z $repo && -t 0 ]]; then read -r -p 'Existing gopass store Git URL: ' repo; fi
+[[ -n $repo ]] || { printf 'Pass --store GIT_URL to clone the existing password store.\n' >&2; exit 1; }
+# Shell-quote paths for Git's SSH subprocess; proxy addresses stay in the environment.
+printf -v ssh_command 'ssh -i %q -o IdentitiesOnly=yes -o UserKnownHostsFile=%q' "$ssh_key" "$HOME/.ssh/known_hosts"
+if [[ -f $HOME/.ssh/config ]]; then
+    printf -v ssh_config ' -F %q' "$HOME/.ssh/config"
+    ssh_command+="$ssh_config"
+fi
+if [[ -n ${BOOTSTRAP_PROXY:-} ]]; then
+    helper=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)/http-connect
+    printf -v proxy_command 'python3 %q %%h %%p' "$helper"
+    printf -v proxy_option '%q' "ProxyCommand=$proxy_command"
+    ssh_command+=" -o $proxy_option"
+fi
+export GIT_SSH_COMMAND="$ssh_command"
+
+wait_for_authorization() {
+    [[ $yes == 0 && -t 0 ]] || return 1
+    read -r -p 'Complete the public-key authorization above, sync the old device, then press Enter (Ctrl-C to continue later): ' _answer
+}
+
+if ! git -C "$store" rev-parse --git-dir >/dev/null 2>&1; then
+    if ! git ls-remote "$repo" >/dev/null; then
+        printf 'SSH authentication or repository access failed. Check the GitHub public key and host fingerprint.\n' >&2
+        wait_for_authorization || exit 1
+        git ls-remote "$repo" >/dev/null
+    fi
+    # gopass clone can stage its own public key before authorization.
+    # Clone Git directly into gopass's standard root-store location.
+    mkdir -p "$(dirname -- "$store")"
+    git clone -- "$repo" "$store"
+else
+    actual=$(git -C "$store" remote get-url origin)
+    [[ $actual == "$repo" ]] || { printf 'Existing store has another origin; refusing to replace it.\n' >&2; exit 1; }
+fi
+
+decrypt_store() {
+    local encrypted
+    encrypted=$(find "$store" -type f -name '*.gpg' -print -quit)
+    [[ -n $encrypted ]] || { printf 'No encrypted entry found; store decryption cannot yet be verified.\n' >&2; return 1; }
+    # gopass show may stage the device public key even when decryption fails.
+    # Check with GPG directly so an unapproved device leaves the checkout clean.
+    gpg --decrypt -- "$encrypted" >/dev/null
+}
+if ! decrypt_store; then
+    printf 'This device cannot decrypt the store yet; pull the authorized device\x27s update.\n' >&2
+    git -C "$store" pull --ff-only
+    if ! decrypt_store; then
+        wait_for_authorization || exit 1
+        git -C "$store" pull --ff-only
+        decrypt_store
+    fi
+fi
+printf 'Device enrollment complete: SSH repository access and gopass decryption verified.\n'

@@ -7,10 +7,34 @@ prepare_installer() {
   SUDO_KEEPALIVE_PID=""
   SUDO_SESSION_STARTED=0
   INSTALL_COMMAND_WORDS=()
+  PARU_BUILD_DIR=""
 
   if [[ -n "$INSTALL_COMMAND" ]]; then
     read -r -a INSTALL_COMMAND_WORDS <<<"$INSTALL_COMMAND"
   fi
+  if [[ ${INSTALL_COMMAND_WORDS[0]:-} == paru ]] && ! command -v paru >/dev/null 2>&1; then
+    if [[ "$INSTALL_CHECK_ONLY" == 1 ]]; then
+      record_failure 'package manager: paru'
+    else
+      bootstrap_paru
+    fi
+  fi
+}
+
+bootstrap_paru() {
+  if ! is_admin_machine || [[ $EUID == 0 ]]; then
+    printf 'Installing paru requires a normal user with sudo privileges; do not build AUR packages as root.\n' >&2
+    return 1
+  fi
+  command -v sudo >/dev/null 2>&1 || { printf 'Install sudo before bootstrapping paru.\n' >&2; return 1; }
+  printf '\n==> Bootstrap paru (base-devel, Git and Rust, then AUR build)\n'
+  run_with_sudo pacman -S --needed --noconfirm base-devel git rust
+  local build_cache="${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles"
+  mkdir -p "$build_cache"
+  PARU_BUILD_DIR=$(mktemp -d "$build_cache/paru.XXXXXX")
+  git clone --depth=1 https://aur.archlinux.org/paru.git "$PARU_BUILD_DIR/paru"
+  (cd "$PARU_BUILD_DIR/paru" && makepkg -si --needed --noconfirm)
+  command -v paru >/dev/null 2>&1 || { printf 'paru build did not install a usable command.\n' >&2; return 1; }
 }
 
 is_admin_machine() {
@@ -46,7 +70,19 @@ install_one_package() {
     printf 'Not an admin user; refusing sudo install command for [%s]: %s\n' "$module" "$package" >&2
     return 1
   fi
-  "${INSTALL_COMMAND_WORDS[@]}" "$package"
+  if [[ "${INSTALL_COMMAND_WORDS[0]}" == sudo ]]; then
+    run_with_sudo "${INSTALL_COMMAND_WORDS[@]:1}" "$package"
+  else
+    "${INSTALL_COMMAND_WORDS[@]}" "$package"
+  fi
+}
+
+run_with_sudo() {
+  if [[ -n ${BOOTSTRAP_PROXY:-} ]]; then
+    sudo --preserve-env=http_proxy,https_proxy,all_proxy,HTTP_PROXY,HTTPS_PROXY,ALL_PROXY,no_proxy,NO_PROXY "$@"
+  else
+    sudo "$@"
+  fi
 }
 
 package_available() {
@@ -126,6 +162,7 @@ install_packages() {
 }
 
 enable_system_services() {
+  [[ "$INSTALL_CHECK_ONLY" == 1 ]] && return
   [[ "$SKIP_SERVICES" == 1 ]] && return
   if ! is_admin_machine; then
     printf 'Warning: not an admin user; skipping system services: %s\n' "$*" >&2
@@ -141,12 +178,14 @@ enable_system_services() {
 }
 
 enable_user_services() {
+  [[ "$INSTALL_CHECK_ONLY" == 1 ]] && return
   [[ "$SKIP_SERVICES" == 1 ]] && return
   command -v systemctl >/dev/null 2>&1 || return 0
   systemctl --user enable --now "$@" || record_failure "user services: $*"
 }
 
 install_luarocks() {
+  [[ "$INSTALL_CHECK_ONLY" == 1 ]] && return
   [[ "$SKIP_LUAROCKS" == 1 ]] && return
 
   printf '\n==> [luarocks]\n'
@@ -165,20 +204,53 @@ install_luarocks() {
     printf 'Warning: sudo is unavailable; please install luarocks packages manually: luasocket luv\n' >&2
     return
   }
-  sudo luarocks --lua-version=5.1 install luasocket || record_failure "luarock: luasocket"
-  sudo luarocks --lua-version=5.1 install luv || record_failure "luarock: luv"
+  run_with_sudo luarocks --lua-version=5.1 install luasocket || record_failure "luarock: luasocket"
+  run_with_sudo luarocks --lua-version=5.1 install luv || record_failure "luarock: luv"
 }
 
 module_core() {
   install_packages core \
-    chezmoi:chezmoi git:git gnupg:gpg zsh:zsh tmux:tmux gopass:gopass msmtp:msmtp curl:curl python:python3
+    chezmoi:chezmoi git:git openssh:ssh gnupg:gpg zsh:zsh tmux:tmux gopass:gopass curl:curl python:python3 mihomo:mihomo
 }
 
 module_shell() {
   install_packages shell \
     neovim:nvim vim:vim yazi:yazi lazygit:lazygit bottom:btm duf:duf dust:dust bashmount:bashmount uv:uv \
     github-cli:gh autossh:autossh gcc:cc make:make tree-sitter-cli:tree-sitter \
-    ripgrep:rg fd:fd jq:jq fzf:fzf zoxide:zoxide thefuck:thefuck lsd:lsd tldr:tldr
+    ripgrep:rg fd:fd jq:jq fzf:fzf zoxide:zoxide thefuck:thefuck lsd:lsd tldr:tldr \
+    tree:tree bat:bat wget:wget 7zip:7z zip:zip unzip:unzip zstd:zstd \
+    msmtp:msmtp wakeonlan:wakeonlan bypy:bypy aria2:aria2c
+
+  # External commands used by Neovim formatters and linters.
+  install_packages shell \
+    nodejs:node npm:npm stylua:stylua python-isort:isort python-black:black rust:rustfmt \
+    prettierd:prettierd shfmt:shfmt clang shellcheck:shellcheck hadolint-bin:hadolint \
+    luacheck:luacheck markdownlint-cli:markdownlint python-ruff:ruff yamllint:yamllint tex-fmt:tex-fmt
+
+  # Default Neovim language servers; clang above also provides clangd.
+  install_packages shell \
+    texlab:texlab lua-language-server:lua-language-server pyright:pyright \
+    vscode-json-languageserver:vscode-json-language-server marksman:marksman \
+    dockerfile-language-server:docker-langserver bash-language-server:bash-language-server \
+    ltex-ls-plus-bin:ltex-ls-plus
+
+  # Compose's language server is published through npm; keep the global install user-owned.
+  if ! command -v docker-compose-langserver >/dev/null 2>&1; then
+    printf '\n==> [shell npm] @microsoft/compose-language-service\n'
+    if [[ "$INSTALL_CHECK_ONLY" == 1 ]]; then
+      record_failure '[shell npm] @microsoft/compose-language-service'
+    elif command -v npm >/dev/null 2>&1; then
+      npm install --global --prefix "$HOME/.local" @microsoft/compose-language-service \
+        || record_failure '[shell npm] @microsoft/compose-language-service'
+    else
+      record_failure '[shell npm] npm unavailable: @microsoft/compose-language-service'
+    fi
+  fi
+
+  # Yazi previewers, prompt, compression and recycle-bin plugins; ImageMagick also serves Neovim.
+  install_packages shell \
+    starship:starship mediainfo:mediainfo duckdb:duckdb ouch:ouch pandoc-cli:pandoc \
+    ffmpeg:ffmpeg imagemagick:magick poppler:pdftoppm resvg:resvg trash-cli:trash-list
 }
 
 module_system() {
@@ -189,7 +261,7 @@ module_system() {
   fi
 
   install_packages system \
-    keyd:keyd networkmanager:nmcli udisken:udisken openssh:ssh
+    keyd:keyd networkmanager:nmcli udisken:udisken openssh:ssh gvfs udisks2:udisksctl
 
   enable_system_services keyd NetworkManager tailscaled sshd
   enable_user_services udisken
@@ -230,7 +302,7 @@ module_apps() {
 module_dev() {
   install_packages dev \
     go:go ruby:ruby php:php julia:julia cargo:cargo lua:lua lua51 luajit:luajit luarocks:luarocks lua-language-server:lua-language-server \
-    tree-sitter-cli:tree-sitter pkgconf:pkgconf ffmpeg:ffmpeg imagemagick:magick
+    tree-sitter-cli:tree-sitter pkgconf:pkgconf
 
   install_luarocks
 }

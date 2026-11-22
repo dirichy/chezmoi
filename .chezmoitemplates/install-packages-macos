@@ -1,5 +1,18 @@
 # Homebrew installation backend and macOS module/profile definitions.
 prepare_installer() {
+  if [[ "$INSTALL_CHECK_ONLY" == 1 ]]; then
+    export HOMEBREW_NO_AUTO_UPDATE=1
+    if command -v brew >/dev/null 2>&1; then
+      BREW=$(command -v brew)
+    elif [[ -x /opt/homebrew/bin/brew ]]; then
+      BREW=/opt/homebrew/bin/brew
+    elif [[ -x /usr/local/bin/brew ]]; then
+      BREW=/usr/local/bin/brew
+    else
+      BREW=""
+    fi
+    return 0
+  fi
   if ! command -v xcode-select >/dev/null 2>&1 || ! xcode-select -p >/dev/null 2>&1; then
     printf 'Xcode Command Line Tools are required. Install them first, then run this script again.\n' >&2
     exit 1
@@ -39,6 +52,7 @@ prepare_installer() {
 }
 
 formula_installed() {
+  [[ -n "$BREW" ]] || return 1
   local package="$1"
   local base
   local candidate
@@ -61,6 +75,7 @@ formula_installed() {
 }
 
 cask_installed() {
+  [[ -n "$BREW" ]] || return 1
   $BREW list --cask --versions "$1" >/dev/null 2>&1
 }
 
@@ -95,14 +110,41 @@ install_casks() {
 }
 
 module_core() {
-  install_formulae core chezmoi openssh python git gopass gnupg
+  install_formulae core chezmoi openssh python git gopass gnupg curl mihomo pinentry-mac
 }
 
 module_shell() {
   install_formulae shell \
     git neovim jq lazygit autossh curl fd ffmpeg fzf gcc gh lsd lua luajit \
-    perl stow texlive tex-fmt tldr tmux tree-sitter wget xz yazi yarn npm \
-    zoxide mpv pinentry-mac
+    perl stow texlive tex-fmt tldr tmux tree-sitter-cli wget xz yazi yarn npm \
+    zoxide mpv \
+    ripgrep tree bat bottom uv duf dust sevenzip zip unzip zstd \
+    msmtp thefuck wakeonlan aria2
+
+  if ! command -v bypy >/dev/null 2>&1; then
+    printf '\n==> [shell uv] bypy\n'
+    if [[ "$INSTALL_CHECK_ONLY" == 1 ]]; then
+      record_failure '[shell uv] bypy'
+    elif command -v uv >/dev/null 2>&1; then
+      UV_TOOL_BIN_DIR="$HOME/.local/bin" uv tool install bypy || record_failure '[shell uv] bypy'
+    else
+      record_failure '[shell uv] uv unavailable: bypy'
+    fi
+  fi
+
+  # External commands used by Neovim formatters, linters and image plugins.
+  install_formulae shell \
+    stylua isort black rust prettierd shfmt clang-format \
+    shellcheck hadolint luacheck markdownlint-cli ruff yamllint pngpaste
+
+  # Default Neovim language servers; clangd is supplied by the user's toolchain in PATH.
+  install_formulae shell \
+    texlab lua-language-server pyright vscode-langservers-extracted marksman \
+    dockerfile-language-server docker-compose-langserver bash-language-server ltex-ls-plus
+
+  # Yazi previewers, prompt, compression and recycle-bin plugins.
+  install_formulae shell \
+    starship mediainfo duckdb ouch pandoc imagemagick poppler resvg trash-cli
 }
 
 module_font_and_im() {
@@ -114,13 +156,14 @@ module_proxy() {
 }
 
 module_desktop() {
+  install_formulae desktop asmvik/formulae/yabai
   install_casks desktop \
     hammerspoon karabiner-elements kitty easydict keycastr mac-mouse-fix \
     maccy sioyek tailscale-app rar platypus
 }
 
 module_dev() {
-  install_formulae dev yarn npm tree-sitter
+  install_formulae dev yarn npm tree-sitter-cli
 }
 
 module_extra() {

@@ -3,7 +3,16 @@ hint=$1
 default=$2
 result=""
 if command -v gopass &> /dev/null; then
-    result=$(gopass show --password --nofuzzysearch --nosync "chezmoi/$hint" 2>/dev/null)
+    result=$(
+        # Rendering is read-only, including before a new device is authorized.
+        # gopass otherwise exports/stages public keys during a failed read.
+        config_count=${GOPASS_CONFIG_COUNT:-0}
+        [[ $config_count =~ ^[0-9]+$ ]] || exit 1
+        export "GOPASS_CONFIG_KEY_$config_count=core.exportkeys"
+        export "GOPASS_CONFIG_VALUE_$config_count=false"
+        export GOPASS_CONFIG_COUNT=$((config_count + 1))
+        gopass show --password --nofuzzysearch --nosync "chezmoi/$hint" 2>/dev/null
+    )
 fi
 if [ -z "$result" ]; then
     printf '%s' "$default"

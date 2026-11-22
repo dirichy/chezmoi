@@ -1,4 +1,4 @@
-# Collect failures until this phase finishes. Optional installation must not abort apply.
+# The manual installer collects all package failures before continuing other steps.
 record_failure() {
   FAILURES+=("$1")
   FAILURE_COUNT=$((FAILURE_COUNT + 1))
@@ -10,16 +10,22 @@ finish_install() {
   if [[ -n "${SUDO_KEEPALIVE_PID:-}" ]]; then
     kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
   fi
+  if [[ -n "${PARU_BUILD_DIR:-}" ]]; then
+    rm -rf -- "$PARU_BUILD_DIR"
+  fi
   if ((result != 0)); then
     record_failure "Installer stopped unexpectedly (exit $result); see diagnostics above."
   fi
   if ((FAILURE_COUNT > 0)); then
-    printf '\nInstallation failures (%s):\n' "$INSTALL_PHASE" >&2
-    printf '  - %s\n' "${FAILURES[@]}" >&2
-    if [[ "$INSTALL_PHASE" == before ]]; then
-      exit 1
+    if [[ "$INSTALL_CHECK_ONLY" == 1 ]]; then
+      printf '\nWarning: missing dependencies:\n' >&2
+      printf '  - %s\n' "${FAILURES[@]}" >&2
+      printf 'Run chezmoi x packages (or ignore/bin/dotfiles-packages) to install them; no need to rerun install.sh.\n' >&2
+      exit 0
     fi
-    printf 'Optional installation failed; continuing apply. Please install missing packages manually.\n' >&2
+    printf '\nPackage installation failures:\n' >&2
+    printf '  - %s\n' "${FAILURES[@]}" >&2
+    exit 1
   fi
   exit 0
 }

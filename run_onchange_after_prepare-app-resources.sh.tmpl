@@ -1,0 +1,81 @@
+{{- if and (ne .chezmoi.command "diff") (ne (env "DOTFILES_SKIP_APP_INIT") "1") -}}
+#!/usr/bin/env bash
+# Resource setup belongs to apply, not to the one-time bootstrap entry.
+# shellcheck disable=SC2329 # Preparation functions are invoked through prepare().
+set -euo pipefail
+# Zsh repositories: {{ includeTemplate "zsh-plugin-repos" . | sha256sum }}
+# Zsh downloader: {{ include "dot_config/zsh/plugin-manager.zsh" | sha256sum }}
+# Neovim bootstrap: {{ include "dot_config/nvim/lua/lazy_nvim.lua" | sha256sum }}
+{{ range glob (joinPath .chezmoi.sourceDir "dot_config/nvim/lua/plugins/*.lua*") -}}
+# Neovim plugin: {{ include . | sha256sum }}
+{{ end -}}
+# Yazi packages: {{ include "dot_config/yazi/package.toml" | sha256sum }}
+# Mihomo config: {{ include "dot_config/mihomo/config.yaml.tmpl" | sha256sum }}
+
+destination={{ .chezmoi.destDir | quote }}
+prefer_chezmoi={{ includeTemplate "preferChezmoiDownloads" . | quote }}
+cli_enabled={{ .features.cli | quote }}
+neovim_enabled={{ .apps.neovim.enabled | quote }}
+mihomo_enabled={{ .apps.mihomo.enabled | quote }}
+export HOME="$destination" XDG_CONFIG_HOME="$destination/.config" XDG_CACHE_HOME="$destination/.cache"
+export XDG_DATA_HOME="$destination/.local/share" XDG_STATE_HOME="$destination/.local/state"
+export PATH="$destination/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+failed=0
+
+prepare_zsh() {
+    [[ $prefer_chezmoi == false && -f $destination/.config/zsh/plugins.zsh ]] || return 0
+    command -v zsh >/dev/null 2>&1 || return 1
+    # Skip user startup files; inherit proxy variables from the calling process.
+    # Source only the files needed by the plugin downloader.
+    # shellcheck disable=SC2016 # The child Zsh evaluates this script.
+    ZDOTDIR="$destination/.config/zsh" zsh -dfc '
+        source "$ZDOTDIR/plugin-backend.zsh" || exit
+        _zsh_plugin_repos=("${(@f)$(<"$ZDOTDIR/plugin-repos.txt")}")
+        typeset -A _zsh_plugin_dirs
+        for repo in "${_zsh_plugin_repos[@]}"; do
+            _zsh_plugin_dirs[${repo:t}]="$ZDOTDIR/.antidote-plugins/$repo"
+        done
+        mkdir -p "$ZDOTDIR/.cache" || exit
+        source "$ZDOTDIR/plugin-manager.zsh" || exit
+        for repo in "${_zsh_plugin_repos[@]}"; do
+            git -C "${_zsh_plugin_dirs[${repo:t}]}" rev-parse --verify HEAD >/dev/null || exit
+        done
+    '
+}
+
+prepare_neovim() {
+    [[ $neovim_enabled == true ]] || return 0
+    command -v nvim >/dev/null 2>&1 || return 1
+    nvim --headless '+Lazy! install' '+qa'
+}
+
+prepare_yazi() {
+    [[ -f $destination/.config/yazi/package.toml ]] || return 0
+    command -v ya >/dev/null 2>&1 || return 1
+    ya pkg install
+}
+
+prepare_mihomo() {
+    [[ $mihomo_enabled == true ]] || return 0
+    command -v mihomo >/dev/null 2>&1 || return 1
+    mihomo -t -d "$destination/.config/mihomo"
+}
+
+prepare() {
+    local label=$1
+    shift
+    if ! "$@"; then
+        printf 'Warning: %s resource initialization failed; retry with chezmoi apply --keep-going.\n' "$label" >&2
+        failed=1
+    fi
+}
+
+if [[ $cli_enabled == true ]]; then
+    prepare Zsh prepare_zsh
+    prepare Yazi prepare_yazi
+fi
+prepare Neovim prepare_neovim
+prepare Mihomo prepare_mihomo
+# Failed run_onchange scripts are retried by the next apply. --keep-going permits later maintenance.
+exit "$failed"
+{{ end -}}

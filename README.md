@@ -11,22 +11,38 @@
 
 ## Quick Start
 
-1. 备份已有配置，安装 Git、curl 和 chezmoi。Arch 先安装 paru；macOS 先运行 `xcode-select --install` 并完成弹窗安装。
-2. 初始化仓库（将 `<repo>` 替换为本仓库 Git 地址），按提示选择 profile、填写本机数据；不用代理则将代理地址留空，不用 VPN / 配置共享则关闭。
+1. 备份已有配置。准备 Bash 和 curl 或 wget；Arch 使用普通管理员用户运行并准备 sudo。缺失 Git 时入口先用 pacman 安装；默认包安装命令为 paru，缺失时会自动准备 base-devel/Git/Rust 并以普通用户构建。也可在 init 时选择其他安装命令。macOS 先运行 `xcode-select --install` 并完成弹窗。
+2. 下载并运行独立安装入口；它在 chezmoi 不存在时安装到 `~/.local/bin`，再初始化仓库。仓库地址可用 `--repo` 指定；已有 checkout 和 init 答案会复用。
 
    ```bash
-   # 未安装 chezmoi 时先执行；安装后若不在 PATH 中，使用 ./bin/chezmoi
-   sh -c "$(curl -fsLS get.chezmoi.io)"
-   chezmoi init <repo>
+   curl -fL https://raw.githubusercontent.com/dirichy/chezmoi/main/install.sh -o /tmp/dotfiles-install.sh
+   bash /tmp/dotfiles-install.sh
+   # 已在仓库中时：
+   ./install.sh
    ```
 
-3. 按需配置 gopass store / 解密私钥，写入 [Secrets](#secrets) 中要使用的条目；检查并修改 source 中自己的 SSH 主机、代理节点、应用路径及硬件快捷键。
-4. 检查并应用配置，输入 sudo 密码，回答服务启停确认；按安装日志补装失败的包。
+   新机器需要局域网代理时，下载入口本身可用 `https_proxy`，入口用 `--proxy` 或 `BOOTSTRAP_PROXY`。将 `<LAN-IP>` 换成可用代理地址：
+
+   ```bash
+   https_proxy='http://<LAN-IP>:7890' curl -fL https://raw.githubusercontent.com/dirichy/chezmoi/main/install.sh -o /tmp/dotfiles-install.sh
+   BOOTSTRAP_PROXY='http://<LAN-IP>:7890' bash /tmp/dotfiles-install.sh
+   ```
+
+3. 按 init 提示选择 profile、模块、软件包安装命令、日常代理和下载模式。临时安装代理不会写入配置；日常代理可以填写本机 Mihomo 的 `127.0.0.1:7890`。按 [Secrets](#secrets) 流程生成本机密钥、由旧设备授权密码库，并核对个人 SSH、代理和硬件设置；缺失 secret 会使用默认值，补齐后需再次 apply。
+4. 安装入口用于新机器的一次性引导：安装核心依赖、准备设备 SSH/GPG 密钥并克隆/验证密码库、补装所选模块依赖，再执行 `chezmoi apply --keep-going`。资源初始化、Git hook 和用户服务检查由 apply 的维护脚本负责；后续能力更新也走 apply，无需重跑安装入口。安装失败会在最后汇总，按提示补装依赖或重试 apply。
+
+   ```bash
+   chezmoi init                  # 之后需要重新生成配置、询问新增选项时
+   ./install.sh --skip-services   # 安装时不操作用户服务
+   ./install.sh --skip-plugins    # 跳过软件 / 插件初始化
+   ./install.sh --help
+   ```
+
+   日常 apply 负责配置、external 和维护；依赖清单变化只检查并警告缺失项，不自动安装软件。建议使用 `--keep-going`，让独立步骤继续执行，最后报告失败：
 
    ```bash
    chezmoi diff
-   chezmoi apply --dry-run
-   chezmoi apply
+   chezmoi apply --keep-going
    ```
 
 5. 按使用的功能完成下列手动设置。
@@ -44,7 +60,7 @@
 | Linux 硬件功能 | 使用手机 idle 探测时配置 `l2ping` 权限，否则调整 `hypridle.conf`；按需配置 DDC / 背光设备权限、GRUB 启动项及 sudo 权限 |
 | macOS 桌面 | 启动 Hammerspoon、Karabiner，授予辅助功能 / 输入监控等所需权限，按需开启登录启动；安装 Alfred 5 或修改 Cmd-Space 绑定 |
 | macOS 输入法 | 安装 `/Library/Input Methods/Fcitx5.app`，在系统设置中启用，准备 Rime 词库并部署 |
-| macOS 窗口管理 | 安装、授权并启动 Yabai 或 AeroSpace；使用当前 wmux 时选择 Yabai，并配置 scripting addition / sudo 权限 |
+| macOS 窗口管理 | `desktop` 模块安装 Yabai；授权并手动启动，配置 scripting addition / sudo 权限。改用 AeroSpace 时另行安装 |
 | macOS 系统代理 | 在网络设置中设置代理，或使用 `toggle_proxy` |
 | 局域网配置共享 | 设置允许客户端 CIDR，开放 TCP 18080，在客户端填写订阅 / 脚本 URL |
 | SSH 隧道 / 通知 | 准备 SSH 密钥和远端认证；按下文启用隧道 / 配置通知服务 |
@@ -57,7 +73,7 @@
 | --- | --- |
 | `machine profile` | 按下表选择；默认 `desktop` |
 | `administrator on this machine` | 是否具备管理员权限；无权限选 `false`，缺失依赖需要自行准备 |
-| `prefer chezmoi downloads...` | 两边都能管理下载时是否优先使用 chezmoi；默认 `true`，目前用于选择 Zsh 插件的下载方式 |
+| `prefer chezmoi downloads...` | 两边都能管理下载时是否优先使用 chezmoi；默认 `true`，目前用于选择 Zsh 插件和 Mihomo Geo 的下载方式 |
 | `GitHub download mirror` | `ghfast`（默认）、`direct` 或 `custom`；自定义镜像填写拼接在原始 URL 前面的 HTTPS 前缀 |
 | `run scheduled download checks...` | 仅 Linux 非 `skip` profile 询问，默认关闭；只在一台常开主机上启用 |
 | `package install command` | Linux 确认包管理命令；留空则只提示手动安装缺失包。macOS 安装脚本固定使用 Homebrew |
@@ -69,7 +85,7 @@
 | `Waybar hostname symbol` | 状态栏显示的主机标识，默认主机名 |
 | `config sharing mode` | `none`（默认）、`all` 或 `custom`；`custom` 再选 `mihomo,surfingkeys` 中要共享的项目 |
 | `allowed client CIDR` | 启用共享时填写；默认 `127.0.0.1/32`，局域网共享需填写实际网段，并自行配置防火墙允许 TCP 18080 |
-| `name` / `email` | 自己的 Git 用户名和邮箱；`name=dirichy` 会额外下载作者的 gopass store，其他用户应填写自己的名字 |
+| `name` / `email` | 自己的 Git 用户名和邮箱；用于 Git 配置和本机设备密钥 |
 | `Your mobile BluetoothMac...` | Linux idle 检测使用的手机蓝牙 MAC；不用此功能可留空，并按下文调整 idle 配置 |
 
 | Profile | 用途 |
@@ -86,16 +102,35 @@
 ### 安装与配置说明
 
 - 初始化答案保存在本机 chezmoi 配置中，可用 `chezmoi edit-config` 检查 `[data]`。直接修改 profile 不会重新推导已有 features/apps；模板默认值不会覆盖 `prompt*Once` 保存的答案。`INSTALL_PROFILE` / `INSTALL_MODULES` 只改变依赖安装，不改变配置文件集合。
-- Linux 包名主要面向 Arch，其他发行版需要核对包名。脚本不会安装 paru；核心安装失败会在 before 阶段汇总报错，可选安装失败只会在 after 阶段汇总警告。macOS 安装脚本固定使用 Homebrew，缺少时自动安装，需具备相应权限。
-- 初始化的代理地址不会提前启动代理；启用后 shell 会使用该地址。缺失 secret 会使用默认值；下载加密 store 后仍需解密私钥。macOS 核心安装包含 gopass 和 GnuPG。在 apply 后补齐 secret 时需再次 apply。
+- Linux 包名主要面向 Arch，其他发行版需要核对包名。默认安装命令为 paru 且缺失时，脚本先用 sudo pacman 安装 base-devel/Git/Rust，再以当前普通用户在 `~/.cache/dotfiles` 中构建安装 paru（不把 Rust 构建放进 tmpfs）；手动安装入口会汇总软件包安装失败并继续其他独立步骤，最后返回失败状态。macOS 安装脚本固定使用 Homebrew，缺少时自动安装，需具备相应权限。
+- 初始化的代理地址不会提前启动代理；启用后 shell 会使用该地址。缺失 secret 会使用默认值；新设备生成自己的私钥，密码库必须由旧设备授权后才能解密。macOS 核心安装包含 gopass 和 GnuPG。在 apply 后补齐 secret 时需再次 apply。
 - 个人 SSH 地址 / 用户名 / 路由器匹配在 `dot_ssh/config.tmpl`，代理节点 / DNS / 路由在 `dot_config/mihomo/config.yaml.tmpl`。Linux 的 GRUB 项、DDC 输入值、OpenRGB profile，以及 macOS 的 Wi-Fi 名称和应用路径需按本机调整。
 - Zsh 路径需在 `/etc/shells` 中才能用 chsh。Zsh 插件默认由 chezmoi external 在 apply 时下载；`downloads.preferChezmoi = false` 时改由 Antidote 在首次启动时下载。Neovim、Yazi 首次启动会自动下载插件。Yazi 安装失败时运行 `ya pkg install`，需要自定义提示符时运行 `p10k configure`。
 - Linux 脚本安装 / 启用 greetd，但不写 `/etc/greetd/config.toml`。Hyprland 配置使用原生 Lua，需使用支持此配置格式的版本。keyd 配置只生成在用户缓存目录，不会自动安装到 `/etc/keyd/`。
 - Linux 手机 idle 检测调用 `sudo l2ping`，需无需交互即可运行；壁纸脚本读取 `~/Pictures/wallpaper`，还需确认 hyprpaper 使用的壁纸存在。远程机器需要退出登录后仍运行 user service 时，另行配置 linger。
-- macOS 安装清单不含 Fcitx5.app、Yabai、AeroSpace 和 Alfred。`fcitx5-remote` 链接依赖上述 app 安装位置；虎码和雾凇词典会随输入法配置跨平台通过 Git external 更新。当前 wmux 的 macOS 窗口操作使用 Yabai，`yabairc` 会调用 `sudo yabai --load-sa`。
+- macOS 的 `desktop` 模块包含 Yabai；Fcitx5.app、AeroSpace 和 Alfred 仍需另行安装。Fcitx5 使用[官方 macOS 安装器](https://fcitx-contrib.github.io/)，目前没有 Homebrew 官方 cask。`fcitx5-remote` 链接依赖上述 app 安装位置；虎码和雾凇词典会随输入法配置跨平台通过 Git external 更新。当前 wmux 的 macOS 窗口操作使用 Yabai，`yabairc` 会调用 `sudo yabai --load-sa`。
 - 服务确认被拒绝或在非交互环境中跳过后，可在新 Zsh 中运行 `chezmoi x services --check` 检查、`chezmoi x services` 补做；其他 shell 直接运行 source 中的 `ignore/bin/dotfiles-services`。Linux 管理 config-share、FDU Connect、later；macOS 管理 config-share、FDU Connect、Mihomo。
-- 服务协调脚本在 `chezmoi diff` 时渲染为空，避免每次显示产生噪声；`chezmoi apply` 时仍会正常检查并按需确认服务启停。
+- 每次 apply 都检查用户服务；需要启停时询问确认，非交互环境只报告差异。也可以手动运行 `chezmoi x services`。
 - 配置共享可能包含订阅凭据，CIDR 应只允许自己的客户端访问。系统代理与 shell 代理变量需要分别配置。
+
+### 基础能力和设备加入
+
+`core` 包含 Git、OpenSSH、GnuPG、gopass、curl、Python 和 Mihomo；Linux 另含 Zsh/tmux，macOS 使用系统 Zsh 并准备 pinentry-mac。Mihomo 配置对所有非 `skip` profile 生成，是否让日常 shell 使用它仍由 `features.proxy` 决定。
+
+首次安装先使用 `--proxy` 提供的局域网代理。SSH Git 连接也会通过临时 HTTP(S) CONNECT 隧道；代理地址不会写入 SSH 配置。Mihomo 配置中的订阅来自密码库，授权和 apply 完成后仍需验证本机代理实际可用，再切换日常代理。
+
+```bash
+./install.sh --store git@github.com:YOUR_ACCOUNT/passwords.git
+# 暂停授权后继续，无需重跑 install.sh：
+chezmoi x identity --store git@github.com:YOUR_ACCOUNT/passwords.git
+chezmoi apply --keep-going
+# 只生成/导出公钥，先去旧设备完成授权：
+chezmoi x identity --prepare
+```
+
+身份准备只生成本机私钥，没有私钥导入选项。已有默认 SSH 密钥、选定的本机 GPG 密钥和密码库会复用；多把 GPG 密钥匹配同一邮箱时，用 `--gpg-key <完整指纹>` 明确选择。公钥和指纹位于 `~/.local/share/dotfiles/device-public.asc`、`gpg-fingerprint`，SSH 公钥位于 `~/.ssh/id_ed25519.pub`（已有 id_rsa 时复用）。为生成的私钥设置口令，不要把私钥复制到旧设备。
+
+在 GitHub 添加 SSH 公钥，在旧设备核对 GPG 完整指纹并运行下方 `add-device`，审核后同步旧设备密码库。新设备只克隆/拉取并检查解密，不自行改变 recipient；验证成功后才报告身份准备完成。`--yes` 不会跳过解密验证；`--skip-identity` 用于明确跳过本次身份准备。密码库不再由 external 管理。
 
 ### 日常更新
 
@@ -103,14 +138,13 @@
 chezmoi cd
 git pull
 chezmoi diff
-chezmoi apply
+chezmoi apply --keep-going
 ```
 
 仓库提供 `.githooks/pre-commit`：提交删除或重命名的 chezmoi source 文件时，
 它会把不再管理的旧目标路径自动加入 `.chezmoiremove`，使其他机器下次
 `chezmoi apply` 时删除对应文件；若目标文件在本机被修改，chezmoi 仍会询问是否覆盖。
-新机器第一次 `chezmoi apply` 时会通过 `run_once_before_configure-chezmoi-git-hooks.sh.tmpl`
-自动完成配置。如果 clone 后尚未 apply，也可以手动启用：
+首次 apply 会通过 `run_once_before` 配置 hook。也可以手动启用：
 
 ```bash
 git config core.hooksPath .githooks
@@ -155,7 +189,10 @@ Profile 会展开成几组本机数据：
 - `install.command`: Linux 包安装命令，脚本按空白拆成命令参数，并逐个把包名追加到命令后执行；可被 `INSTALL_COMMAND` 临时覆盖
 - `install.admin`: 是否是这台机器上的管理员，可被 `INSTALL_ADMIN` 临时覆盖；非管理员会跳过系统模块、驱动模块、system 级 service 和所有 sudo 操作
 - `features.*`: 是否启用某类配置，例如 `inputMethod`, `linuxDesktop`, `macDesktop`, `proxy`
-- `downloads.preferChezmoi`: 两边都能管理下载时，是否优先由 chezmoi 管理；默认 `true`，目前用于 Zsh 插件，不是全局下载开关
+- `features.downloadChecks`: 是否在本机生成定时下载检查的 systemd user units，默认关闭
+- `downloads.preferChezmoi`: 两边都能管理下载时，是否优先由 chezmoi 管理；默认 `true`，目前用于 Zsh 插件和 Mihomo Geo，不是全局下载开关
+- `downloads.githubMirror`: init 时选择的 GitHub 下载方式：`ghfast`、`direct` 或 `custom`
+- `downloads.githubMirrorPrefix`: 实际使用的下载前缀；空字符串表示直连
 - `apps.<name>.enabled`: 是否落下某个软件的配置
 - `apps.<name>.profile`: 同一软件在不同机器 profile 下的配置变体入口
 
@@ -179,7 +216,7 @@ secret 通过 `gopass-safe` 读取：
 command = "{{ joinPath .chezmoi.sourceDir "ignore" "bin" "gopass-safe" }}"
 ```
 
-按完整路径 `chezmoi/<key>` 精确读取，不触发模糊查找或自动同步，找不到时使用模板里的默认值。当前使用到的 secret 包括：
+按完整路径 `chezmoi/<key>` 精确读取，不触发模糊查找、自动同步或公钥自动导出，找不到时使用模板里的默认值。当前使用到的 secret 包括：
 
 - `serverIP`
 - `ikuuu`
@@ -200,16 +237,31 @@ command = "{{ joinPath .chezmoi.sourceDir "ignore" "bin" "gopass-safe" }}"
 
 ## Dependencies
 
-依赖安装脚本：
+`install.sh` 只做一次性引导，不承载日常功能。它安装 chezmoi、初始化仓库、调用公共依赖安装能力，再执行普通 apply。以后新增能力放进对应配置、公共包清单或 `run_*`，不要求已有机器重跑入口。
 
-- Arch Linux: `run_onchange_before_install-core-linux.sh.tmpl` + `run_onchange_after_install-packages-linux.sh.tmpl`
-- macOS: `run_onchange_before_install-core-macos.sh.tmpl` + `run_onchange_after_install-packages-macos.sh.tmpl`
+| 能力 | 执行时机 | 失败处理 |
+| --- | --- | --- |
+| 系统软件包安装、sudo 操作、临时安装代理 | 手动入口；后续补包用 `chezmoi x packages` | 安装失败汇总，继续独立步骤 |
+| SSH/GPG 设备身份、密码库加入 | 首次安装；后续 `chezmoi x identity` | 等待 GitHub / 旧设备授权，检查解密后才成功 |
+| 缺失依赖检查 | `run_onchange_before`，依赖清单 / 检查逻辑变化时 | 只警告，不安装、不提权 |
+| 仓库 Git hook | `run_once_before`，首次 apply | 失败警告 |
+| 应用资源初始化 | `run_onchange_after`，相关配置 / 初始化逻辑变化时 | 失败返回错误，下次 apply 重试；`--keep-going` 继续其他步骤 |
+| 用户服务检查与协调 | `run_after`，每次 apply | 需要改变时确认；失败警告 |
+| chezmoi 管理的外部资源 | external 的缓存 / 刷新周期 | 由 chezmoi 报告下载失败 |
 
-Linux/macOS 的两个阶段均由 `.chezmoitemplates/install-common` 调度，统一使用兼容 macOS 自带 Bash 3.2 的语法，共用模块选择、逐包安装与失败汇总逻辑；`.chezmoitemplates/install-packages-linux` 和 `install-packages-macos` 保留各自的安装后端、软件包清单和 profile 组合。before 安装所选 profile/modules 的 `core` 模块，并根据配置额外准备模板所需的 Python 3（Rime）和 Lua（macOS Karabiner）；即使 custom 未选 core，也会检查这些模板依赖。逐包尝试完成后统一列出失败项，存在核心失败则返回非零，停止后续 apply。after 负责其余模块，逐包继续安装，最后汇总失败项并返回成功，不阻断 apply。Homebrew / Xcode 等初始化错误也按所属阶段处理。`skip` 仍跳过所有安装。
+后续依赖缺失时运行 `chezmoi x packages`，只检查用 `chezmoi x packages --check`。其他 shell 可直接运行仓库内 `ignore/bin/dotfiles-packages`。这些入口与首次安装共用包清单和逐包检测逻辑。
 
-安装脚本使用 `run_onchange`，成功退出的可选安装不会因为缺包而自动重试；请按汇总提示手动补装，或用 `chezmoi state delete-bucket --bucket=scriptState` 清除脚本记录后重新 apply（这也会重跑其他已记录脚本）。首次安装前的 `chezmoi diff` / `--dry-run` 不执行 before 脚本，仍需自行先准备 Python 3 / Lua 才能渲染依赖它们的模板。
+入口只要求 Bash 和 curl/wget，可在安装 chezmoi、运行 init 之前执行。已有 chezmoi、仓库与 init 数据会复用；`--source` 选择已有 checkout，`--repo` 选择初始化来源。安装选项沿用 `[data.install]`，`INSTALL_PROFILE` / `INSTALL_MODULES` / `INSTALL_COMMAND` / `INSTALL_ADMIN` 仍可临时覆盖。
 
-Linux 安装脚本默认按当前发行版给出安装命令，例如 Arch/Manjaro 使用 `paru -S --needed --noconfirm --skipreview`，Debian/Ubuntu 使用 `sudo apt-get install -y`，Fedora 使用 `sudo dnf install -y`。其它发行版可以在 init 时填写 `install.command`，例如 `sudo apk add` 或 `sudo xbps-install -Sy`。安装会逐包执行，单个包失败不会中断整个 module，最终退出状态取决于所在阶段。
+包清单与平台差异保留在 `.chezmoitemplates/install-packages-linux`、`install-packages-macos`；`.chezmoitemplates/install-common` 共用模块调度、逐包检测与失败汇总，语法兼容 macOS 自带 Bash 3.2。先准备 Python 3 / Lua 等模板依赖，再安装所选模块；缺失项逐包尝试，最后把失败交给手动入口汇总，不阻止独立的配置应用步骤。`skip` 跳过软件包安装。
+
+入口为子进程统一导出临时 HTTP 代理变量，并通过进程级 Git 配置覆盖 Git 代理，不写全局 gitconfig。资源初始化通过 `zsh -dfc` 跳过用户启动配置，直接继承入口导出的代理变量；Linux 的 sudo 安装命令会请求保留代理变量，是否获准取决于 sudo 策略。临时代理在入口退出后结束，不会自动变成日常代理。
+
+软件资源使用各自的初始化流程：Antidote 下载缺失的 Zsh 插件，Lazy 安装缺失的 Neovim 插件，`ya pkg install` 安装 Yazi 包，`mihomo -t` 初始化并验证配置；不启动桌面应用窗口。部分语言服务器 / 按文件类型触发的解析器仍需按使用需求安装。原版 Mihomo 的下载网络由它自身决定，不保证使用 shell HTTP 代理；需要临时局域网 HTTP 代理下载 Geo 时，使用默认的 chezmoi 下载模式。
+
+`--yes` 可用于非交互安装（包括接受服务协调），`--skip-plugins`、`--skip-services`、`--skip-hooks` 只跳过本次安装中的对应维护，`--skip-identity` 跳过本次设备授权，下次普通 apply 仍可执行。入口始终调用普通 `apply --keep-going`，因此未来新增的维护脚本也自动纳入。失败后补包用 `chezmoi x packages`，重试资源初始化用 `chezmoi apply --keep-going`；无需重跑安装入口。`--config`、`--destination`、`--cache`、`--state` 支持独立目录，测试均使用隔离配置和模拟命令。
+
+Linux 安装脚本默认按当前发行版给出安装命令，例如 Arch/Manjaro 使用 `paru -S --needed --noconfirm --skipreview`，Debian/Ubuntu 使用 `sudo apt-get install -y`，Fedora 使用 `sudo dnf install -y`。其它发行版可以在 init 时填写 `install.command`，例如 `sudo apk add` 或 `sudo xbps-install -Sy`。安装会逐包执行，单个包失败不会中断整个 module，最终汇总所有失败并返回非零状态。
 
 包名仍以当前配置使用的名字为主；非 Arch 系统遇到包名不匹配时，安装脚本会记录失败并继续，用户再按汇总提示手动安装。
 
@@ -237,7 +289,15 @@ macOS 主要依赖通过 Homebrew 安装：
 - GUI: Hammerspoon, Karabiner-Elements, Kitty, Sioyek, Tailscale, EasyDict
 - 字体: JetBrains Mono Nerd Font
 
-Rime 的 `font-and-im` 模块还包含手机部署所需的 ADB（Linux `android-tools` / macOS `android-platform-tools`）。Linux `shell` 模块包含 Neovim 自动编译 Treesitter parser 所需的 GCC、Make 和 Treesitter CLI。
+两平台的 `shell` 模块都包含日常工具 `ripgrep`（`rg`）、`tree`、`bat`、`bottom`（`btm`）、`uv`、`duf`、`dust`、`wget`，以及 ZIP、7-Zip 和 Zstandard 压缩工具（Linux 包名为 `7zip`，macOS 为 `sevenzip`）。这些工具随所有非 `custom` / `skip` profile 安装；`custom` 需选择 `shell` 模块。
+
+两平台的 `shell` 模块还包含 `msmtp`、`thefuck`、`wakeonlan`、`aria2` 和 `bypy`。Linux 的 bypy 使用 AUR 包；macOS 没有 Homebrew 官方 formula，由 `uv tool install bypy` 安装到隔离环境，命令放在 `~/.local/bin`，不修改系统 Python。
+
+两平台的 `shell` 模块还安装 Neovim 当前配置使用的格式化和检查工具：StyLua、isort、Black、rustfmt（随 Rust 安装）、prettierd、shfmt、ClangFormat、ShellCheck、Hadolint、Luacheck、markdownlint、Ruff、yamllint 和 tex-fmt。默认启用的语言服务也通过全局包管理器安装：texlab、LuaLS、Pyright、JSON、Marksman、Dockerfile、Docker Compose、Bash 和 clangd。Linux 的 Compose 服务使用 npm 全局安装到 `~/.local`，其余使用系统包；macOS 使用 Homebrew，clangd 使用已有工具链在 PATH 中提供的版本；需要特定版本时自行调整 PATH 或在 `~/.local/bin` 中链接。Neovim 直接调用 `clangd`，不探测或回退到其他版本。语言服务配置用 `:help lspconfig-all` 查阅，formatter、linter 和调试器等工具可搜索 [Mason Registry 网页目录](https://mason-registry.dev/registry/list)。LTeX+（`ltex-ls-plus`）随其他 LSP 自动安装；Linux 使用 AUR 的 `ltex-ls-plus-bin`，macOS 使用 Homebrew 的 `ltex-ls-plus`。Linux 的 prettierd、tex-fmt 和 hadolint-bin 使用 AUR 包，需要支持 AUR 的安装命令。
+
+Yazi 的 Starship、MediaInfo、DuckDB、ouch、Word/PDF/SVG 预览和回收站插件依赖也随 `shell` 安装，包括 `pandoc`、`poppler`、`resvg`、`trash-cli`、FFmpeg 和 ImageMagick；Linux 的 GVfs/磁盘挂载后端放在 `system` 模块。macOS 的 `trash-cli` 管理 Freedesktop 回收站，与 Finder 回收站分开；当前删除操作仍使用 Yazi 默认行为。Neovim 的图片处理共用 ImageMagick，macOS 图片粘贴另安装 `pngpaste`，Linux Wayland 剪贴板由 `desktop` 模块的 `wl-clipboard` 提供。
+
+Rime 的 `font-and-im` 模块还包含手机部署所需的 ADB（Linux `android-tools` / macOS `android-platform-tools`）。Linux `shell` 模块包含 Neovim 自动编译 Treesitter parser 所需的 GCC、Make 和 Treesitter CLI；macOS 使用 Xcode Command Line Tools 的编译器/Make，并安装 `tree-sitter-cli`（`tree-sitter` 包只提供解析库）。
 
 wmux 使用随仓库分发的纯 Lua JSON 编解码器 [rxi/json.lua v0.1.2](https://github.com/rxi/json.lua/tree/v0.1.2)，源码和 MIT 许可保存在 `scripts/lua/wmux/vendor/json.lua`。Karabiner 模板渲染和 Yabai 查询不依赖 lua-cjson / LuaRocks，首次渲染只需已有的 Lua 解释器。
 
@@ -284,7 +344,7 @@ timer 每天触发一次，随机延迟最多一小时，并补做关机期间�
 ```text
 .chezmoi.toml.tmpl                 chezmoi 本机数据和 secret 配置
 .chezmoiignore                     按系统忽略不适用的配置
-.chezmoiexternal.toml              外部资源，如 Rime 大文件、Hammerspoon Spoon、gopass store
+.chezmoiexternal.toml              外部资源，如 Rime 大文件、Hammerspoon Spoon
 .chezmoitemplates/                 被其他模板 include 的片段
 dot_config/hypr/                   Arch Linux Hyprland 桌面
 dot_config/waybar/                 Waybar 状态栏
@@ -335,7 +395,7 @@ chezmoi x services
 
 对应 URL 为 `http://<主机地址>:18080/mihomo/config.yaml` 和 `http://<主机地址>:18080/surfingkeys/config.js`。Mihomo 入口只是指向实际配置的单文件链接，不会公开整个 `~/.config/mihomo` 目录。
 
-每次 `chezmoi apply` 后会检查仓库管理的用户服务。Linux 使用 `systemctl --user` 管理 Config Share、FDU Connect 和 Later；macOS 使用原生 `launchctl` 管理 Config Share、FDU Connect 和 Mihomo。期望启用但尚未启用的服务会询问是否启用并启动；配置中已经关闭但仍处于 enabled 状态的服务会询问是否停止并禁用。非交互 apply 只报告差异。也可以手动运行 `chezmoi x services --check` 做只读检查，或使用 `chezmoi x services --yes` 接受全部调整。仓库内部 helper 位于 `ignore/bin`，由 zsh 中的 `chezmoi x` wrapper 调用，不会部署到 `~/.local/bin`。Linux 上需要实例参数的 `ssh-tunnel@.service` 不参与自动协调。
+每次 `chezmoi apply` 都会检查仓库管理的用户服务，首次安装也通过同一个 apply 流程执行。Linux 使用 `systemctl --user` 管理 Config Share、FDU Connect 和 Later；macOS 使用原生 `launchctl` 管理 Config Share、FDU Connect 和 Mihomo。期望启用但尚未启用的服务会询问是否启用并启动；配置中已经关闭但仍处于 enabled 状态的服务会询问是否停止并禁用。非交互服务协调默认只报告差异（安装入口显式使用 `--yes` 时接受调整）。也可以手动运行 `chezmoi x services --check` 做只读检查，或使用 `chezmoi x services --yes` 接受全部调整。仓库内部 helper 位于 `ignore/bin`，由 zsh 中的 `chezmoi x` wrapper 调用，不会部署到 `~/.local/bin`。Linux 上需要实例参数的 `ssh-tunnel@.service` 不参与自动协调。
 
 macOS 的交互式 zsh 还提供一个 `systemctl` 兼容 wrapper，Linux 则原样调用系统的 `systemctl`。它支持常用的 `status`、`show`、`cat`、`is-active`、`is-enabled`、`start`、`stop`、`restart`、`enable/disable --now`、`list-units` 和 `list-unit-files`；底层使用当前用户的 `gui/$UID` launchd domain。例如：
 
@@ -448,7 +508,7 @@ Vi 模式会在进入普通模式时记住输入法状态并临时切换英文�
 
 Esc 等待时间由 Zsh 的 `KEYTIMEOUT` 控制，单位为 10ms：本地或 tmux 内设为 `1`（10ms），SSH 且不在 tmux 内设为 `5`（50ms）。通过 `SSH_TTY` / `SSH_CONNECTION` 和 `TMUX` 在 shell 启动时判断；已有 tmux pane 重新 attach 不会重新计算。tmux 自身的 `escape-time` 保持 40ms。
 
-`downloads.preferChezmoi` 表示管理方式的偏好，不表示是否允许下载。没有此字段的旧配置默认按 `true` 处理；目前只有 Zsh 使用它，其他 external 和软件自己的下载机制保持原样。可在 `chezmoi edit-config` 中设置：
+`downloads.preferChezmoi` 表示管理方式的偏好，不表示是否允许下载。没有此字段的旧配置默认按 `true` 处理；目前用于 Zsh 插件和 Mihomo Geo；Spoon 暂时仍由 external 下载，Neovim、Yazi 等软件自己的插件下载机制保持原样。可在 `chezmoi edit-config` 中设置：
 
 ```toml
 [data.downloads]
@@ -698,7 +758,8 @@ Mihomo 配置在 `dot_config/mihomo/config.yaml.tmpl`：
 - 订阅 URL 通过 gopass secret 注入
 - Fudan、广告、AI、Apple、Bilibili 等规则 provider
 - Linux 通过 user service 或手动启动
-- macOS 通过 LaunchAgent 启动
+- macOS LaunchAgent 直接启动 Mihomo
+
 
 Geo 使用与 Zsh 相同的 `downloads.preferChezmoi` 选项：
 
@@ -708,6 +769,8 @@ Geo 使用与 Zsh 相同的 `downloads.preferChezmoi` 选项：
 | `false` | external 不声明 Geo 文件；Mihomo 按 `geox-url` 自行下载，并每 24 小时自动更新 |
 
 不再使用专用 Geo 下载 helper、manifest 或启动包装。HTTP 403 等下载错误由 external 按 HTTP 状态处理；`chezmoi apply --keep-going` 可继续其他目标，最终保留失败状态。切换模式不会主动删除已有数据库，复制配置时也可把已有数据库一起复制。
+
+Mihomo 的原生下载不保证使用安装 shell 的 `http_proxy` / `https_proxy`。首次安装需要临时局域网 HTTP 代理下载 Geo 时，使用默认的 chezmoi 模式；选择软件自管模式后，external 完全不下载 Geo，apply 的资源维护脚本调用 `mihomo -t` 让它自行初始化，不偷偷切回 external。临时代理地址只属于安装入口的进程环境，不写入 `geox-url` 或日常代理设置。
 
 Hammerspoon 另有官方收录的 [SpoonInstall](https://www.hammerspoon.org/Spoons/SpoonInstall.html)，它自身也是需先安装的 Spoon，`hs.loadSpoon()` 只负责加载。当前只使用两个 Spoon，继续由 external 中的小循环管理，暂不为了模式切换再引入管理器。
 

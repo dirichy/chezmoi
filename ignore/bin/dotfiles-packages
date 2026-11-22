@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Shared manual package installation/check entry. Daily apply uses check-only mode.
+set -euo pipefail
+
+check=false
+if [[ ${1:-} == --check ]]; then check=true; shift; fi
+source_dir=$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd)
+case $(uname -s) in
+    Linux) platform=linux ;;
+    Darwin) platform=macos ;;
+    *) printf 'Unsupported package platform.\n' >&2; exit 1 ;;
+esac
+work=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-packages.XXXXXX")
+trap 'rm -rf "$work"' EXIT
+chezmoi --source "$source_dir" "$@" execute-template \
+    "{{ includeTemplate \"install-common\" (dict \"config\" . \"platform\" \"$platform\" \"checkOnly\" $check) }}" >"$work/packages.sh"
+bash "$work/packages.sh"

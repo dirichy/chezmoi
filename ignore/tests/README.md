@@ -17,7 +17,12 @@ It checks:
 - rendering of every managed file and template in those profiles;
 - macOS LaunchAgent plist parsing, Karabiner JSON, and rendered installer Bash syntax;
 - Linux and macOS installer Bash syntax and ShellCheck (when available), mocked package failures,
-  shared module selection, before/after exit status and isolated apply/render ordering;
+  shared module selection, installed-package detection, aggregated failures and read-only daily checks;
+- the standalone installer before chezmoi/init, temporary proxy inheritance, idempotent retries
+  and failure summaries through simulated bootstrap/download/apply commands;
+- maintenance Zsh ignoring user startup files and inheriting proxy variables even with broken shell configs;
+- maintenance cadence: services on every apply, resources on configuration changes, retries after failure,
+  and skipped first-install maintenance remaining available on later applies;
 - GitHub mirror init choices/defaults, public download rendering without secrets, bounded-response
   validation through mocks, and an opt-in Linux-only download-check timer (no public network requests);
 - external URL fallback using local files, and Geo external entries/native auto-update settings
@@ -53,3 +58,21 @@ tools; fully mocked service logic still runs on both platforms. `luac` is option
 GUI authorization, application behavior and real service
 startup still require manual verification on the corresponding platform. Add behavioral
 assertions to `test.sh` whenever a profile gains or loses an important file.
+
+A separate real enrollment integration test requires OpenSSH (including sshd), GnuPG,
+gopass, Mihomo, Git, Python and chezmoi. Run it as a normal user **inside a disposable
+namespace/container** with an empty work path:
+
+```bash
+python3 ignore/tests/test-enrollment.py /work/source /work/enrollment-test
+```
+
+It uses fake identities and a fake encrypted store, never imports a private key,
+requires public-key SSH authorization before cloning through a local HTTP CONNECT
+proxy, then runs the real `add-device` on the simulated old device. It checks that
+only after authorization and Git synchronization can the new device decrypt
+`chezmoi/bootstrap-check = fixture-device-enrollment-ok`. It also renders a native
+chezmoi secret and forwards a local HTTP request through real Mihomo. No external
+resources are downloaded. This test is intentionally separate from the default
+suite because it starts listeners and agents and needs all of those dependencies.
+The default suite mocks paru bootstrap and verifies it never runs in check-only mode.

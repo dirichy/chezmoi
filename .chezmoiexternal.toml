@@ -44,13 +44,6 @@ path = "fdu-connect"
 executable = true
 {{ end }}
 
-# Personal password store.
-{{ if eq .name "dirichy" }}
-[".local/share/gopass/stores/root/"]
-type = "git-repo"
-url = "https://ghfast.top/https://github.com/dirichy/gopass.git"
-{{ end }}
-
 # Update the upstream checkout before rendering .local/share/fcitx5/rime templates.
 {{ if .features.inputMethod }}
 [".cache/rime-ice/upstream"]
