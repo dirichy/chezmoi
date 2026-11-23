@@ -3,7 +3,7 @@ baipan(){
     __bypypath="$HOME/.bypy/cache"
     __bypypwd="/"
     binit(){
-        python "$DIR/bs.py"
+        uv run --no-project --script "$DIR/bs.py"
     }
 
     bcd() {

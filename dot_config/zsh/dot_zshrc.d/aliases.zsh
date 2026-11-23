@@ -3,7 +3,6 @@
 # .aliases - Set whatever shell aliases you want.
 #
 alias fk='open -a Finder.app .'
-alias bypy='python3 -m bypy'
 alias v.='nvim .'
 paru() {
     local arg

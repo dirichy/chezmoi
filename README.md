@@ -293,7 +293,7 @@ macOS 主要依赖通过 Homebrew 安装：
 
 两平台的 `shell` 模块都包含日常工具 `ripgrep`（`rg`）、`tree`、`bat`、`bottom`（`btm`）、`uv`、`duf`、`dust`、`wget`，以及 ZIP、7-Zip 和 Zstandard 压缩工具（Linux 包名为 `7zip`，macOS 为 `sevenzip`）。这些工具随所有非 `custom` / `skip` profile 安装；`custom` 需选择 `shell` 模块。
 
-两平台的 `shell` 模块还包含 `msmtp`、`thefuck`、`wakeonlan`、`aria2` 和 `bypy`。Linux 的 bypy 使用 AUR 包；macOS 没有 Homebrew 官方 formula，由 `uv tool install bypy` 安装到隔离环境，命令放在 `~/.local/bin`，不修改系统 Python。
+两平台的 `shell` 模块还包含 `msmtp`、`thefuck`、`wakeonlan`、`aria2` 和 `bypy`。Linux 的 bypy 使用 AUR 包；macOS 没有 Homebrew 官方 formula，由 `uv tool install bypy` 安装到隔离环境，命令放在 `~/.local/bin`，不修改系统 Python。百度网盘辅助脚本声明了 bypy 依赖，使用 `uv run --script` 运行；首次运行可能需要下载依赖，无需激活环境。
 
 两平台的 `shell` 模块还安装 Neovim 当前配置使用的格式化和检查工具：StyLua、isort、Black、rustfmt（随 Rust 安装）、prettierd、shfmt、ClangFormat、ShellCheck、Hadolint、Luacheck、markdownlint、Ruff、yamllint 和 tex-fmt。默认启用的语言服务也通过全局包管理器安装：texlab、LuaLS、Pyright、JSON、Marksman、Dockerfile、Docker Compose、Bash 和 clangd。Linux 的 Compose 服务使用 npm 全局安装到 `~/.local`，其余使用系统包；macOS 使用 Homebrew，clangd 使用已有工具链在 PATH 中提供的版本；需要特定版本时自行调整 PATH 或在 `~/.local/bin` 中链接。Neovim 直接调用 `clangd`，不探测或回退到其他版本。Neovim 不再加载 Mason；语言服务配置用 `:help lspconfig-all` 查阅，formatter、linter 和调试器等工具可搜索 [Mason Registry 网页目录](https://mason-registry.dev/registry/list)。LTeX+（`ltex-ls-plus`）随其他 LSP 自动安装，仍用 `<leader>tc` 手动启用；Linux 使用 AUR 的 `ltex-ls-plus-bin`，macOS 使用 Homebrew 的 `ltex-ls-plus`。Linux 的 prettierd、tex-fmt 和 hadolint-bin 使用 AUR 包，需要支持 AUR 的安装命令。
 

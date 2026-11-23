@@ -1,3 +1,7 @@
+# /// script
+# dependencies = ["bypy"]
+# ///
+
 import builtins
 import os
 import sys
