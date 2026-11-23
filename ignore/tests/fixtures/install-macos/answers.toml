@@ -1,0 +1,21 @@
+[data]
+name = "CI Fixture"
+email = "ci@example.invalid"
+inputMethod = "tiger"
+fduConnect = false
+phoneBluetoothMac = ""
+[data.install]
+profile = "custom"
+modules = "core"
+command = "brew install"
+admin = true
+[data.downloads]
+preferChezmoi = true
+githubMirror = "direct"
+githubMirrorPrefix = ""
+[data.features]
+proxy = false
+[data.waybar]
+hostnameSymbol = "ci-fixture"
+[data.configShare]
+mode = "none"

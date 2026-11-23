@@ -926,6 +926,8 @@ bash -n path/to/script.sh
 
 ## 配置测试
 
+macOS 安装另有 [GitHub Actions 验证](ignore/tests/install-macos/README.md)：在 Apple Silicon runner 上真实安装核心依赖、执行 init/apply 和重复安装，再启动 Mihomo，通过它访问 HTTPS、下载并安装一个命令行程序，最后检查代理停止后请求确实失败。PR 默认验证核心链路；手动触发可加桌面软件包安装。这条核心链路不需要辅助功能授权，窗口控制和按键重映射仍属于独立的桌面验证。
+
 `./ignore/tests/test.sh` 按依赖文件的内容变化，只重跑受影响且尚未通过的测试组；首次运行会跑全套。用 `--dry-run` 查看重跑原因、`--list` 查看依赖关系，或用 `--all` 强制全量验证。也可指定组，例如 `./ignore/tests/test.sh proxy services`。测试结果缓存位于仓库内 Git 忽略的 `ignore/tests/.cache/`，测试配置仍在临时目录中隔离执行。
 
 分组、依赖维护和独立集成测试说明见 [测试文档](ignore/tests/README.md)。
