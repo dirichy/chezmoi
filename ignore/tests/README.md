@@ -47,7 +47,7 @@ limited to those each group uses.
 | `render` | All managed files rendered for three profiles, Waybar and platform output checks |
 | `proxy`, `cidr`, `hypr-helper` | Proxy routing, CIDR template and desktop command fallback |
 | `services`, `config-share`, `later` | Service mocks, sharing server and one-off scheduling |
-| `syntax` | Non-template Bash and standalone Lua syntax |
+| `syntax` | Non-template Bash/Zsh and standalone Lua syntax |
 
 Rendering uses one uncompressed `chezmoi archive` per profile, rather than
 starting chezmoi for each managed file. This renders the target state without
