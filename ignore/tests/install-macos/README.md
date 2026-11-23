@@ -1,7 +1,7 @@
 # macOS installation CI
 
 The `Install on macOS` workflow runs on GitHub's `macos-15` Apple Silicon runner.
-Relevant pull requests run the `custom/core` installation. `workflow_dispatch`
+Relevant pushes to `main` or `ci/**`, and pull requests, run the `custom/core` installation. `workflow_dispatch`
 also accepts `desktop: true`, which adds the real desktop formulae/casks without
 launching the desktop tools to grant permissions.
 
