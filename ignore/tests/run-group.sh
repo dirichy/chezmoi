@@ -7,7 +7,7 @@ case "$group" in
     runner)
         python3 "$tests_dir/test-runner.py" "$repo_dir" "$tmp_dir"
         ;;
-    installers|install-entry|maintenance|downloads|rime-tiger|rime-deploy)
+    installers|install-macos|install-entry|maintenance|downloads|rime-tiger|rime-deploy)
         python3 "$tests_dir/test-$group.py" "$repo_dir" "$tmp_dir"
         ;;
     rime-native|rime-android)

@@ -1,0 +1,58 @@
+name: Install on macOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      desktop:
+        description: Also install desktop formulae/casks (no GUI authorization)
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - '.github/workflows/install-macos.yml'
+      - 'install.sh'
+      - '.chezmoi*'
+      - '.chezmoitemplates/**'
+      - 'run_*.tmpl'
+      - 'dot_*/**'
+      - 'private_Library/**'
+      - 'scripts/**'
+      - 'ignore/bin/**'
+      - 'ignore/tests/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: install-macos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  install:
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_ANALYTICS: '1'
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Prepare test tools
+        run: brew install python lua shellcheck
+      - name: Real core installation, proxy and CLI package smoke test
+        if: ${{ !inputs.desktop }}
+        run: python3 ignore/tests/install-macos/run.py --work "$RUNNER_TEMP/dotfiles-macos-install"
+      - name: Real core/desktop installation and proxy smoke test (manual opt-in)
+        if: ${{ inputs.desktop }}
+        run: python3 ignore/tests/install-macos/run.py --work "$RUNNER_TEMP/dotfiles-macos-install" --desktop
+      - name: Native macOS regression suite
+        run: ./ignore/tests/test.sh --all
+      - name: Upload installation logs (no home, keyrings or caches)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: install-macos-logs
+          path: ${{ runner.temp }}/dotfiles-macos-install/logs/*.log
+          if-no-files-found: warn
+          retention-days: 7

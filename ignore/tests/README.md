@@ -36,6 +36,7 @@ limited to those each group uses.
 | --- | --- |
 | `runner` | Incremental selection, content/mode/name changes, failures, skips and force options in a disposable Git repo |
 | `installers`, `install-entry` | Package templates and standalone bootstrap, with mocked installers |
+| `install-macos` | Offline isolation, init-data and proxy-wiring checks for the macOS CI fixture |
 | `maintenance` | Apply hooks and referenced app resources |
 | `downloads` | External download definitions, mirror templates, probe helper and timer |
 | `rime-tiger` | Dictionary/Emoji generation and local Git external ordering |
@@ -94,3 +95,8 @@ LAN proxy after fetching the permanent upstream address from an encrypted store'
 subscription link. It is separate from `test.sh` because it downloads/installs
 actual packages in disposable containers and needs Docker, network access and
 substantial build time.
+
+For native macOS installation, Mihomo forwarding and real CLI package installation,
+see [install-macos/README.md](install-macos/README.md). The workflow uses a disposable
+GitHub-hosted VM; that network/package scenario remains separate from the default
+offline suite. Its fixture checks are included as the `install-macos` group.

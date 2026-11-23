@@ -19,6 +19,9 @@ SEEDS = ["ignore/tests/fixtures/rime-ice/*.yaml", "ignore/tests/fixtures/rime-ti
 DEPENDENCIES = {
     "runner": ["ignore/tests/test-runner.py"],
     "installers": CONFIG + FIXTURES + INSTALL_TEMPLATES + ["ignore/bin/dotfiles-packages", "ignore/tests/test-installers.py"],
+    "install-macos": CONFIG + DOWNLOAD_TEMPLATES + [".chezmoitemplates/isIPv4CIDR",
+        ".github/workflows/install-macos.yml", "ignore/tests/install-macos/*", "ignore/tests/test-install-macos.py",
+        "ignore/tests/fixtures/rime-*/*", "ignore/tests/fixtures/install-macos/*", "private_Library/*", "dot_config/private_karabiner/*", "scripts/lua/*"],
     "install-entry": ["install.sh", "ignore/bin/dotfiles-packages", "ignore/tests/test-install-entry.py"],
     "maintenance": CONFIG + FIXTURES + DOWNLOAD_TEMPLATES + ["run_*", "dot_config/zsh/plugin-manager.zsh",
         "dot_config/nvim/lua/*", "dot_config/yazi/package.toml", "dot_config/mihomo/config.yaml.tmpl",
