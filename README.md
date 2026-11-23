@@ -923,3 +923,9 @@ bash -n path/to/script.sh
 - macOS 默认 Apple Silicon Homebrew 路径 `/opt/homebrew`。
 - 代理地址来自 `proxy.address`；启用 proxy 模块时默认 `127.0.0.1:7890`。
 - 部分个人设备名和主机名写在 SSH/Hyprland 配置中。
+
+## 配置测试
+
+`./ignore/tests/test.sh` 按依赖文件的内容变化，只重跑受影响且尚未通过的测试组；首次运行会跑全套。用 `--dry-run` 查看重跑原因、`--list` 查看依赖关系，或用 `--all` 强制全量验证。也可指定组，例如 `./ignore/tests/test.sh proxy services`。测试结果缓存位于仓库内 Git 忽略的 `ignore/tests/.cache/`，测试配置仍在临时目录中隔离执行。
+
+分组、依赖维护和独立集成测试说明见 [测试文档](ignore/tests/README.md)。
