@@ -8,6 +8,8 @@ import subprocess
 import sys
 
 repo, temporary = map(Path, sys.argv[1:])
+chezmoi = shutil.which("chezmoi")
+assert chezmoi, "chezmoi is required"
 root = temporary / "installers"
 root.mkdir()
 bin_dir = root / "bin"
@@ -52,7 +54,7 @@ for platform in ("linux", "macos"):
     runtime_env = dict(env, PATH=str(bin_dir))
     for phase in ("manual",):
         rendered = root / f"{platform}-{phase}.sh"
-        command = ["chezmoi", "--source", str(repo), "--destination", str(home),
+        command = [chezmoi, "--source", str(repo), "--destination", str(home),
                    "--config", str(repo / f"ignore/tests/fixtures/{platform}-desktop.toml"),
                    "--cache", str(root / "cache"), "--persistent-state", str(root / "state"),
                    "--refresh-externals=never", "execute-template", '{{ includeTemplate "install-common" (dict "config" . "platform" "' + platform + '") }}']

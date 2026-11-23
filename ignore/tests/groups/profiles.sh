@@ -91,12 +91,14 @@ else
     assert_managed "$headless_list" 'Library/LaunchAgents/config-share.plist' 'macOS headless enables custom sharing'
     assert_managed "$headless_list" '.local/share/config-share/surfingkeys/config.js' 'macOS headless shares selected config'
     assert_ignored "$headless_list" '.local/share/config-share/mihomo/config.yaml' 'macOS headless excludes unselected shared config'
+    assert_managed "$headless_list" 'Library/LaunchAgents/mihomo.plist' 'macOS headless includes the core proxy LaunchAgent'
     for profile in headless skip; do
         list="$tmp_dir/managed-$profile.txt"
-        for path in .hammerspoon/init.lua .config/karabiner/karabiner.json .config/yabai/yabairc .config/aerospace/aerospace.toml Library/LaunchAgents/mihomo.plist Library/LaunchAgents/fdu-connect.plist .local/bin/fcitx5-remote; do
+        for path in .hammerspoon/init.lua .config/karabiner/karabiner.json .config/yabai/yabairc .config/aerospace/aerospace.toml Library/LaunchAgents/fdu-connect.plist .local/bin/fcitx5-remote; do
             assert_ignored "$list" "$path" "macOS $profile excludes $path"
         done
     done
     assert_ignored "$skip_list" '.config/nvim/init.lua' 'macOS skip excludes Neovim'
+    assert_ignored "$skip_list" 'Library/LaunchAgents/mihomo.plist' 'macOS skip excludes the proxy LaunchAgent'
     assert_ignored "$skip_list" 'Library/LaunchAgents/config-share.plist' 'macOS skip disables sharing'
 fi
