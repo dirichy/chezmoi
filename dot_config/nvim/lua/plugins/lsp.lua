@@ -109,18 +109,9 @@ return {
 		end,
 	},
 	{
-		"mason-org/mason.nvim",
-		lazy = false,
-		keys = {
-			{ "<leader>om", "<cmd>Mason<cr>", desc = "Open Mason" },
-		},
-		opts = {},
-	},
-	{
 		"neovim/nvim-lspconfig",
 		event = { "BufReadPre", "BufNewFile" },
 		dependencies = {
-			"mason-org/mason.nvim",
 			"folke/neoconf.nvim",
 			"barreiroleo/ltex_extra.nvim",
 			{
@@ -141,8 +132,7 @@ return {
 			{
 				"<leader>tc",
 				function()
-					vim.lsp.enable("ltex")
-					require("ltex_extra").setup({})
+					vim.lsp.enable("ltex_plus")
 				end,
 				desc = "Start LTeX",
 			},
@@ -152,7 +142,7 @@ return {
 
 			require("fidget").setup({
 				progress = {
-					ignore = { "ltex" },
+					ignore = { "ltex_plus" },
 				},
 			})
 
@@ -272,8 +262,11 @@ return {
 					},
 				},
 
-				-- ltex 建议不要默认启动，手动 <leader>tc 再 enable
-				ltex = {
+				-- LTeX+ 随 shell 模块安装，手动 <leader>tc 再 enable。
+				ltex_plus = {
+					on_attach = function()
+						require("ltex_extra").setup({ server_start = false })
+					end,
 					filetypes = {
 						"bib",
 						"gitcommit",
@@ -294,24 +287,15 @@ return {
 				servers.lua_ls = nil
 			end
 
-			local ensure_installed = vim.tbl_keys(servers)
-
-			-- 不让 ltex 自动启用
+			-- 不让 LTeX+ 自动启用
 			local enabled_servers = vim.tbl_filter(function(server)
-				return server ~= "ltex"
-			end, ensure_installed)
+				return server ~= "ltex_plus"
+			end, vim.tbl_keys(servers))
 
 			-- 每个 server 的额外配置
 			for server, config in pairs(servers) do
 				vim.lsp.config(server, config)
 			end
-
-			-- Mason 只负责安装，不负责自动 enable。
-			-- 这样启动顺序更可控，不会再出现 clangd 绕过你配置的问题。
-			-- require("mason-lspconfig").setup({
-			-- 	ensure_installed = ensure_installed,
-			-- 	automatic_enable = false,
-			-- })
 
 			vim.lsp.enable(enabled_servers)
 		end,

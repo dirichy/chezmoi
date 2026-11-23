@@ -62,7 +62,6 @@ return {
 						{ plugin = "ccc.nvim", icon = "", color = "yellow" },
 						{ plugin = "yazi.nvim", icon = "󰇥", color = "blue" },
 						{ plugin = "latex.nvim", cat = "filetype", name = "tex" },
-						{ pattern = "mason", icon = "", color = "green" },
 						{ pattern = "playground", icon = "󰙨", color = "red" },
 					},
 				},
@@ -82,7 +81,6 @@ return {
 				{ "<leader>u", group = "Toggle" },
 				{ "<leader>ot", "<cmd>terminal<cr>", desc = "Open Terminal" },
 				{ "<leader>ol", "<cmd>Lazy<cr>", desc = "Open Lazy" },
-				-- { "<leader>om", "<cmd>Mason<cr>", desc = "Open Mason(for LSP install)", icon = "" },
 			})
 		end,
 	},
