@@ -7,6 +7,21 @@ on:
         description: Also install desktop formulae/casks (no GUI authorization)
         type: boolean
         default: false
+  push:
+    branches:
+      - main
+      - 'ci/**'
+    paths:
+      - '.github/workflows/install-macos.yml'
+      - 'install.sh'
+      - '.chezmoi*'
+      - '.chezmoitemplates/**'
+      - 'run_*.tmpl'
+      - 'dot_*/**'
+      - 'private_Library/**'
+      - 'scripts/**'
+      - 'ignore/bin/**'
+      - 'ignore/tests/**'
   pull_request:
     paths:
       - '.github/workflows/install-macos.yml'
