@@ -3,13 +3,13 @@ return {
 		vim.fn.isdirectory(vim.env.HOME .. "/flash-any.nvim/") == 0 and "dirichy/flash-any.nvim",
 		dir = vim.fn.isdirectory(vim.env.HOME .. "/flash-any.nvim/") == 1 and vim.env.HOME .. "/flash-any.nvim",
 		build = "make",
-		{{- if eq .inputMethod "tiger"}}
+{{- if eq .inputMethod "tiger"}}
 		dependencies = { "folke/flash.nvim", "dirichy/flash-any-tiger.nvim" },
 		opts = {
 			sources = {
 				"latin",
 				{ name = "tiger" },
-    {{- else if eq .inputMethod "flypy"}}
+{{- else if eq .inputMethod "flypy"}}
 		dependencies = { "folke/flash.nvim", "dirichy/flash-any-pinyin.nvim" },
 		opts = {
 			sources = {
@@ -21,7 +21,7 @@ return {
 						finals = { { "ing", "in" }, { "eng", "en" }, { "un", "ong" } },
 					},
 				},
-		{{- end }}
+{{- end }}
 			},
 		},
 		config = function(_, opts)

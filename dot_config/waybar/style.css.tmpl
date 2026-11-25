@@ -2,20 +2,20 @@
 {{- $monitors := output (joinPath .chezmoi.sourceDir "ignore/bin/hyprctl-safe") "monitors" "-j" "[]" | fromJson -}}
 {{- $monitor := dict "height" 1000 "scale" 1 -}}
 {{- if gt (len $monitors) 0 -}}
-{{- $monitor = index $monitors 0 -}}
-{{- range $m := $monitors -}}
-{{- if $m.focused -}}
-{{- $monitor = $m -}}
-{{- end -}}
-{{- end -}}
+  {{- $monitor = index $monitors 0 -}}
+  {{- range $m := $monitors -}}
+    {{- if $m.focused -}}
+      {{- $monitor = $m -}}
+    {{- end -}}
+  {{- end -}}
 {{- end -}}
 {{- $logicalHeight := divf $monitor.height (default 1 $monitor.scale) -}}
 {{- $height := max 1 (int (printf "%.0f" (divf (mulf $logicalHeight $heightPercent) 100))) -}}
 {{- define "px" -}}
-{{- $percent := .percent -}}
-{{- $height := .height -}}
-{{- $scaled := int (printf "%.0f" (divf (mulf $height $percent) 100)) -}}
-{{- if lt $percent 0 -}}{{ min -1 $scaled }}px{{- else if eq $percent 0 -}}0px{{- else -}}{{ max 1 $scaled }}px{{- end -}}
+  {{- $percent := .percent -}}
+  {{- $height := .height -}}
+  {{- $scaled := int (printf "%.0f" (divf (mulf $height $percent) 100)) -}}
+  {{- if lt $percent 0 -}}{{ min -1 $scaled }}px{{- else if eq $percent 0 -}}0px{{- else -}}{{ max 1 $scaled }}px{{- end -}}
 {{- end -}}
 
 @import "styles/modules-left.css";

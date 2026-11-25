@@ -6,9 +6,9 @@ set -euo pipefail
 # Zsh repositories: {{ includeTemplate "zsh-plugin-repos" . | sha256sum }}
 # Zsh downloader: {{ include "dot_config/zsh/plugin-manager.zsh" | sha256sum }}
 # Neovim bootstrap: {{ include "dot_config/nvim/lua/lazy_nvim.lua" | sha256sum }}
-{{ range glob (joinPath .chezmoi.sourceDir "dot_config/nvim/lua/plugins/*.lua*") -}}
+{{   range glob (joinPath .chezmoi.sourceDir "dot_config/nvim/lua/plugins/*.lua*") -}}
 # Neovim plugin: {{ include . | sha256sum }}
-{{ end -}}
+{{   end -}}
 # Yazi packages: {{ include "dot_config/yazi/package.toml" | sha256sum }}
 # Mihomo config: {{ include "dot_config/mihomo/config.yaml.tmpl" | sha256sum }}
 

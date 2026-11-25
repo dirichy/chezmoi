@@ -31,17 +31,17 @@ input_keys:
 
 schema_list:
   # - schema: lufs_flypy # 小鹤双拼
-  {{- if eq .inputMethod "tiger" }}
+{{- if eq .inputMethod "tiger" }}
   - schema: tiger
   - schema: tiger_full
   - schema: rime_ice
   - schema: rime_ice_full
-  {{- else}}
+{{- else}}
   - schema: rime_ice
   - schema: rime_ice_full
   - schema: tiger
   - schema: tiger_full
-  {{- end}}
+{{- end}}
 
 switcher:
   caption: "[方案菜单]"

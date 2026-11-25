@@ -1,7 +1,7 @@
 {{- $hostname := .chezmoi.hostname -}}
 {{- $symbol := $hostname -}}
 {{- if hasKey . "waybar" -}}
-{{- $symbol = default $hostname .waybar.hostnameSymbol -}}
+  {{- $symbol = default $hostname .waybar.hostnameSymbol -}}
 {{- end -}}
 {
 	"custom/hostname": {

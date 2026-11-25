@@ -355,7 +355,7 @@ proxies:
     server: 127.0.0.1
     port: 23410
     tls: true
-    {{- if eq .chezmoi.username "dirichy"}}
+{{- if eq .chezmoi.username "dirichy"}}
   - name: server_maimai
     server: {{secret "serverIP" "0.0.0.0"}}
     port: 8033
@@ -363,7 +363,7 @@ proxies:
     cipher: 2022-blake3-aes-256-gcm
     password: {{secret "maimaiSSpassword" "abcdefghijklmnopqrstuvwxyz" | quote}}
     udp: true
-    {{- end}}
+{{- end}}
   # - name: "WARP"
   #   type: wireguard
   #   server: engage.cloudflareclient.com
@@ -389,13 +389,13 @@ proxy-groups:
       proxies:
         [自动选择, 手动选择, 香港, 台湾, 日本, 新加坡, 美国, 其它地区, DIRECT],
     }
-    {{- if eq .chezmoi.username "dirichy"}}
+{{- if eq .chezmoi.username "dirichy"}}
   - name: maimai_lxns
     type: select
     proxies:
       - server_maimai
       - DIRECT
-    {{- end}}
+{{- end}}
   - name: Majsoul
     type: select
     proxies:
@@ -500,9 +500,9 @@ rules:
   - RULE-SET,fudan,Fudan
   - DOMAIN-SUFFIX,tail182416.ts.net,DIRECT
   - DOMAIN-SUFFIX,tailscale.com,DIRECT
-    {{- if eq .chezmoi.username "dirichy"}}
+{{- if eq .chezmoi.username "dirichy"}}
   - DOMAIN-SUFFIX,wahlap.com,maimai_lxns
-    {{- end}}
+{{- end}}
   - PROCESS-NAME,wineserver,Majsoul
   # - PROCESS-NAME,steam,Majsoul
   - AND, ((DOMAIN-KEYWORD,majsoul),(PROCESS-NAME,wineserver)),Majsoul

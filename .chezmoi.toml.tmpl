@@ -3,35 +3,35 @@
 {{- $adminUser := promptBoolOnce . "install.admin" "administrator on this machine" true -}}
 {{- $installCommandDefault := "" -}}
 {{- if and $adminUser (eq .chezmoi.os "linux") -}}
-{{- if or (eq .chezmoi.osRelease.id "arch") (eq .chezmoi.osRelease.id "manjaro") -}}
-{{- $installCommandDefault = "paru -S --needed --noconfirm --skipreview" -}}
-{{- else if or (eq .chezmoi.osRelease.id "debian") (eq .chezmoi.osRelease.id "ubuntu") -}}
-{{- $installCommandDefault = "sudo apt-get install -y" -}}
-{{- else if eq .chezmoi.osRelease.id "fedora" -}}
-{{- $installCommandDefault = "sudo dnf install -y" -}}
-{{- else if contains "opensuse" .chezmoi.osRelease.id -}}
-{{- $installCommandDefault = "sudo zypper install -y" -}}
-{{- end -}}
+  {{- if or (eq .chezmoi.osRelease.id "arch") (eq .chezmoi.osRelease.id "manjaro") -}}
+    {{- $installCommandDefault = "paru -S --needed --noconfirm --skipreview" -}}
+  {{- else if or (eq .chezmoi.osRelease.id "debian") (eq .chezmoi.osRelease.id "ubuntu") -}}
+    {{- $installCommandDefault = "sudo apt-get install -y" -}}
+  {{- else if eq .chezmoi.osRelease.id "fedora" -}}
+    {{- $installCommandDefault = "sudo dnf install -y" -}}
+  {{- else if contains "opensuse" .chezmoi.osRelease.id -}}
+    {{- $installCommandDefault = "sudo zypper install -y" -}}
+  {{- end -}}
 {{- else if eq .chezmoi.os "darwin" -}}
-{{- $installCommandDefault = "brew install" -}}
+  {{- $installCommandDefault = "brew install" -}}
 {{- end -}}
 {{- $installCommand := promptStringOnce . "install.command" "package install command" $installCommandDefault -}}
 {{- $preferChezmoiDownloads := promptBoolOnce . "downloads.preferChezmoi" "prefer chezmoi downloads when the software can also manage them" true -}}
 {{- $githubMirror := promptChoiceOnce . "downloads.githubMirror" "GitHub download mirror" (list "ghfast" "direct" "custom") "ghfast" -}}
 {{- $githubMirrorPrefix := "https://ghfast.top/" -}}
 {{- if eq $githubMirror "direct" -}}
-{{- $githubMirrorPrefix = "" -}}
+  {{- $githubMirrorPrefix = "" -}}
 {{- else if eq $githubMirror "custom" -}}
-{{- $githubMirrorPrefix = printf "%s/" (trimSuffix "/" (trim (promptStringOnce . "downloads.githubMirrorPrefix" "GitHub mirror HTTPS prefix (prepended to the original URL)" "https://ghfast.top/"))) -}}
+  {{- $githubMirrorPrefix = printf "%s/" (trimSuffix "/" (trim (promptStringOnce . "downloads.githubMirrorPrefix" "GitHub mirror HTTPS prefix (prepended to the original URL)" "https://ghfast.top/"))) -}}
 {{- end -}}
 {{- $unused := includeTemplate "githubDownloadURL" (dict "config" (dict "downloads" (dict "githubMirrorPrefix" $githubMirrorPrefix)) "url" "https://github.com/") -}}
 {{- $downloadChecks := false -}}
 {{- if and (eq .chezmoi.os "linux") (ne $profile "skip") -}}
-{{- $downloadChecks = promptBoolOnce . "features.downloadChecks" "run scheduled download checks on this machine (enable on one always-on host only)" false -}}
+  {{- $downloadChecks = promptBoolOnce . "features.downloadChecks" "run scheduled download checks on this machine (enable on one always-on host only)" false -}}
 {{- end -}}
 {{- $customModules := "" -}}
 {{- if eq $profile "custom" -}}
-{{- $customModules = promptStringOnce . "install.modules" "install modules" "core,shell" -}}
+  {{- $customModules = promptStringOnce . "install.modules" "install modules" "core,shell" -}}
 {{- end -}}
 {{- $customModuleList := printf ",%s," (replace " " "" $customModules) -}}
 {{- $isHeadless := eq $profile "headless" -}}
@@ -52,18 +52,18 @@
 {{- $hasSystemServices := and $adminUser (or $isHeadless $isMinimal $isDesktop $isDevbox $isFull $isEverything $isCustomSystem) -}}
 {{- $proxyDefault := "" -}}
 {{- if $hasProxy -}}
-{{- $proxyDefault = "127.0.0.1:7890" -}}
+  {{- $proxyDefault = "127.0.0.1:7890" -}}
 {{- end -}}
 {{- $proxyAddress := "" -}}
 {{- if $hasProxy -}}
-{{- $proxyAddress = promptStringOnce . "proxy.address" "proxy address host:port" $proxyDefault -}}
+  {{- $proxyAddress = promptStringOnce . "proxy.address" "proxy address host:port" $proxyDefault -}}
 {{- end -}}
 {{- $proxyHost := "" -}}
 {{- $proxyPort := "" -}}
 {{- if contains ":" $proxyAddress -}}
-{{- $proxyParts := splitList ":" $proxyAddress -}}
-{{- $proxyHost = index $proxyParts 0 -}}
-{{- $proxyPort = index $proxyParts 1 -}}
+  {{- $proxyParts := splitList ":" $proxyAddress -}}
+  {{- $proxyHost = index $proxyParts 0 -}}
+  {{- $proxyPort = index $proxyParts 1 -}}
 {{- end -}}
 {{- $inputMethodChoices := list "tiger" "flypy" -}}
 {{- $inputMethod := promptChoiceOnce . "inputMethod" "input method profile" $inputMethodChoices "tiger" -}}
@@ -73,19 +73,19 @@
 {{- $configShareItems := "" -}}
 {{- $configShareCIDR := "" -}}
 {{- if or (eq .chezmoi.os "linux") (eq .chezmoi.os "darwin") -}}
-{{- $configShareChoices := list "none" "all" "custom" -}}
-{{- $configShareMode = promptChoiceOnce . "configShare.mode" "config sharing mode" $configShareChoices "none" -}}
-{{- if eq $configShareMode "custom" -}}
-{{- $configShareItems = promptStringOnce . "configShare.items" "shared configs (comma-separated: mihomo,surfingkeys)" "mihomo,surfingkeys" -}}
-{{- else if eq $configShareMode "all" -}}
-{{- $configShareItems = "mihomo,surfingkeys" -}}
-{{- end -}}
-{{- if ne $configShareMode "none" -}}
-{{- $configShareCIDR = default "127.0.0.1/32" (promptStringOnce . "configShare.allowedCIDR" "allowed client CIDR (127.0.0.1/32: local only; LAN example: 192.168.1.0/24)" "127.0.0.1/32") -}}
-{{- if ne (includeTemplate "isIPv4CIDR" $configShareCIDR) "true" -}}
-{{- fail (printf "invalid configShare.allowedCIDR %q: expected an IPv4 network with no host bits set, such as 127.0.0.1/32 (local only) or 192.168.1.0/24" $configShareCIDR) -}}
-{{- end -}}
-{{- end -}}
+  {{- $configShareChoices := list "none" "all" "custom" -}}
+  {{- $configShareMode = promptChoiceOnce . "configShare.mode" "config sharing mode" $configShareChoices "none" -}}
+  {{- if eq $configShareMode "custom" -}}
+    {{- $configShareItems = promptStringOnce . "configShare.items" "shared configs (comma-separated: mihomo,surfingkeys)" "mihomo,surfingkeys" -}}
+  {{- else if eq $configShareMode "all" -}}
+    {{- $configShareItems = "mihomo,surfingkeys" -}}
+  {{- end -}}
+  {{- if ne $configShareMode "none" -}}
+    {{- $configShareCIDR = default "127.0.0.1/32" (promptStringOnce . "configShare.allowedCIDR" "allowed client CIDR (127.0.0.1/32: local only; LAN example: 192.168.1.0/24)" "127.0.0.1/32") -}}
+    {{- if ne (includeTemplate "isIPv4CIDR" $configShareCIDR) "true" -}}
+      {{- fail (printf "invalid configShare.allowedCIDR %q: expected an IPv4 network with no host bits set, such as 127.0.0.1/32 (local only) or 192.168.1.0/24" $configShareCIDR) -}}
+    {{- end -}}
+  {{- end -}}
 {{- end -}}
 [merge]
 command = "nvim"

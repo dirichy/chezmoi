@@ -1,8 +1,8 @@
 {{- $routerIp := "unknownRouterIp" -}}
 {{- if eq .chezmoi.os "linux" -}}
-{{- $routerIp = "linuxRouterIP" -}}
+  {{- $routerIp = "linuxRouterIP" -}}
 {{- else if eq .chezmoi.os "darwin" -}}
-{{ $routerIp = "darwinRouterIP" -}}
+  {{- $routerIp = "darwinRouterIP" -}}
 {{- end -}}
 
 
