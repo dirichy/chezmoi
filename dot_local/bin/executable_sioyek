@@ -1,2 +1,14 @@
 #!/usr/bin/env bash
-env QT_QPA_PLATFORM=xcb /usr/bin/sioyek "$@" || flatpak run com.github.ahrm.sioyek "$@"
+env QT_QPA_PLATFORM=xcb /usr/bin/sioyek "$@" && exit 0
+
+# Export file arguments through the document portal for sandbox access.
+args=()
+for arg in "$@"; do
+    if [[ -f "$arg" ]]; then
+        [[ "$arg" = /* ]] || arg="$PWD/$arg"
+        args+=(@@ "$arg" @@)
+    else
+        args+=("$arg")
+    fi
+done
+exec flatpak run --file-forwarding com.github.ahrm.sioyek "${args[@]}"
