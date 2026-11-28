@@ -5,11 +5,9 @@ local lazydev_library = {
 	{ path = "luvit-meta/library", words = { "vim%.uv" } },
 	{ path = "~/.hammerspoon/Spoons/EmmyLua.spoon/annotations/", words = { "hs" } },
 }
-if vim.fn.executable("brew") == 1 then
-	local brew_prefix = vim.fn.systemlist({ "brew", "--prefix" })[1]
-	if brew_prefix and brew_prefix ~= "" then
-		table.insert(lazydev_library, brew_prefix .. "/lib/lua/5.4/")
-	end
+local brew_prefix = vim.env.HOMEBREW_PREFIX or "/opt/homebrew"
+if vim.fn.isdirectory(brew_prefix .. "/lib/lua/5.4") == 1 then
+	table.insert(lazydev_library, brew_prefix .. "/lib/lua/5.4/")
 end
 
 return {
