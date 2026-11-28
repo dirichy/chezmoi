@@ -4,12 +4,21 @@
   "phone/2"
   "phone/wyy1"
   "phone/wyy2"
+  "phone/mom1"
+  "phone/mom2"
+  "phone/dad1"
+  "phone/dad2"
   "id/me"
+  "id/wyy" 
+  "id/mom" 
+  "id/dad" 
   "email/me"
   "address/home"
+  "address/school" 
   "fduID"
 -}}
 return {
+  { key = "borrowroom", text = "讨论科研进度，作报告，需要场地。希望通过。" },
 {{- range $keys -}}
   {{- $text := secret . "" -}}
   {{- if ne $text "" }}
