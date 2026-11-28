@@ -14,10 +14,11 @@ local function valid_monitor(m)
 end
 function M.get_physic_monitor(callback, max_try)
 	max_try = max_try or 30
-	for _, monitor in ipairs(hl.get_monitors()) do
+	for _, monitor in ipairs(hl.get_monitors({ all = true })) do
 		if valid_monitor(monitor) then
 			callback(monitor)
 			hl.sunshine = require("sunshine")
+			hl.sunshine.setup()
 			return
 		end
 	end
@@ -30,12 +31,13 @@ function M.get_physic_monitor(callback, max_try)
 			timer = nil
 			return
 		end
-		for _, monitor in ipairs(hl.get_monitors()) do
+		for _, monitor in ipairs(hl.get_monitors({ all = true })) do
 			if valid_monitor(monitor) then
 				timer:set_enabled(false)
 				timer = nil
 				callback(monitor)
 				hl.sunshine = require("sunshine")
+				hl.sunshine.setup()
 				return
 			end
 		end

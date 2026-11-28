@@ -383,6 +383,14 @@ Linux 桌面以 Hyprland 为主，入口是：
 - `keyd.lua` 支持按当前窗口动态调整 keyd 绑定
 - 双系统配置nopasswd后可以一键切系统。需要免密sudo执行grub-reboot和reboot。
 
+Sunshine 固定捕获 `SUNSHINE` 虚拟输出，提供 `expand`、`mirror`、`reverse-mirror` 和 `only` 四种布局。空闲及应用 undo 时使用镜像：真实屏恢复为独立输出，再把虚拟屏镜像到真实屏，不占用独立的鼠标区域或工作区。Hyprland 会把虚拟屏上的工作区整体迁移回真实屏。这里不采用远处停放或空闲禁用；禁用的输出不会出现在 Wayland 输出列表中，无法被 Sunshine 的 wlr 后端枚举。
+
+`hl.monitor()` 只登记规则。布局控制按实际状态分阶段推进：先确认真实屏已启用且解除镜像；独立串流确认虚拟屏的分辨率、刷新率已就绪后，才禁用真实屏或设置反向镜像；恢复镜像时确认镜像关系及尺寸、缩放正确后才完成。`only` 的过渡阶段先把虚拟屏放在真实屏下方，等真实屏禁用后才移到原点；退出时先让出真实屏的位置再恢复，避免独立输出短暂重叠产生警告。Lua 控制器每 100 ms 检查，最多等待 10 秒，新请求取消旧的切换。输入校验、布局判断、重试、超时和成功后的状态保存、重载恢复都在 `sunshine.lua` 中。`sunshine_pre` 是 Lua IPC 入口，通过 `hyprctl repl` 提交请求并等待对应请求的完成状态（最长 12 秒）；不解析显示器 JSON、不重复布局判断。独立入口进程负责等待，避免阻塞 Hyprland 的事件循环。Linux apps 模块包含运行入口所需的 Lua 解释器。
+
+`output_name = SUNSHINE` 使用稳定名称，不依赖会随禁用/启用变化的 Wayland registry ID。Sunshine 在应用 prep hook 之前已有一次采集/编码器探测，因此仍需真实屏在空闲时可供探测；全部真实屏断开时的冷启动不在此方案的保证范围内。
+
+这里的恢复时机是 Sunshine 执行应用 undo hook；只断开客户端但保留应用会话时，不保证触发恢复。
+
 相关服务：
 
 - `config-share.service`: 在 `~/.local/share/config-share` 提供只读 HTTP 配置共享；初始化时可选择全部、关闭或自定义发布 `mihomo`、`surfingkeys`，并限制允许访问的客户端网段。
@@ -564,6 +572,7 @@ Neovim 配置在 `dot_config/nvim`：
 - LSP、completion、treesitter、debug、UI、LaTeX、Neorg、LeetCode、Firenvim 等插件分组
 - Treesitter 缺失 parser 时异步安装，完成后自动启用相关缓冲区的高亮、折叠和缩进
 - 支持 LuaRocks 路径
+- lazydev 的 Homebrew Lua 库路径使用 `HOMEBREW_PREFIX`，未设置时使用 `/opt/homebrew`，仅在目录存在时添加；启动时无需调用 `brew --prefix`
 - `PROF=1 nvim` 可启用 snacks profiler
 
 Kitty 的 scrollback 使用 [kitty-scrollback.nvim](https://github.com/mikesmithgh/kitty-scrollback.nvim)，
@@ -800,7 +809,7 @@ SSH 配置在 `dot_ssh/config.tmpl`：
 
 - `hyprmonitor`: 读取当前 Hyprland monitor 字段
 - `qq` : Linux QQ/Hyprland wrapper
-- `sioyek`: 强制 Sioyek 使用 xcb
+- `sioyek`: 原生版使用 xcb；失败时回退到 Flatpak，通过文档 portal 转发文件参数
 - `sunshine_pre`: Sunshine 启动前显示器布局处理
 - `toggle_proxy`: macOS 网络代理开关
 - `tmux-notify`: tmux 桌面与 msmtp 邮件通知，按事件每 30 分钟去重

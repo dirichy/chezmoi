@@ -296,7 +296,7 @@ module_apps() {
   install_packages apps \
     zen-browser-bin:zen-browser mpv:mpv imv:imv sioyek-git:sioyek zathura:zathura zathura-pdf-mupdf \
     linuxqq-nt-bwrap:qq wechat-universal-bwrap:wechat-universal \
-    sunshine:sunshine moonlight-qt:moonlight calcurse:calcurse
+    sunshine:sunshine lua:lua moonlight-qt:moonlight calcurse:calcurse
 }
 
 module_dev() {

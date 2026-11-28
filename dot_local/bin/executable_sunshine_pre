@@ -1,38 +1,46 @@
-#!/usr/bin/env bash
-state_file="${XDG_RUNTIME_DIR}/hypr-sunshine-command"
+#!/usr/bin/env lua
+-- Thin IPC client: the compositor's sunshine.lua owns all layout decisions.
+local function fail(message)
+	io.stderr:write("Sunshine: " .. message .. "\n")
+	os.exit(1)
+end
 
-run() {
-  local command="$1"
-  printf '%s\n' "$command" > "${state_file}.tmp"
-  mv "${state_file}.tmp" "$state_file"
-  hyprctl eval "$command"
-}
+local function ipc(code)
+	local quoted = "'" .. code:gsub("'", "'\\''") .. "'"
+	local pipe = assert(io.popen("timeout 3s hyprctl repl " .. quoted .. " 2>&1", "r"))
+	local reply = pipe:read("*a"):gsub("%s+$", "")
+	local ok = pipe:close()
+	if not ok or reply:match("^error:") then
+		fail(reply ~= "" and reply or "Hyprland IPC failed")
+	end
+	return reply
+end
 
-case "$1" in
-  expand)
-    run "hl.sunshine.expand(${SUNSHINE_CLIENT_WIDTH},${SUNSHINE_CLIENT_HEIGHT},${SUNSHINE_CLIENT_FPS})"
-    sleep 5
-    ;;
-  mirror)
-    run "hl.sunshine.mirror(${SUNSHINE_CLIENT_WIDTH},${SUNSHINE_CLIENT_HEIGHT},${SUNSHINE_CLIENT_FPS})"
-    sleep 5
-    ;;
-  reverse-mirror)
-    run "hl.sunshine.reverse_mirror(${SUNSHINE_CLIENT_WIDTH},${SUNSHINE_CLIENT_HEIGHT},${SUNSHINE_CLIENT_FPS})"
-    sleep 5
-    ;;
-  only)
-    run "hl.sunshine.only(${SUNSHINE_CLIENT_WIDTH},${SUNSHINE_CLIENT_HEIGHT},${SUNSHINE_CLIENT_FPS})"
-    sleep 5
-    ;;
-  reset)
-    run "hl.sunshine.reset()"
-    ;;
-  restore)
-    if [[ -s "$state_file" ]]; then
-      IFS= read -r command < "$state_file"
-      hyprctl eval "$command"
-    fi
-    ;;
-esac
-exit 0
+if #arg ~= 1 then
+	io.stderr:write("Usage: sunshine_pre {expand|mirror|reverse-mirror|only|reset|restore}\n")
+	os.exit(2)
+end
+
+local id = ipc(("hl.sunshine.request(%q,%q,%q,%q)"):format(
+	arg[1],
+	os.getenv("SUNSHINE_CLIENT_WIDTH") or "",
+	os.getenv("SUNSHINE_CLIENT_HEIGHT") or "",
+	os.getenv("SUNSHINE_CLIENT_FPS") or ""
+))
+if not id:match("^%d+$") then
+	fail("unexpected request reply: " .. id)
+end
+
+-- This only waits for an IPC result. State checks, retries and the actual
+-- transition timeout run in Hyprland; never block its Lua event loop here.
+local deadline = os.time() + 12
+while os.time() < deadline do
+	local status = ipc("hl.sunshine.poll(" .. id .. ")")
+	if status == "ready" then
+		os.exit(0)
+	elseif status ~= "pending" then
+		fail("unexpected completion reply: " .. status)
+	end
+	os.execute("sleep 0.1")
+end
+fail("timed out waiting for the compositor's completion reply")
